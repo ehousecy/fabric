@@ -17,10 +17,10 @@ import (
 	"testing"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/hyperledger/fabric/common/metadata"
-	"github.com/hyperledger/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/common/metadata"
+	"github.com/ehousecy/fabric/core/config/configtest"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDockerPull(t *testing.T) {
@@ -72,12 +72,12 @@ func TestUtil_GetDockerImageFromConfig(t *testing.T) {
 	expected := "FROM " + metadata.DockerNamespace + ":" + runtime.GOARCH + "-" + metadata.Version
 	viper.Set(path, "FROM $(DOCKER_NS):$(ARCH)-$(PROJECT_VERSION)")
 	actual := GetDockerImageFromConfig(path)
-	require.Equal(t, expected, actual, `Error parsing Dockerfile Template. Expected "%s", got "%s"`, expected, actual)
+	assert.Equal(t, expected, actual, `Error parsing Dockerfile Template. Expected "%s", got "%s"`, expected, actual)
 
 	expected = "FROM " + metadata.DockerNamespace + ":" + runtime.GOARCH + "-" + twoDigitVersion(metadata.Version)
 	viper.Set(path, "FROM $(DOCKER_NS):$(ARCH)-$(TWO_DIGIT_VERSION)")
 	actual = GetDockerImageFromConfig(path)
-	require.Equal(t, expected, actual, `Error parsing Dockerfile Template. Expected "%s", got "%s"`, expected, actual)
+	assert.Equal(t, expected, actual, `Error parsing Dockerfile Template. Expected "%s", got "%s"`, expected, actual)
 
 }
 
@@ -98,10 +98,10 @@ func TestTwoDigitVersion(t *testing.T) {
 	version := "2.0.0"
 	expected := "2.0"
 	actual := twoDigitVersion(version)
-	require.Equal(t, expected, actual, `Error parsing two digit version. Expected "%s", got "%s"`, expected, actual)
+	assert.Equal(t, expected, actual, `Error parsing two digit version. Expected "%s", got "%s"`, expected, actual)
 
 	version = "latest"
 	expected = "latest"
 	actual = twoDigitVersion(version)
-	require.Equal(t, expected, actual, `Error parsing two digit version. Expected "%s", got "%s"`, expected, actual)
+	assert.Equal(t, expected, actual, `Error parsing two digit version. Expected "%s", got "%s"`, expected, actual)
 }

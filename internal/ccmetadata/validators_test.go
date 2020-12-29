@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 var packageTestDir = filepath.Join(os.TempDir(), "ccmetadata-validator-test")
@@ -26,7 +26,7 @@ func TestGoodIndexJSON(t *testing.T) {
 	fileBytes := []byte(`{"index":{"fields":["data.docType","data.owner"]},"name":"indexOwner","type":"json"}`)
 
 	err := ValidateMetadataFile(fileName, fileBytes)
-	require.NoError(t, err, "Error validating a good index")
+	assert.NoError(t, err, "Error validating a good index")
 }
 
 func TestBadIndexJSON(t *testing.T) {
@@ -39,11 +39,11 @@ func TestBadIndexJSON(t *testing.T) {
 
 	err := ValidateMetadataFile(fileName, fileBytes)
 
-	require.Error(t, err, "Should have received an InvalidIndexContentError")
+	assert.Error(t, err, "Should have received an InvalidIndexContentError")
 
 	// Type assertion on InvalidIndexContentError
 	_, ok := err.(*InvalidIndexContentError)
-	require.True(t, ok, "Should have received an InvalidIndexContentError")
+	assert.True(t, ok, "Should have received an InvalidIndexContentError")
 
 	t.Log("SAMPLE ERROR STRING:", err.Error())
 }
@@ -57,11 +57,11 @@ func TestIndexWrongLocation(t *testing.T) {
 	fileBytes := []byte(`{"index":{"fields":["data.docType","data.owner"]},"name":"indexOwner","type":"json"}`)
 
 	err := ValidateMetadataFile(fileName, fileBytes)
-	require.Error(t, err, "Should have received an UnhandledDirectoryError")
+	assert.Error(t, err, "Should have received an UnhandledDirectoryError")
 
 	// Type assertion on UnhandledDirectoryError
 	_, ok := err.(*UnhandledDirectoryError)
-	require.True(t, ok, "Should have received an UnhandledDirectoryError")
+	assert.True(t, ok, "Should have received an UnhandledDirectoryError")
 
 	t.Log("SAMPLE ERROR STRING:", err.Error())
 }
@@ -75,11 +75,11 @@ func TestInvalidMetadataType(t *testing.T) {
 	fileBytes := []byte(`{"index":{"fields":["data.docType","data.owner"]},"name":"indexOwner","type":"json"}`)
 
 	err := ValidateMetadataFile(fileName, fileBytes)
-	require.Error(t, err, "Should have received an UnhandledDirectoryError")
+	assert.Error(t, err, "Should have received an UnhandledDirectoryError")
 
 	// Type assertion on UnhandledDirectoryError
 	_, ok := err.(*UnhandledDirectoryError)
-	require.True(t, ok, "Should have received an UnhandledDirectoryError")
+	assert.True(t, ok, "Should have received an UnhandledDirectoryError")
 }
 
 func TestBadMetadataExtension(t *testing.T) {
@@ -91,7 +91,7 @@ func TestBadMetadataExtension(t *testing.T) {
 	fileBytes := []byte(`{"index":{"fields":["data.docType","data.owner"]},"name":"indexOwner","type":"json"}`)
 
 	err := ValidateMetadataFile(fileName, fileBytes)
-	require.Error(t, err, "Should have received an error")
+	assert.Error(t, err, "Should have received an error")
 
 }
 
@@ -106,7 +106,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err := ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for bad META-INF directory")
+	assert.Error(t, err, "Should have received an error for bad META-INF directory")
 
 	// Test bad path length
 	fileName = "META-INF/statedb/test1.json"
@@ -114,7 +114,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for bad length")
+	assert.Error(t, err, "Should have received an error for bad length")
 
 	// Test invalid database name
 	fileName = "META-INF/statedb/goleveldb/indexes/test1.json"
@@ -122,7 +122,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for invalid database")
+	assert.Error(t, err, "Should have received an error for invalid database")
 
 	// Test invalid indexes directory name
 	fileName = "META-INF/statedb/couchdb/index/test1.json"
@@ -130,7 +130,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for invalid indexes directory")
+	assert.Error(t, err, "Should have received an error for invalid indexes directory")
 
 	// Test invalid collections directory name
 	fileName = "META-INF/statedb/couchdb/collection/testcoll/indexes/test1.json"
@@ -138,7 +138,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for invalid collections directory")
+	assert.Error(t, err, "Should have received an error for invalid collections directory")
 
 	// Test valid collections name
 	fileName = "META-INF/statedb/couchdb/collections/testcoll/indexes/test1.json"
@@ -146,7 +146,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.NoError(t, err, "Error should not have been thrown for a valid collection name")
+	assert.NoError(t, err, "Error should not have been thrown for a valid collection name")
 
 	// Test invalid collections name
 	fileName = "META-INF/statedb/couchdb/collections/#testcoll/indexes/test1.json"
@@ -154,7 +154,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for an invalid collection name")
+	assert.Error(t, err, "Should have received an error for an invalid collection name")
 
 	// Test invalid collections name
 	fileName = "META-INF/statedb/couchdb/collections/testcoll/indexes/test1.txt"
@@ -162,7 +162,7 @@ func TestBadFilePaths(t *testing.T) {
 
 	err = ValidateMetadataFile(fileName, fileBytes)
 	fmt.Println(err)
-	require.Error(t, err, "Should have received an error for an invalid file name")
+	assert.Error(t, err, "Should have received an error for an invalid file name")
 
 }
 
@@ -172,19 +172,19 @@ func TestIndexValidation(t *testing.T) {
 	indexDef := []byte(`{"index":{"fields":[{"size":"desc"}, {"color":"desc"}]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition := isJSON(indexDef)
 	err := validateIndexJSON(indexDefinition)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Test valid index without field sorts
 	indexDef = []byte(`{"index":{"fields":["size","color"]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Test valid index without design doc, name and type
 	indexDef = []byte(`{"index":{"fields":["size","color"]}}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Test valid index with partial filter selector (only tests that it will not return error if included)
 	indexDef = []byte(`{
@@ -201,7 +201,7 @@ func TestIndexValidation(t *testing.T) {
 		}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 }
 
@@ -211,43 +211,43 @@ func TestIndexValidationInvalidParameters(t *testing.T) {
 	indexDef := []byte(`{"index":{"fields":[{"size":"desc"}, {"color":"desc"}]},"ddoc":1, "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition := isJSON(indexDef)
 	err := validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for numeric design doc")
+	assert.Error(t, err, "Error should have been thrown for numeric design doc")
 
 	// Test invalid design doc parameter
 	indexDef = []byte(`{"index":{"fields":["size","color"]},"ddoc1":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid design doc parameter")
+	assert.Error(t, err, "Error should have been thrown for invalid design doc parameter")
 
 	// Test invalid name parameter
 	indexDef = []byte(`{"index":{"fields":["size","color"]},"ddoc":"indexSizeSortName", "name1":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid name parameter")
+	assert.Error(t, err, "Error should have been thrown for invalid name parameter")
 
 	// Test invalid type parameter, numeric
 	indexDef = []byte(`{"index":{"fields":["size","color"]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":1}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for numeric type parameter")
+	assert.Error(t, err, "Error should have been thrown for numeric type parameter")
 
 	// Test invalid type parameter
 	indexDef = []byte(`{"index":{"fields":["size","color"]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"text"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid type parameter")
+	assert.Error(t, err, "Error should have been thrown for invalid type parameter")
 
 	// Test invalid index parameter
 	indexDef = []byte(`{"index1":{"fields":["size","color"]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid index parameter")
+	assert.Error(t, err, "Error should have been thrown for invalid index parameter")
 
 	// Test missing index parameter
 	indexDef = []byte(`{"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for missing index parameter")
+	assert.Error(t, err, "Error should have been thrown for missing index parameter")
 
 }
 
@@ -257,37 +257,37 @@ func TestIndexValidationInvalidFields(t *testing.T) {
 	indexDef := []byte(`{"index":{"fields1":[{"size":"desc"}, {"color":"desc"}]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition := isJSON(indexDef)
 	err := validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid fields parameter")
+	assert.Error(t, err, "Error should have been thrown for invalid fields parameter")
 
 	// Test invalid field name (numeric)
 	indexDef = []byte(`{"index":{"fields":["size", 1]},"ddoc1":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for field name defined as numeric")
+	assert.Error(t, err, "Error should have been thrown for field name defined as numeric")
 
 	// Test invalid field sort
 	indexDef = []byte(`{"index":{"fields":[{"size":"desc1"}, {"color":"desc"}]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid field sort")
+	assert.Error(t, err, "Error should have been thrown for invalid field sort")
 
 	// Test numeric in sort
 	indexDef = []byte(`{"index":{"fields":[{"size":1}, {"color":"desc"}]},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for a numeric in field sort")
+	assert.Error(t, err, "Error should have been thrown for a numeric in field sort")
 
 	// Test invalid json for fields
 	indexDef = []byte(`{"index":{"fields":"size"},"ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for invalid field json")
+	assert.Error(t, err, "Error should have been thrown for invalid field json")
 
 	// Test missing JSON for fields
 	indexDef = []byte(`{"index":"fields","ddoc":"indexSizeSortName", "name":"indexSizeSortName","type":"json"}`)
 	_, indexDefinition = isJSON(indexDef)
 	err = validateIndexJSON(indexDefinition)
-	require.Error(t, err, "Error should have been thrown for missing JSON for fields")
+	assert.Error(t, err, "Error should have been thrown for missing JSON for fields")
 
 }
 

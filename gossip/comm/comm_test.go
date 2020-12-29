@@ -25,20 +25,20 @@ import (
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	proto "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/api/mocks"
-	gmocks "github.com/hyperledger/fabric/gossip/comm/mocks"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/identity"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/api/mocks"
+	gmocks "github.com/ehousecy/fabric/gossip/comm/mocks"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/identity"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -130,7 +130,7 @@ func newCommInstanceOnlyWithMetrics(t *testing.T, commMetrics *metrics.CommMetri
 	secureDialOpts api.PeerSecureDialOpts, dialOpts ...grpc.DialOption) Comm {
 
 	_, portString, err := net.SplitHostPort(gRPCServer.Address())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	endpoint := fmt.Sprintf("127.0.0.1:%s", portString)
 	id := []byte(endpoint)
@@ -138,11 +138,11 @@ func newCommInstanceOnlyWithMetrics(t *testing.T, commMetrics *metrics.CommMetri
 
 	commInst, err := NewCommInstance(gRPCServer.Server(), certs, identityMapper, id, secureDialOpts,
 		sec, commMetrics, testCommConfig, dialOpts...)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	go func() {
 		err := gRPCServer.Start()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}()
 
 	return &commGRPC{commInst.(*commImpl), gRPCServer}
@@ -200,13 +200,13 @@ func handshaker(port int, endpoint string, comm Comm, t *testing.T, connMutator 
 	defer cancel()
 	target := fmt.Sprintf("127.0.0.1:%d", port)
 	conn, err := grpc.DialContext(ctx, target, secureOpts, grpc.WithBlock())
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	if err != nil {
 		return nil
 	}
 	cl := proto.NewGossipClient(conn)
 	stream, err := cl.GossipStream(context.Background())
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	if err != nil {
 		return nil
 	}
@@ -217,7 +217,7 @@ func handshaker(port int, endpoint string, comm Comm, t *testing.T, connMutator 
 	}
 
 	pkiID := common.PKIidType(endpoint)
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	msg, _ := c.createConnectionMsg(pkiID, clientCertHash, []byte(endpoint), func(msg []byte) ([]byte, error) {
 		mac := hmac.New(sha256.New, hmacKey)
 		mac.Write(msg)
@@ -232,11 +232,11 @@ func handshaker(port int, endpoint string, comm Comm, t *testing.T, connMutator 
 	if err != nil {
 		return acceptChan
 	}
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	msg, err = protoext.EnvelopeToGossipMessage(envelope)
-	require.NoError(t, err, "%v", err)
-	require.Equal(t, []byte(target), msg.GetConn().PkiId)
-	require.Equal(t, extractCertificateHashFromContext(stream.Context()), msg.GetConn().TlsCertHash)
+	assert.NoError(t, err, "%v", err)
+	assert.Equal(t, []byte(target), msg.GetConn().PkiId)
+	assert.Equal(t, extractCertificateHashFromContext(stream.Context()), msg.GetConn().TlsCertHash)
 	msg2Send := createGossipMsg()
 	nonce := uint64(rand.Int())
 	msg2Send.Nonce = nonce
@@ -289,12 +289,12 @@ func TestMutualParallelSendWithAck(t *testing.T) {
 
 func getAvailablePort(t *testing.T) (port int, endpoint string, ll net.Listener) {
 	ll, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	endpoint = ll.Addr().String()
 	_, portS, err := net.SplitHostPort(endpoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	portInt, err := strconv.Atoi(portS)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return portInt, endpoint, ll
 }
 
@@ -309,11 +309,11 @@ func TestHandshake(t *testing.T) {
 	}
 	assertPositivePath := func(msg protoext.ReceivedMessage, endpoint string) {
 		expectedPKIID := common.PKIidType(endpoint)
-		require.Equal(t, expectedPKIID, msg.GetConnectionInfo().ID)
-		require.Equal(t, api.PeerIdentityType(endpoint), msg.GetConnectionInfo().Identity)
-		require.NotNil(t, msg.GetConnectionInfo().Auth)
+		assert.Equal(t, expectedPKIID, msg.GetConnectionInfo().ID)
+		assert.Equal(t, api.PeerIdentityType(endpoint), msg.GetConnectionInfo().Identity)
+		assert.NotNil(t, msg.GetConnectionInfo().Auth)
 		sig, _ := (&naiveSecProvider{}).Sign(msg.GetConnectionInfo().Auth.SignedData)
-		require.Equal(t, sig, msg.GetConnectionInfo().Auth.Signature)
+		assert.Equal(t, sig, msg.GetConnectionInfo().Auth.Signature)
 	}
 
 	// Positive path 1 - check authentication without TLS
@@ -325,20 +325,20 @@ func TestHandshake(t *testing.T) {
 		return []grpc.DialOption{grpc.WithInsecure()}
 	}, naiveSec, disabledMetrics, testCommConfig)
 	go s.Serve(ll)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	var msg protoext.ReceivedMessage
 
 	_, tempEndpoint, tempL := getAvailablePort(t)
 	acceptChan := handshaker(port, tempEndpoint, inst, t, mutator, none)
 	select {
 	case <-time.After(time.Duration(time.Second * 4)):
-		require.FailNow(t, "Didn't receive a message, seems like handshake failed")
+		assert.FailNow(t, "Didn't receive a message, seems like handshake failed")
 	case msg = <-acceptChan:
 	}
-	require.Equal(t, common.PKIidType(tempEndpoint), msg.GetConnectionInfo().ID)
-	require.Equal(t, api.PeerIdentityType(tempEndpoint), msg.GetConnectionInfo().Identity)
+	assert.Equal(t, common.PKIidType(tempEndpoint), msg.GetConnectionInfo().ID)
+	assert.Equal(t, api.PeerIdentityType(tempEndpoint), msg.GetConnectionInfo().Identity)
 	sig, _ := (&naiveSecProvider{}).Sign(msg.GetConnectionInfo().Auth.SignedData)
-	require.Equal(t, sig, msg.GetConnectionInfo().Auth.Signature)
+	assert.Equal(t, sig, msg.GetConnectionInfo().Auth.Signature)
 
 	inst.Stop()
 	s.Stop()
@@ -354,7 +354,7 @@ func TestHandshake(t *testing.T) {
 
 	select {
 	case <-time.After(time.Second * 2):
-		require.FailNow(t, "Didn't receive a message, seems like handshake failed")
+		assert.FailNow(t, "Didn't receive a message, seems like handshake failed")
 	case msg = <-acceptChan:
 	}
 	assertPositivePath(msg, tempEndpoint)
@@ -364,7 +364,7 @@ func TestHandshake(t *testing.T) {
 	_, tempEndpoint, tempL = getAvailablePort(t)
 	acceptChan = handshaker(port, tempEndpoint, comm, t, mutator, oneWayTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 
 	// Negative path, signature is wrong
@@ -375,7 +375,7 @@ func TestHandshake(t *testing.T) {
 	}
 	acceptChan = handshaker(port, tempEndpoint, comm, t, mutator, mutualTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 
 	// Negative path, the PKIid doesn't match the identity
@@ -389,7 +389,7 @@ func TestHandshake(t *testing.T) {
 	_, tempEndpoint2, tempL2 := getAvailablePort(t)
 	acceptChan = handshaker(port, tempEndpoint2, comm, t, mutator, mutualTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 	tempL2.Close()
 
@@ -402,7 +402,7 @@ func TestHandshake(t *testing.T) {
 	}
 	acceptChan = handshaker(port, tempEndpoint, comm, t, mutator, mutualTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 
 	// Negative path, no PKI-ID was sent
@@ -414,7 +414,7 @@ func TestHandshake(t *testing.T) {
 	}
 	acceptChan = handshaker(port, tempEndpoint, comm, t, mutator, mutualTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 
 	// Negative path, connection message is of a different type
@@ -428,7 +428,7 @@ func TestHandshake(t *testing.T) {
 	}
 	acceptChan = handshaker(port, tempEndpoint, comm, t, mutator, mutualTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 
 	// Negative path, the peer didn't respond to the handshake in due time
@@ -439,7 +439,7 @@ func TestHandshake(t *testing.T) {
 	}
 	acceptChan = handshaker(port, tempEndpoint, comm, t, mutator, mutualTLS)
 	time.Sleep(time.Second)
-	require.Equal(t, 0, len(acceptChan))
+	assert.Equal(t, 0, len(acceptChan))
 	tempL.Close()
 }
 
@@ -494,7 +494,7 @@ func TestConnectUnexpectedPeer(t *testing.T) {
 		select {
 		case <-messagesForComm2:
 		case <-time.After(time.Second * 5):
-			require.Fail(t, "Didn't receive a message within a timely manner")
+			assert.Fail(t, "Didn't receive a message within a timely manner")
 			util.PrintStackTrace()
 		}
 	})
@@ -505,7 +505,7 @@ func TestConnectUnexpectedPeer(t *testing.T) {
 		comm1.Send(createGossipMsg(), unexpectedRemotePeer)
 		select {
 		case <-messagesForComm3:
-			require.Fail(t, "Message shouldn't have been received")
+			assert.Fail(t, "Message shouldn't have been received")
 		case <-time.After(time.Second * 5):
 		}
 	})
@@ -522,8 +522,8 @@ func TestGetConnectionInfo(t *testing.T) {
 	case <-time.After(time.Second * 10):
 		t.Fatal("Didn't receive a message in time")
 	case msg := <-m1:
-		require.Equal(t, comm2.GetPKIid(), msg.GetConnectionInfo().ID)
-		require.NotNil(t, msg.GetSourceEnvelope())
+		assert.Equal(t, comm2.GetPKIid(), msg.GetConnectionInfo().ID)
+		assert.NotNil(t, msg.GetSourceEnvelope())
 	}
 }
 
@@ -543,10 +543,10 @@ func TestCloseConn(t *testing.T) {
 	defer cancel()
 	target := fmt.Sprintf("127.0.0.1:%d", port1)
 	conn, err := grpc.DialContext(ctx, target, grpc.WithTransportCredentials(ta), grpc.WithBlock())
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	cl := proto.NewGossipClient(conn)
 	stream, err := cl.GossipStream(context.Background())
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	c := &commImpl{}
 	tlsCertHash := certHashFromRawCert(tlsCfg.Certificates[0].Certificate[0])
 	connMsg, _ := c.createConnectionMsg(common.PKIidType("pkiID"), tlsCertHash, api.PeerIdentityType("pkiID"), func(msg []byte) ([]byte, error) {
@@ -554,12 +554,12 @@ func TestCloseConn(t *testing.T) {
 		mac.Write(msg)
 		return mac.Sum(nil), nil
 	}, false)
-	require.NoError(t, stream.Send(connMsg.Envelope))
+	assert.NoError(t, stream.Send(connMsg.Envelope))
 	stream.Send(createGossipMsg().Envelope)
 	select {
 	case <-acceptChan:
 	case <-time.After(time.Second):
-		require.Fail(t, "Didn't receive a message within a timely period")
+		assert.Fail(t, "Didn't receive a message within a timely period")
 	}
 	comm1.CloseConn(&RemotePeer{PKIID: common.PKIidType("pkiID")})
 	time.Sleep(time.Second * 10)
@@ -576,7 +576,7 @@ func TestCloseConn(t *testing.T) {
 			break
 		}
 	}
-	require.True(t, gotErr, "Should have failed because connection is closed")
+	assert.True(t, gotErr, "Should have failed because connection is closed")
 }
 
 // TestCommSend makes sure that enough messages get through
@@ -687,7 +687,7 @@ func TestNonResponsivePing(t *testing.T) {
 	}()
 	select {
 	case <-time.After(time.Second * 10):
-		require.Fail(t, "Request wasn't cancelled on time")
+		assert.Fail(t, "Request wasn't cancelled on time")
 	case <-s:
 	}
 
@@ -722,11 +722,11 @@ func TestResponses(t *testing.T) {
 
 	select {
 	case <-ticker.C:
-		require.Fail(t, "Haven't got response from comm1 within a timely manner")
+		assert.Fail(t, "Haven't got response from comm1 within a timely manner")
 		break
 	case resp := <-responsesFromComm1:
 		ticker.Stop()
-		require.Equal(t, expectedNOnce, resp.GetGossipMessage().Nonce)
+		assert.Equal(t, expectedNOnce, resp.GetGossipMessage().Nonce)
 		break
 	}
 }
@@ -792,12 +792,12 @@ func TestAccept(t *testing.T) {
 	t.Logf("%d even nonces received", len(evenResults))
 	t.Logf("%d  odd nonces received", len(oddResults))
 
-	require.NotEmpty(t, evenResults)
-	require.NotEmpty(t, oddResults)
+	assert.NotEmpty(t, evenResults)
+	assert.NotEmpty(t, oddResults)
 
 	remainderPredicate := func(a []uint64, rem uint64) {
 		for _, n := range a {
-			require.Equal(t, n%2, rem)
+			assert.Equal(t, n%2, rem)
 		}
 	}
 
@@ -847,28 +847,28 @@ func TestProbe(t *testing.T) {
 	defer comm1.Stop()
 	comm2, port2 := newCommInstance(t, naiveSec)
 	time.Sleep(time.Duration(1) * time.Second)
-	require.NoError(t, comm1.Probe(remotePeer(port2)))
+	assert.NoError(t, comm1.Probe(remotePeer(port2)))
 	_, err := comm1.Handshake(remotePeer(port2))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	tempPort, _, ll := getAvailablePort(t)
 	defer ll.Close()
-	require.Error(t, comm1.Probe(remotePeer(tempPort)))
+	assert.Error(t, comm1.Probe(remotePeer(tempPort)))
 	_, err = comm1.Handshake(remotePeer(tempPort))
-	require.Error(t, err)
+	assert.Error(t, err)
 	comm2.Stop()
 	time.Sleep(time.Duration(1) * time.Second)
-	require.Error(t, comm1.Probe(remotePeer(port2)))
+	assert.Error(t, comm1.Probe(remotePeer(port2)))
 	_, err = comm1.Handshake(remotePeer(port2))
-	require.Error(t, err)
+	assert.Error(t, err)
 	comm2, port2 = newCommInstance(t, naiveSec)
 	defer comm2.Stop()
 	time.Sleep(time.Duration(1) * time.Second)
-	require.NoError(t, comm2.Probe(remotePeer(port1)))
+	assert.NoError(t, comm2.Probe(remotePeer(port1)))
 	_, err = comm2.Handshake(remotePeer(port1))
-	require.NoError(t, err)
-	require.NoError(t, comm1.Probe(remotePeer(port2)))
+	assert.NoError(t, err)
+	assert.NoError(t, comm1.Probe(remotePeer(port2)))
 	_, err = comm1.Handshake(remotePeer(port2))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	// Now try a deep probe with an expected PKI-ID that doesn't match
 	wrongRemotePeer := remotePeer(port2)
 	if wrongRemotePeer.PKIID[0] == 0 {
@@ -877,12 +877,12 @@ func TestProbe(t *testing.T) {
 		wrongRemotePeer.PKIID[0] = 0
 	}
 	_, err = comm1.Handshake(wrongRemotePeer)
-	require.Error(t, err)
+	assert.Error(t, err)
 	// Try a deep probe with a nil PKI-ID
 	endpoint := fmt.Sprintf("127.0.0.1:%d", port2)
 	id, err := comm1.Handshake(&RemotePeer{Endpoint: endpoint})
-	require.NoError(t, err)
-	require.Equal(t, api.PeerIdentityType(endpoint), id)
+	assert.NoError(t, err)
+	assert.Equal(t, api.PeerIdentityType(endpoint), id)
 }
 
 func TestPresumedDead(t *testing.T) {
@@ -903,7 +903,7 @@ func TestPresumedDead(t *testing.T) {
 	case <-acceptCh:
 		ticker.Stop()
 	case <-ticker.C:
-		require.Fail(t, "Didn't get first message")
+		assert.Fail(t, "Didn't get first message")
 	}
 
 	comm2.Stop()
@@ -917,7 +917,7 @@ func TestPresumedDead(t *testing.T) {
 	ticker = time.NewTicker(time.Second * time.Duration(3))
 	select {
 	case <-ticker.C:
-		require.Fail(t, "Didn't get a presumed dead message within a timely manner")
+		assert.Fail(t, "Didn't get a presumed dead message within a timely manner")
 		break
 	case <-comm1.PresumedDead():
 		ticker.Stop()
@@ -945,9 +945,9 @@ func TestReadFromStream(t *testing.T) {
 
 	select {
 	case <-msgChan:
-		require.Fail(t, "malformed message shouldn't have been received")
+		assert.Fail(t, "malformed message shouldn't have been received")
 	case <-time.After(time.Millisecond * 100):
-		require.Len(t, errChan, 1)
+		assert.Len(t, errChan, 1)
 	}
 
 	conn.close()
@@ -959,19 +959,19 @@ func TestSendBadEnvelope(t *testing.T) {
 	defer comm1.Stop()
 
 	stream, err := establishSession(t, port)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	inc := comm1.Accept(acceptAll)
 
 	goodMsg := createGossipMsg()
 	err = stream.Send(goodMsg.Envelope)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	select {
 	case goodMsgReceived := <-inc:
-		require.Equal(t, goodMsg.Envelope.Payload, goodMsgReceived.GetSourceEnvelope().Payload)
+		assert.Equal(t, goodMsg.Envelope.Payload, goodMsgReceived.GetSourceEnvelope().Payload)
 	case <-time.After(time.Minute):
-		require.Fail(t, "Didn't receive message within a timely manner")
+		assert.Fail(t, "Didn't receive message within a timely manner")
 		return
 	}
 
@@ -982,11 +982,11 @@ func TestSendBadEnvelope(t *testing.T) {
 		badMsg.Envelope.Payload = []byte{1}
 		err = stream.Send(badMsg.Envelope)
 		if err != nil {
-			require.Equal(t, io.EOF, err)
+			assert.Equal(t, io.EOF, err)
 			break
 		}
 		if time.Now().After(start.Add(time.Second * 30)) {
-			require.Fail(t, "Didn't close stream within a timely manner")
+			assert.Fail(t, "Didn't close stream within a timely manner")
 			return
 		}
 	}
@@ -1004,13 +1004,13 @@ func establishSession(t *testing.T, port int) (proto.Gossip_GossipStreamClient, 
 
 	endpoint := fmt.Sprintf("127.0.0.1:%d", port)
 	conn, err := grpc.DialContext(ctx, endpoint, secureOpts, grpc.WithBlock())
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	if err != nil {
 		return nil, err
 	}
 	cl := proto.NewGossipClient(conn)
 	stream, err := cl.GossipStream(context.Background())
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	if err != nil {
 		return nil, err
 	}
@@ -1018,7 +1018,7 @@ func establishSession(t *testing.T, port int) (proto.Gossip_GossipStreamClient, 
 	clientCertHash := certHashFromRawCert(cert.Certificate[0])
 	pkiID := common.PKIidType([]byte{1, 2, 3})
 	c := &commImpl{}
-	require.NoError(t, err, "%v", err)
+	assert.NoError(t, err, "%v", err)
 	msg, _ := c.createConnectionMsg(pkiID, clientCertHash, []byte{1, 2, 3}, func(msg []byte) ([]byte, error) {
 		mac := hmac.New(sha256.New, hmacKey)
 		mac.Write(msg)
@@ -1031,7 +1031,7 @@ func establishSession(t *testing.T, port int) (proto.Gossip_GossipStreamClient, 
 	if err != nil {
 		return nil, err
 	}
-	require.NotNil(t, envelope)
+	assert.NotNil(t, envelope)
 	return stream, nil
 }
 
@@ -1066,7 +1066,7 @@ func waitForMessages(t *testing.T, msgChan chan uint64, count int, errMsg string
 			waiting = false
 		}
 	}
-	require.Equal(t, count, c, errMsg)
+	assert.Equal(t, count, c, errMsg)
 }
 
 func TestConcurrentCloseSend(t *testing.T) {

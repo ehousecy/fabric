@@ -8,8 +8,8 @@ package cluster
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
+	tls "github.com/tjfoc/gmtls"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
@@ -21,14 +21,14 @@ import (
 
 	"github.com/hyperledger/fabric-config/protolator"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
@@ -161,7 +161,7 @@ func (dialer *PredicateDialer) Dial(address string, verifyFunc RemoteVerifier) (
 		serverRootCAs := dialer.Config.Clone().SecOpts.ServerRootCAs
 		dialer.lock.RUnlock()
 
-		tlsConfig.RootCAs = x509.NewCertPool()
+		tlsConfig.RootCAs = sm2.NewCertPool()
 		for _, pem := range serverRootCAs {
 			tlsConfig.RootCAs.AppendCertsFromPEM(pem)
 		}
@@ -402,7 +402,7 @@ func (ep EndpointCriteria) String() string {
 			if bl == nil {
 				break
 			}
-			cert, err := x509.ParseCertificate(bl.Bytes)
+			cert, err := sm2.ParseCertificate(bl.Bytes)
 			if err != nil {
 				break
 			}

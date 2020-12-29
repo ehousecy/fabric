@@ -8,11 +8,11 @@ package multichannel
 
 import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/orderer/common/blockcutter"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor"
-	mockblockcutter "github.com/hyperledger/fabric/orderer/mocks/common/blockcutter"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/orderer/common/blockcutter"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor"
+	mockblockcutter "github.com/ehousecy/fabric/orderer/mocks/common/blockcutter"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 // ConsenterSupport is used to mock the multichannel.ConsenterSupport interface

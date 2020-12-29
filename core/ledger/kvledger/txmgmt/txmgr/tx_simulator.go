@@ -7,9 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package txmgr
 
 import (
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"fmt"
+
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
 	"github.com/pkg/errors"
 )
 
@@ -176,12 +178,17 @@ func (s *txSimulator) checkWritePrecondition(key string, value []byte) error {
 		return err
 	}
 	s.writePerformed = true
-	return s.queryExecutor.txmgr.db.ValidateKeyValue(key, value)
+	if err := s.queryExecutor.txmgr.db.ValidateKeyValue(key, value); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *txSimulator) checkBeforePvtdataQueries() error {
 	if s.writePerformed {
-		return errors.Errorf("txid [%s]: unsuppored transaction. Queries on pvt data is supported only in a read-only transaction", s.txid)
+		return &ErrUnsupportedTransaction{
+			Msg: fmt.Sprintf("txid [%s]: Queries on pvt data is supported only in a read-only transaction", s.txid),
+		}
 	}
 	s.pvtdataQueriesPerformed = true
 	return nil
@@ -189,14 +196,18 @@ func (s *txSimulator) checkBeforePvtdataQueries() error {
 
 func (s *txSimulator) checkPvtdataQueryPerformed() error {
 	if s.pvtdataQueriesPerformed {
-		return errors.Errorf("txid [%s]: unsuppored transaction. Transaction has already performed queries on pvt data. Writes are not allowed", s.txid)
+		return &ErrUnsupportedTransaction{
+			Msg: fmt.Sprintf("txid [%s]: Transaction has already performed queries on pvt data. Writes are not allowed", s.txid),
+		}
 	}
 	return nil
 }
 
 func (s *txSimulator) checkBeforePaginatedQueries() error {
 	if s.writePerformed {
-		return errors.Errorf("txid [%s]: unsuppored transaction. Paginated queries are supported only in a read-only transaction", s.txid)
+		return &ErrUnsupportedTransaction{
+			Msg: fmt.Sprintf("txid [%s]: Paginated queries are supported only in a read-only transaction", s.txid),
+		}
 	}
 	s.paginatedQueriesPerformed = true
 	return nil
@@ -204,7 +215,9 @@ func (s *txSimulator) checkBeforePaginatedQueries() error {
 
 func (s *txSimulator) checkPaginatedQueryPerformed() error {
 	if s.paginatedQueriesPerformed {
-		return errors.Errorf("txid [%s]: unsuppored transaction. Transaction has already performed a paginated query. Writes are not allowed", s.txid)
+		return &ErrUnsupportedTransaction{
+			Msg: fmt.Sprintf("txid [%s]: Transaction has already performed a paginated query. Writes are not allowed", s.txid),
+		}
 	}
 	return nil
 }

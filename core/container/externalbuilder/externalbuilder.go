@@ -17,9 +17,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/container/ccintf"
-	"github.com/hyperledger/fabric/core/peer"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/container/ccintf"
+	"github.com/ehousecy/fabric/core/peer"
 	"github.com/pkg/errors"
 )
 
@@ -277,7 +277,7 @@ func CreateBuilders(builderConfs []peer.ExternalBuilder, mspid string) []*Builde
 		builders = append(builders, &Builder{
 			Location:             builderConf.Path,
 			Name:                 builderConf.Name,
-			PropagateEnvironment: builderConf.PropagateEnvironment,
+			PropagateEnvironment: builderConf.EnvironmentWhitelist,
 			Logger:               logger.Named(builderConf.Name),
 			MSPID:                mspid,
 		})

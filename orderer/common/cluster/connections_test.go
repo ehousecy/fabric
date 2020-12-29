@@ -10,11 +10,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/cluster/mocks"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/cluster/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
 
@@ -32,8 +32,8 @@ func TestConcurrentConnections(t *testing.T) {
 	connect := func() {
 		defer wg.Done()
 		conn2, err := connStore.Connection("", nil)
-		require.NoError(t, err)
-		require.True(t, conn2 == conn)
+		assert.NoError(t, err)
+		assert.True(t, conn2 == conn)
 	}
 	for i := 0; i < n; i++ {
 		go connect()
@@ -85,10 +85,10 @@ func TestConcurrentLookupMiss(t *testing.T) {
 		go func() {
 			defer goroutinesExited.Done()
 			conn2, err := connStore.Connection("", nil)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			// Ensure all calls for Connection() return the same reference
 			// of the gRPC connection.
-			require.True(t, conn2 == conn)
+			assert.True(t, conn2 == conn)
 		}()
 	}
 	// Wait for the Lookup() to be invoked by both

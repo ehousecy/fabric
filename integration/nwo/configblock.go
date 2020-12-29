@@ -16,9 +16,9 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/msp"
 	protosorderer "github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/internal/configtxlator/update"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/internal/configtxlator/update"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -32,31 +32,20 @@ func GetConfigBlock(n *Network, peer *Peer, orderer *Orderer, channel string) *c
 
 	// fetch the config block
 	output := filepath.Join(tempDir, "config_block.pb")
-	FetchConfigBlock(n, peer, orderer, channel, output)
+	sess, err := n.OrdererAdminSession(orderer, peer, commands.ChannelFetch{
+		ChannelID:  channel,
+		Block:      "config",
+		Orderer:    n.OrdererAddress(orderer, ListenPort),
+		OutputFile: output,
+		ClientAuth: n.ClientAuthRequired,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
+	Expect(sess.Err).To(gbytes.Say("Received block: "))
 
 	// unmarshal the config block bytes
 	configBlock := UnmarshalBlockFromFile(output)
 	return configBlock
-}
-
-// FetchConfigBlock fetches latest config block.
-func FetchConfigBlock(n *Network, peer *Peer, orderer *Orderer, channel string, output string) {
-	fetch := func() int {
-		sess, err := n.OrdererAdminSession(orderer, peer, commands.ChannelFetch{
-			ChannelID:  channel,
-			Block:      "config",
-			Orderer:    n.OrdererAddress(orderer, ListenPort),
-			OutputFile: output,
-			ClientAuth: n.ClientAuthRequired,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		code := sess.Wait(n.EventuallyTimeout).ExitCode()
-		if code == 0 {
-			Expect(sess.Err).To(gbytes.Say("Received block: "))
-		}
-		return code
-	}
-	Eventually(fetch, n.EventuallyTimeout).Should(Equal(0))
 }
 
 // GetConfig retrieves the last config of the given channel.
@@ -185,6 +174,26 @@ func CurrentConfigBlockNumberFromPeer(n *Network, peer *Peer, channel, output st
 	configBlock := UnmarshalBlockFromFile(output)
 
 	return configBlock.Header.Number
+}
+
+// FetchConfigBlock fetches latest config block.
+func FetchConfigBlock(n *Network, peer *Peer, orderer *Orderer, channel string, output string) {
+	fetch := func() int {
+		sess, err := n.OrdererAdminSession(orderer, peer, commands.ChannelFetch{
+			ChannelID:  channel,
+			Block:      "config",
+			Orderer:    n.OrdererAddress(orderer, ListenPort),
+			OutputFile: output,
+			ClientAuth: n.ClientAuthRequired,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		code := sess.Wait(n.EventuallyTimeout).ExitCode()
+		if code == 0 {
+			Expect(sess.Err).To(gbytes.Say("Received block: "))
+		}
+		return code
+	}
+	Eventually(fetch, n.EventuallyTimeout).Should(Equal(0))
 }
 
 // UpdateOrdererConfig computes, signs, and submits a configuration update

@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
@@ -25,12 +25,12 @@ func TestCreateNextBlock(t *testing.T) {
 	}
 
 	second := bc.createNextBlock([]*cb.Envelope{{Payload: []byte("some other bytes")}})
-	require.Equal(t, first.Header.Number+1, second.Header.Number)
-	require.Equal(t, protoutil.BlockDataHash(second.Data), second.Header.DataHash)
-	require.Equal(t, protoutil.BlockHeaderHash(first.Header), second.Header.PreviousHash)
+	assert.Equal(t, first.Header.Number+1, second.Header.Number)
+	assert.Equal(t, protoutil.BlockDataHash(second.Data), second.Header.DataHash)
+	assert.Equal(t, protoutil.BlockHeaderHash(first.Header), second.Header.PreviousHash)
 
 	third := bc.createNextBlock([]*cb.Envelope{{Payload: []byte("some other bytes")}})
-	require.Equal(t, second.Header.Number+1, third.Header.Number)
-	require.Equal(t, protoutil.BlockDataHash(third.Data), third.Header.DataHash)
-	require.Equal(t, protoutil.BlockHeaderHash(second.Header), third.Header.PreviousHash)
+	assert.Equal(t, second.Header.Number+1, third.Header.Number)
+	assert.Equal(t, protoutil.BlockDataHash(third.Data), third.Header.DataHash)
+	assert.Equal(t, protoutil.BlockHeaderHash(second.Header), third.Header.PreviousHash)
 }

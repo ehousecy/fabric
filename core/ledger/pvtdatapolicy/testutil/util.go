@@ -8,8 +8,8 @@ package testutil
 
 import (
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/mock"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/mock"
 )
 
 // SampleBTLPolicy helps tests create a sample BTLPolicy
@@ -21,17 +21,4 @@ func SampleBTLPolicy(m map[[2]string]uint64) pvtdatapolicy.BTLPolicy {
 		return &peer.StaticCollectionConfig{BlockToLive: btl}, nil
 	}
 	return pvtdatapolicy.ConstructBTLPolicy(ccInfoRetriever)
-}
-
-type ErrorCausingBTLPolicy struct {
-	Err error
-}
-
-func (p *ErrorCausingBTLPolicy) GetBTL(namesapce string, collection string) (uint64, error) {
-	return 0, p.Err
-
-}
-
-func (p *ErrorCausingBTLPolicy) GetExpiringBlock(namesapce string, collection string, committingBlock uint64) (uint64, error) {
-	return 0, p.Err
 }

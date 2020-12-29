@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hyperledger/fabric/common/metrics"
+	"github.com/ehousecy/fabric/common/metrics"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -42,12 +42,10 @@ func FileOptions(f *ast.File) ([]interface{}, error) {
 	var options []interface{}
 	var errors []error
 
-	// If the file contains a gendoc:ignore directive, ignore the file
+	// If the file contains gendoc:ignore, ignore the file
 	for _, c := range f.Comments {
-		for _, c := range c.List {
-			if strings.HasPrefix(c.Text, "//gendoc:ignore") {
-				return nil, nil
-			}
+		if strings.Contains(c.Text(), "gendoc:ignore") {
+			return nil, nil
 		}
 	}
 
@@ -72,7 +70,7 @@ func FileOptions(f *ast.File) ([]interface{}, error) {
 				if !ok {
 					continue
 				}
-				if imports[ident.Name] != "github.com/hyperledger/fabric/common/metrics" {
+				if imports[ident.Name] != "github.com/ehousecy/fabric/common/metrics" {
 					continue
 				}
 				option, err := createOption(literalType)

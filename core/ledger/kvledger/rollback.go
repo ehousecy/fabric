@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package kvledger
 
 import (
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
 	"github.com/pkg/errors"
 )
 
@@ -23,14 +23,6 @@ func RollbackKVLedger(rootFSPath, ledgerID string, blockNum uint64) error {
 	defer fileLock.Unlock()
 
 	blockstorePath := BlockStorePath(rootFSPath)
-	ledgerIDs, err := blkstorage.GetLedgersBootstrappedFromSnapshot(blockstorePath)
-	if err != nil {
-		return errors.WithMessage(err, "error while checking if any ledger has been bootstrapped from snapshot")
-	}
-	if len(ledgerIDs) > 0 {
-		return errors.Errorf("cannot rollback any channel because the peer contains channel(s) %s that were bootstrapped from snapshot", ledgerIDs)
-	}
-
 	if err := blkstorage.ValidateRollbackParams(blockstorePath, ledgerID, blockNum); err != nil {
 		return err
 	}

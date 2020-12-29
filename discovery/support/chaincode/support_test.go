@@ -11,11 +11,11 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/policies/inquire"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/policies/inquire"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockMetadataRetriever struct {
@@ -84,9 +84,9 @@ func TestSupport(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			sup := NewDiscoverySupport(&mockMetadataRetriever{res: test.input})
 			res := sup.PoliciesByChaincode("", "", test.collNames...)
-			require.Equal(t, len(res), len(test.expectedReturn))
+			assert.Equal(t, len(res), len(test.expectedReturn))
 			for i := 0; i < len(test.expectedReturn); i++ {
-				require.Equal(t, res[i].SatisfiedBy(), test.expectedReturn[i].SatisfiedBy())
+				assert.Equal(t, res[i].SatisfiedBy(), test.expectedReturn[i].SatisfiedBy())
 			}
 		})
 	}

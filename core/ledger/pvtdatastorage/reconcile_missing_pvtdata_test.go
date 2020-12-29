@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hyperledger/fabric/core/ledger"
-	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	btltestutil "github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/testutil"
 	"github.com/stretchr/testify/require"
 	"github.com/willf/bitset"
 )
@@ -24,9 +24,10 @@ type blockTxPvtDataInfoForTest struct {
 }
 
 type pvtDataForTest struct {
+	blockNum        uint64
 	pvtData         []*ledger.TxPvtData
 	dataKeys        []*dataKey
-	missingDataInfo ledger.TxMissingPvtData
+	missingDataInfo ledger.TxMissingPvtDataMap
 }
 
 func TestCommitPvtDataOfOldBlocks(t *testing.T) {
@@ -565,7 +566,7 @@ func constructPvtDataForTest(t *testing.T, blockInfo []*blockTxPvtDataInfoForTes
 		p, ok := blocksPvtData[b.blkNum]
 		if !ok {
 			p = &pvtDataForTest{
-				missingDataInfo: make(ledger.TxMissingPvtData),
+				missingDataInfo: make(ledger.TxMissingPvtDataMap),
 			}
 			blocksPvtData[b.blkNum] = p
 		}

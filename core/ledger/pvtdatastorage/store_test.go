@@ -16,10 +16,10 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	btltestutil "github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,7 +56,7 @@ func TestStoreBasicCommitAndRetrieval(t *testing.T) {
 	}
 
 	// construct missing data for block 1
-	blk1MissingData := make(ledger.TxMissingPvtData)
+	blk1MissingData := make(ledger.TxMissingPvtDataMap)
 
 	// eligible missing data in tx1
 	blk1MissingData.Add(1, "ns-1", "coll-1", true)
@@ -70,7 +70,7 @@ func TestStoreBasicCommitAndRetrieval(t *testing.T) {
 	blk1MissingData.Add(4, "ns-4", "coll-2", false)
 
 	// construct missing data for block 2
-	blk2MissingData := make(ledger.TxMissingPvtData)
+	blk2MissingData := make(ledger.TxMissingPvtDataMap)
 	// eligible missing data in tx1
 	blk2MissingData.Add(1, "ns-1", "coll-1", true)
 	blk2MissingData.Add(1, "ns-1", "coll-2", true)
@@ -114,7 +114,8 @@ func TestStoreBasicCommitAndRetrieval(t *testing.T) {
 
 	// pvt data retrieval for block 2 should return ErrOutOfRange
 	retrievedData, err = store.GetPvtDataByBlockNum(2, nilFilter)
-	require.EqualError(t, err, "last committed block number [1] smaller than the requested block number [2]")
+	_, ok := err.(*ErrOutOfRange)
+	require.True(t, ok)
 	require.Nil(t, retrievedData)
 
 	// pvt data with block 2 - commit
@@ -208,7 +209,7 @@ func TestGetMissingDataInfo(t *testing.T) {
 		store := env.TestStore
 
 		// construct missing data for block 1
-		blk1MissingData := make(ledger.TxMissingPvtData)
+		blk1MissingData := make(ledger.TxMissingPvtDataMap)
 		blk1MissingData.Add(1, "ns-1", "coll-1", true)
 		blk1MissingData.Add(1, "ns-1", "coll-2", true)
 
@@ -313,7 +314,7 @@ func TestExpiryDataNotIncluded(t *testing.T) {
 	store := env.TestStore
 
 	// construct missing data for block 1
-	blk1MissingData := make(ledger.TxMissingPvtData)
+	blk1MissingData := make(ledger.TxMissingPvtDataMap)
 	// eligible missing data in tx1
 	blk1MissingData.Add(1, "ns-1", "coll-1", true)
 	blk1MissingData.Add(1, "ns-1", "coll-2", true)
@@ -322,7 +323,7 @@ func TestExpiryDataNotIncluded(t *testing.T) {
 	blk1MissingData.Add(4, "ns-3", "coll-2", false)
 
 	// construct missing data for block 2
-	blk2MissingData := make(ledger.TxMissingPvtData)
+	blk2MissingData := make(ledger.TxMissingPvtDataMap)
 	// eligible missing data in tx1
 	blk2MissingData.Add(1, "ns-1", "coll-1", true)
 	blk2MissingData.Add(1, "ns-1", "coll-2", true)
@@ -440,7 +441,7 @@ func TestStorePurge(t *testing.T) {
 	require.NoError(t, s.Commit(0, nil, nil))
 
 	// construct missing data for block 1
-	blk1MissingData := make(ledger.TxMissingPvtData)
+	blk1MissingData := make(ledger.TxMissingPvtDataMap)
 	// eligible missing data in tx1
 	blk1MissingData.Add(1, "ns-1", "coll-1", true)
 	blk1MissingData.Add(1, "ns-1", "coll-2", true)
@@ -561,11 +562,8 @@ func TestStoreState(t *testing.T) {
 	testData := []*ledger.TxPvtData{
 		produceSamplePvtdata(t, 0, []string{"ns-1:coll-1", "ns-1:coll-2"}),
 	}
-
-	require.EqualError(t,
-		store.Commit(1, testData, nil),
-		"expected block number=0, received block number=1",
-	)
+	_, ok := store.Commit(1, testData, nil).(*ErrIllegalArgs)
+	require.True(t, ok)
 }
 
 func TestPendingBatch(t *testing.T) {
@@ -611,7 +609,8 @@ func TestPendingBatch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, true, hasPendingBatch)
 	pvtData, err := s.GetPvtDataByBlockNum(26, nil)
-	require.EqualError(t, err, "last committed block number [25] smaller than the requested block number [26]")
+	_, ok := err.(*ErrOutOfRange)
+	require.True(t, ok)
 	require.Nil(t, pvtData)
 
 	// emulate a version upgrade
@@ -649,79 +648,6 @@ func TestCollElgEnabled(t *testing.T) {
 	testCollElgEnabled(t, conf)
 }
 
-func TestDrop(t *testing.T) {
-	ledgerid := "testremove"
-	btlPolicy := btltestutil.SampleBTLPolicy(
-		map[[2]string]uint64{
-			{"ns-1", "coll-1"}: 0,
-			{"ns-1", "coll-2"}: 0,
-			{"ns-2", "coll-1"}: 0,
-			{"ns-2", "coll-2"}: 0,
-		},
-	)
-
-	env := NewTestStoreEnv(t, ledgerid, btlPolicy, pvtDataConf())
-	defer env.Cleanup()
-	store := env.TestStore
-
-	testData := []*ledger.TxPvtData{
-		produceSamplePvtdata(t, 2, []string{"ns-1:coll-1", "ns-1:coll-2", "ns-2:coll-1", "ns-2:coll-2"}),
-		produceSamplePvtdata(t, 4, []string{"ns-1:coll-1", "ns-1:coll-2", "ns-2:coll-1", "ns-2:coll-2"}),
-	}
-
-	// construct missing data for block 1
-	blk1MissingData := make(ledger.TxMissingPvtData)
-
-	// eligible missing data in tx1
-	blk1MissingData.Add(1, "ns-1", "coll-1", true)
-	blk1MissingData.Add(1, "ns-1", "coll-2", true)
-	blk1MissingData.Add(1, "ns-2", "coll-1", true)
-	blk1MissingData.Add(1, "ns-2", "coll-2", true)
-
-	// no pvt data with block 0
-	require.NoError(t, store.Commit(0, nil, nil))
-
-	// pvt data with block 1 - commit
-	require.NoError(t, store.Commit(1, testData, blk1MissingData))
-
-	// pvt data retrieval for block 0 should return nil
-	var nilFilter ledger.PvtNsCollFilter
-	retrievedData, err := store.GetPvtDataByBlockNum(0, nilFilter)
-	require.NoError(t, err)
-	require.Nil(t, retrievedData)
-
-	// pvt data retrieval for block 1 should return full pvtdata
-	retrievedData, err = store.GetPvtDataByBlockNum(1, nilFilter)
-	require.NoError(t, err)
-	require.Equal(t, len(testData), len(retrievedData))
-	for i, data := range retrievedData {
-		require.Equal(t, data.SeqInBlock, testData[i].SeqInBlock)
-		require.True(t, proto.Equal(data.WriteSet, testData[i].WriteSet))
-	}
-
-	require.NoError(t, env.TestStoreProvider.Drop(ledgerid))
-
-	// pvt data should be removed
-	retrievedData, err = store.GetPvtDataByBlockNum(0, nilFilter)
-	require.NoError(t, err)
-	require.Nil(t, retrievedData)
-
-	retrievedData, err = store.GetPvtDataByBlockNum(1, nilFilter)
-	require.NoError(t, err)
-	require.Nil(t, retrievedData)
-
-	itr, err := env.TestStoreProvider.dbProvider.GetDBHandle(ledgerid).GetIterator(nil, nil)
-	require.NoError(t, err)
-	require.False(t, itr.Next())
-
-	// drop again is not an error
-	require.NoError(t, env.TestStoreProvider.Drop(ledgerid))
-
-	// negative test
-	env.TestStoreProvider.Close()
-	require.EqualError(t, env.TestStoreProvider.Drop(ledgerid), "internal leveldb error while obtaining db iterator: leveldb: closed")
-}
-
 func testCollElgEnabled(t *testing.T, conf *PrivateDataConfig) {
 	ledgerid := "TestCollElgEnabled"
 	btlPolicy := btltestutil.SampleBTLPolicy(
@@ -742,7 +668,7 @@ func testCollElgEnabled(t *testing.T, conf *PrivateDataConfig) {
 	require.NoError(t, testStore.Commit(0, nil, nil))
 
 	// construct and commit block 1
-	blk1MissingData := make(ledger.TxMissingPvtData)
+	blk1MissingData := make(ledger.TxMissingPvtDataMap)
 	blk1MissingData.Add(1, "ns-1", "coll-1", true)
 	blk1MissingData.Add(1, "ns-2", "coll-1", true)
 	blk1MissingData.Add(4, "ns-1", "coll-2", false)
@@ -753,7 +679,7 @@ func testCollElgEnabled(t *testing.T, conf *PrivateDataConfig) {
 	require.NoError(t, testStore.Commit(1, testDataForBlk1, blk1MissingData))
 
 	// construct and commit block 2
-	blk2MissingData := make(ledger.TxMissingPvtData)
+	blk2MissingData := make(ledger.TxMissingPvtDataMap)
 	// ineligible missing data in tx1
 	blk2MissingData.Add(1, "ns-1", "coll-2", false)
 	blk2MissingData.Add(1, "ns-2", "coll-2", false)

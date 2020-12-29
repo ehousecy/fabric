@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToLowS(t *testing.T) {
@@ -68,7 +68,7 @@ func TestToLowS(t *testing.T) {
 			key := ecdsa.PublicKey{
 				Curve: curve,
 			}
-			require.Equal(t, test.expectedSig, toLowS(key, test.sig))
+			assert.Equal(t, test.expectedSig, toLowS(key, test.sig))
 		})
 	}
 }

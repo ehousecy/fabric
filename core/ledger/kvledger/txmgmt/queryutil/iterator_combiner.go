@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
 )
 
 type itrCombiner struct {
@@ -30,7 +30,7 @@ func newItrCombiner(namespace string, baseIterators []statedb.ResultsIterator) (
 			return nil, err
 		}
 		if res != nil {
-			holders = append(holders, &itrHolder{itr, res})
+			holders = append(holders, &itrHolder{itr, res.(*statedb.VersionedKV)})
 		}
 	}
 	return &itrCombiner{namespace, holders}, nil
@@ -119,12 +119,12 @@ type itrHolder struct {
 
 // moveToNext fetches the next item to keep in buffer and returns true if the iterator is exhausted
 func (holder *itrHolder) moveToNext() (exhausted bool, err error) {
-	var res *statedb.VersionedKV
+	var res statedb.QueryResult
 	if res, err = holder.itr.Next(); err != nil {
 		return false, err
 	}
 	if res != nil {
-		holder.kv = res
+		holder.kv = res.(*statedb.VersionedKV)
 	}
 	return res == nil, nil
 }

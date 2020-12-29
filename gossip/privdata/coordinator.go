@@ -13,17 +13,17 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	protostransientstore "github.com/hyperledger/fabric-protos-go/transientstore"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/core/committer"
-	"github.com/hyperledger/fabric/core/committer/txvalidator"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	"github.com/hyperledger/fabric/core/transientstore"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	privdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/core/committer"
+	"github.com/ehousecy/fabric/core/committer/txvalidator"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/transientstore"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	privdatacommon "github.com/ehousecy/fabric/gossip/privdata/common"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -171,7 +171,7 @@ func (c *coordinator) StoreBlock(block *common.Block, privateDataSets util.PvtDa
 	blockAndPvtData := &ledger.BlockAndPvtData{
 		Block:          block,
 		PvtData:        make(ledger.TxPvtDataMap),
-		MissingPvtData: make(ledger.TxMissingPvtData),
+		MissingPvtData: make(ledger.TxMissingPvtDataMap),
 	}
 
 	exist, err := c.DoesPvtDataInfoExistInLedger(block.Header.Number)

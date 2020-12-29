@@ -15,7 +15,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/etcd/pkg/fileutil"
 	"go.etcd.io/etcd/raft"
@@ -38,17 +39,17 @@ func setup(t *testing.T) {
 	logger = flogging.NewFabricLogger(zap.NewExample())
 	ram = raft.NewMemoryStorage()
 	dataDir, err = ioutil.TempDir("", "etcdraft-")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	walDir, snapDir = path.Join(dataDir, "wal"), path.Join(dataDir, "snapshot")
 	store, err = CreateStorage(logger, walDir, snapDir, ram)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func clean(t *testing.T) {
 	err = store.Close()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = os.RemoveAll(dataDir)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func fileCount(files []string, suffix string) (c int) {
@@ -62,12 +63,12 @@ func fileCount(files []string, suffix string) (c int) {
 
 func assertFileCount(t *testing.T, wal, snap int) {
 	files, err := fileutil.ReadDir(walDir)
-	require.NoError(t, err)
-	require.Equal(t, wal, fileCount(files, ".wal"), "WAL file count mismatch")
+	assert.NoError(t, err)
+	assert.Equal(t, wal, fileCount(files, ".wal"), "WAL file count mismatch")
 
 	files, err = fileutil.ReadDir(snapDir)
-	require.NoError(t, err)
-	require.Equal(t, snap, fileCount(files, ".snap"), "Snap file count mismatch")
+	assert.NoError(t, err)
+	assert.Equal(t, snap, fileCount(files, ".snap"), "Snap file count mismatch")
 }
 
 func TestOpenWAL(t *testing.T) {
@@ -88,12 +89,12 @@ func TestOpenWAL(t *testing.T) {
 
 		// close current storage
 		err = store.Close()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		// truncate wal file
 		w := func() string {
 			files, err := fileutil.ReadDir(walDir)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			for _, f := range files {
 				if strings.HasSuffix(f, ".wal") {
 					return path.Join(walDir, f)
@@ -103,15 +104,15 @@ func TestOpenWAL(t *testing.T) {
 			return ""
 		}()
 		err = os.Truncate(w, 200)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		// create new storage
 		ram = raft.NewMemoryStorage()
 		store, err = CreateStorage(logger, walDir, snapDir, ram)
 		require.NoError(t, err)
 		lastI, _ := store.ram.LastIndex()
-		require.True(t, lastI > 0)     // we are still able to read some entries
-		require.True(t, lasti > lastI) // but less than before because some are broken
+		assert.True(t, lastI > 0)     // we are still able to read some entries
+		assert.True(t, lasti > lastI) // but less than before because some are broken
 	})
 }
 
@@ -162,13 +163,13 @@ func TestTakeSnapshot(t *testing.T) {
 			assertFileCount(t, 11, 0)
 
 			err = store.TakeSnapshot(uint64(3), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			// Snapshot is taken at index 3, which releases lock up to 2 (excl.).
 			// This results in wal files with index [0, 1] being purged (2 files)
 			assertFileCount(t, 9, 1)
 
 			err = store.TakeSnapshot(uint64(5), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			// Snapshot is taken at index 5, which releases lock up to 4 (excl.).
 			// This results in wal files with index [2, 3] being purged (2 files)
 			assertFileCount(t, 7, 1)
@@ -176,19 +177,19 @@ func TestTakeSnapshot(t *testing.T) {
 			t.Logf("Close the storage and create a new one based on existing files")
 
 			err = store.Close()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			ram := raft.NewMemoryStorage()
 			store, err = CreateStorage(logger, walDir, snapDir, ram)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			err = store.TakeSnapshot(uint64(7), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			// Snapshot is taken at index 7, which releases lock up to 6 (excl.).
 			// This results in wal files with index [4, 5] being purged (2 file)
 			assertFileCount(t, 5, 1)
 
 			err = store.TakeSnapshot(uint64(9), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			// Snapshot is taken at index 9, which releases lock up to 8 (excl.).
 			// This results in wal files with index [6, 7] being purged (2 file)
 			assertFileCount(t, 3, 1)
@@ -224,33 +225,33 @@ func TestTakeSnapshot(t *testing.T) {
 
 			// Only one snapshot is taken, no wal pruning happened
 			err = store.TakeSnapshot(uint64(3), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 11, 1)
 
 			// Two snapshots at index 3, 5. And we keep one extra wal file prior to oldest snapshot.
 			// So we should have pruned wal file with index [0, 1]
 			err = store.TakeSnapshot(uint64(5), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 9, 2)
 
 			t.Logf("Close the storage and create a new one based on existing files")
 
 			err = store.Close()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			ram := raft.NewMemoryStorage()
 			store, err = CreateStorage(logger, walDir, snapDir, ram)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			// Two snapshots at index 5, 7. And we keep one extra wal file prior to oldest snapshot.
 			// So we should have pruned wal file with index [2, 3]
 			err = store.TakeSnapshot(uint64(7), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 7, 2)
 
 			// Two snapshots at index 7, 9. And we keep one extra wal file prior to oldest snapshot.
 			// So we should have pruned wal file with index [4, 5]
 			err = store.TakeSnapshot(uint64(9), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 5, 2)
 		})
 	})
@@ -290,28 +291,28 @@ func TestTakeSnapshot(t *testing.T) {
 
 			// Only one snapshot is taken, no wal pruning happened
 			err = store.TakeSnapshot(uint64(3), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 11, 1)
 
 			// Two snapshots at index 3, 5. And we keep one extra wal file prior to oldest snapshot.
 			// So we should have pruned wal file with index [0, 1]
 			err = store.TakeSnapshot(uint64(5), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 9, 2)
 
 			d, err := os.Open(snapDir)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			defer d.Close()
 			names, err := d.Readdirnames(-1)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			sort.Sort(sort.Reverse(sort.StringSlice(names)))
 
 			corrupted := filepath.Join(snapDir, names[0])
 			t.Logf("Corrupt latest snapshot file: %s", corrupted)
 			f, err := os.OpenFile(corrupted, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			_, err = f.WriteString("Corrupted Snapshot")
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			f.Close()
 
 			// Corrupted snapshot file should've been renamed by ListSnapshots
@@ -321,30 +322,30 @@ func TestTakeSnapshot(t *testing.T) {
 			// Rollback the rename
 			broken := corrupted + ".broken"
 			err = os.Rename(broken, corrupted)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 9, 2)
 
 			t.Logf("Close the storage and create a new one based on existing files")
 
 			err = store.Close()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			ram := raft.NewMemoryStorage()
 			store, err = CreateStorage(logger, walDir, snapDir, ram)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			// Corrupted snapshot file should've been renamed by CreateStorage
 			assertFileCount(t, 9, 1)
 
 			files, err := fileutil.ReadDir(snapDir)
-			require.NoError(t, err)
-			require.Equal(t, 1, fileCount(files, ".broken"))
+			assert.NoError(t, err)
+			assert.Equal(t, 1, fileCount(files, ".broken"))
 
 			err = store.TakeSnapshot(uint64(7), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 9, 2)
 
 			err = store.TakeSnapshot(uint64(9), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assertFileCount(t, 5, 2)
 		})
 	})
@@ -375,11 +376,11 @@ func TestApplyOutOfDateSnapshot(t *testing.T) {
 		assertFileCount(t, 11, 0)
 
 		err = store.TakeSnapshot(uint64(3), raftpb.ConfState{Nodes: []uint64{1}}, make([]byte, 10))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assertFileCount(t, 11, 1)
 
 		snapshot := store.Snapshot()
-		require.NotNil(t, snapshot)
+		assert.NotNil(t, snapshot)
 
 		// Applying old snapshot should have no effect
 		store.ApplySnapshot(snapshot)
@@ -390,7 +391,7 @@ func TestApplyOutOfDateSnapshot(t *testing.T) {
 			raftpb.HardState{},
 			snapshot,
 		)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assertFileCount(t, 12, 1)
 	})
 }

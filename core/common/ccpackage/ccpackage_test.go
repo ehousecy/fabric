@@ -15,12 +15,12 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	mspprotos "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	msptesttools "github.com/hyperledger/fabric/msp/mgmt/testtools"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	msptesttools "github.com/ehousecy/fabric/msp/mgmt/testtools"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 func ownerCreateCCDepSpec(codepackage []byte, sigpolicy *common.SignaturePolicyEnvelope, owner msp.SigningIdentity) (*common.Envelope, error) {

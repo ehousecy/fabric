@@ -11,13 +11,13 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/core/ledger/util"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +47,7 @@ func TestStateListener(t *testing.T) {
 	sampleBatch.PubUpdates.Put("ns3", "key3_1", []byte("value3_1"), version.NewHeight(1, 4))
 	dummyBlock := protoutil.NewBlock(1, []byte("dummyHash"))
 	txmgr.current = &current{block: dummyBlock, batch: sampleBatch}
-	require.NoError(t, txmgr.invokeNamespaceListeners())
+	txmgr.invokeNamespaceListeners()
 	require.Equal(t, 1, ml1.HandleStateUpdatesCallCount())
 	require.Equal(t, 1, ml2.HandleStateUpdatesCallCount())
 	require.Equal(t, 0, ml3.HandleStateUpdatesCallCount())
@@ -84,7 +84,7 @@ func TestStateListener(t *testing.T) {
 		},
 		uint64(1)
 	checkHandleStateUpdatesCallback(t, ml2, 0, expectedLedgerid, expectedStateUpdate, expectedHt)
-	require.NoError(t, txmgr.Commit())
+	txmgr.Commit()
 	require.Equal(t, 1, ml1.StateCommitDoneCallCount())
 	require.Equal(t, 1, ml2.StateCommitDoneCallCount())
 	require.Equal(t, 0, ml3.StateCommitDoneCallCount())
@@ -99,7 +99,7 @@ func TestStateListener(t *testing.T) {
 	sampleBatch.HashUpdates.Delete("ns4", "coll2", []byte("key-hash-4"), version.NewHeight(2, 4))
 
 	txmgr.current = &current{block: protoutil.NewBlock(2, []byte("anotherDummyHash")), batch: sampleBatch}
-	require.NoError(t, txmgr.invokeNamespaceListeners())
+	txmgr.invokeNamespaceListeners()
 	require.Equal(t, 1, ml1.HandleStateUpdatesCallCount())
 	require.Equal(t, 1, ml2.HandleStateUpdatesCallCount())
 	require.Equal(t, 1, ml3.HandleStateUpdatesCallCount())
@@ -127,7 +127,7 @@ func TestStateListener(t *testing.T) {
 
 	checkHandleStateUpdatesCallback(t, ml3, 0, expectedLedgerid, expectedStateUpdate, expectedHt)
 
-	require.NoError(t, txmgr.Commit())
+	txmgr.Commit()
 	require.Equal(t, 1, ml1.StateCommitDoneCallCount())
 	require.Equal(t, 1, ml2.StateCommitDoneCallCount())
 	require.Equal(t, 1, ml3.StateCommitDoneCallCount())
@@ -167,11 +167,11 @@ func TestStateListenerQueryExecutor(t *testing.T) {
 	// Create next block
 	sim, err := txMgr.NewTxSimulator("tx1")
 	require.NoError(t, err)
-	require.NoError(t, sim.SetState(namespace, "key1", []byte("value1_new")))
-	require.NoError(t, sim.DeleteState(namespace, "key2"))
-	require.NoError(t, sim.SetState(namespace, "key4", []byte("value4_new")))
-	require.NoError(t, sim.SetPrivateData(namespace, "coll", "key1", []byte("value1_new"))) // change value for key1
-	require.NoError(t, sim.DeletePrivateData(namespace, "coll", "key2"))                    // delete key2
+	sim.SetState(namespace, "key1", []byte("value1_new"))
+	sim.DeleteState(namespace, "key2")
+	sim.SetState(namespace, "key4", []byte("value4_new"))
+	sim.SetPrivateData(namespace, "coll", "key1", []byte("value1_new")) // change value for key1
+	sim.DeletePrivateData(namespace, "coll", "key2")                    // delete key2
 	simRes, err := sim.GetTxSimulationResults()
 	require.NoError(t, err)
 	simResBytes, err := simRes.GetPubSimulationBytes()

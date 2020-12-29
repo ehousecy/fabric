@@ -15,7 +15,7 @@ import (
 	"encoding/pem"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOidFromNamedCurve(t *testing.T) {
@@ -81,8 +81,8 @@ func TestOidFromNamedCurve(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			oid, ok := oidFromNamedCurve(test.curve)
-			require.Equal(t, oid, test.expected.oid)
-			require.Equal(t, ok, test.expected.ok)
+			assert.Equal(t, oid, test.expected.oid)
+			assert.Equal(t, ok, test.expected.ok)
 		})
 	}
 
@@ -186,7 +186,7 @@ func TestECDSAKeys(t *testing.T) {
 		t.Fatalf("Failed converting private key to encrypted PEM [%s]", err)
 	}
 	_, err = pemToPrivateKey(encPEM, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	encKeyFromPEM, err := pemToPrivateKey(encPEM, []byte("passwd"))
 	if err != nil {
 		t.Fatalf("Failed converting DER to private key [%s]", err)
@@ -247,7 +247,7 @@ func TestECDSAKeys(t *testing.T) {
 		t.Fatalf("Failed converting private key to encrypted PEM [%s]", err)
 	}
 	_, err = pemToPublicKey(encPEM, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	pkFromEncPEM, err := pemToPublicKey(encPEM, []byte("passwd"))
 	if err != nil {
 		t.Fatalf("Failed converting DER to private key [%s]", err)
@@ -288,9 +288,9 @@ func TestECDSAKeys(t *testing.T) {
 
 	// Public Key DER format
 	der, err = x509.MarshalPKIXPublicKey(&key.PublicKey)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	keyFromDER, err = derToPublicKey(der)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	ecdsaPkFromPEM = keyFromDER.(*ecdsa.PublicKey)
 	// TODO: check the curve
 	if key.X.Cmp(ecdsaPkFromPEM.X) != 0 {
@@ -306,66 +306,66 @@ func TestAESKey(t *testing.T) {
 	pem := aesToPEM(k)
 
 	k2, err := pemToAES(pem, nil)
-	require.NoError(t, err)
-	require.Equal(t, k, k2)
+	assert.NoError(t, err)
+	assert.Equal(t, k, k2)
 
 	pem, err = aesToEncryptedPEM(k, k)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	k2, err = pemToAES(pem, k)
-	require.NoError(t, err)
-	require.Equal(t, k, k2)
+	assert.NoError(t, err)
+	assert.Equal(t, k, k2)
 
 	_, err = pemToAES(pem, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = aesToEncryptedPEM(k, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	k2, err = pemToAES(pem, k)
-	require.NoError(t, err)
-	require.Equal(t, k, k2)
+	assert.NoError(t, err)
+	assert.Equal(t, k, k2)
 }
 
 func TestDERToPublicKey(t *testing.T) {
 	_, err := derToPublicKey(nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 }
 
 func TestNil(t *testing.T) {
 	_, err := privateKeyToEncryptedPEM(nil, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = privateKeyToEncryptedPEM((*ecdsa.PrivateKey)(nil), nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = privateKeyToEncryptedPEM("Hello World", nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = pemToAES(nil, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = aesToEncryptedPEM(nil, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = publicKeyToPEM(nil, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	_, err = publicKeyToPEM((*ecdsa.PublicKey)(nil), nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	_, err = publicKeyToPEM(nil, []byte("hello world"))
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = publicKeyToPEM("hello world", nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	_, err = publicKeyToPEM("hello world", []byte("hello world"))
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = publicKeyToEncryptedPEM(nil, nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	_, err = publicKeyToEncryptedPEM((*ecdsa.PublicKey)(nil), nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	_, err = publicKeyToEncryptedPEM("hello world", nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 	_, err = publicKeyToEncryptedPEM("hello world", []byte("Hello world"))
-	require.Error(t, err)
+	assert.Error(t, err)
 }

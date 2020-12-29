@@ -16,18 +16,18 @@ import (
 	"time"
 
 	protosgossip "github.com/hyperledger/fabric-protos-go/gossip"
-	commonutil "github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/comm"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/filter"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	privdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/protoutil"
+	commonutil "github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/comm"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/filter"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	privdatacommon "github.com/ehousecy/fabric/gossip/privdata/common"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"go.uber.org/zap/zapcore"
 )
@@ -563,7 +563,7 @@ func (p *puller) getPurgedCollections(members []discovery.NetworkMember, dig2Fil
 	for dig := range dig2Filter {
 		purged, err := p.purgedFilter(dig)
 		if err != nil {
-			p.logger.Debugf("Failed to obtain purged filter for digest %v error %v", dig, err)
+			p.logger.Debug("Failed to obtain purged filter for digest %v", dig, "error", err)
 			continue
 		}
 

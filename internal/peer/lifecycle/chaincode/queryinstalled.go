@@ -17,8 +17,8 @@ import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -50,10 +50,10 @@ func QueryInstalledCmd(i *InstalledQuerier, cryptoProvider bccsp.BCCSP) *cobra.C
 				ccInput := &ClientConnectionsInput{
 					CommandName:           cmd.Name(),
 					EndorserRequired:      true,
+					ChannelID:             channelID,
 					PeerAddresses:         peerAddresses,
 					TLSRootCertFiles:      tlsRootCertFiles,
 					ConnectionProfilePath: connectionProfilePath,
-					TargetPeer:            targetPeer,
 					TLSEnabled:            viper.GetBool("peer.tls.enabled"),
 				}
 
@@ -85,7 +85,6 @@ func QueryInstalledCmd(i *InstalledQuerier, cryptoProvider bccsp.BCCSP) *cobra.C
 		"peerAddresses",
 		"tlsRootCertFiles",
 		"connectionProfile",
-		"targetPeer",
 		"output",
 	}
 	attachFlags(chaincodeQueryInstalledCmd, flagList)

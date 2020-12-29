@@ -294,9 +294,8 @@ type SystemFlags struct {
 
 type Ledger struct {
 	// Blockchain - not sure if it's needed
-	State        *StateConfig   `yaml:"state,omitempty"`
-	History      *HistoryConfig `yaml:"history,omitempty"`
-	PvtdataStore *PvtdataStore  `yaml:"pvtdataStore,omitempty"`
+	State   *StateConfig   `yaml:"state,omitempty"`
+	History *HistoryConfig `yaml:"history,omitempty"`
 }
 
 type StateConfig struct {
@@ -318,10 +317,6 @@ type CouchDBConfig struct {
 
 type HistoryConfig struct {
 	EnableHistoryDatabase bool `yaml:"enableHistoryDatabase"`
-}
-
-type PvtdataStore struct {
-	DeprioritizedDataReconcilerInterval time.Duration
 }
 
 type Operations struct {

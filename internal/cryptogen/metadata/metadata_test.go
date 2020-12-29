@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/hyperledger/fabric/internal/cryptogen/metadata"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/internal/cryptogen/metadata"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetVersionInfo(t *testing.T) {
@@ -24,7 +24,7 @@ func TestGetVersionInfo(t *testing.T) {
 		runtime.Version(),
 		fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	)
-	require.Equal(t, expected, metadata.GetVersionInfo())
+	assert.Equal(t, expected, metadata.GetVersionInfo())
 
 	testSHA := "abcdefg"
 	metadata.CommitSHA = testSHA
@@ -36,5 +36,5 @@ func TestGetVersionInfo(t *testing.T) {
 		runtime.Version(),
 		fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	)
-	require.Equal(t, expected, metadata.GetVersionInfo())
+	assert.Equal(t, expected, metadata.GetVersionInfo())
 }

@@ -21,22 +21,23 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/flogging/floggingtest"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/core/container/ccintf"
-	"github.com/hyperledger/fabric/core/container/dockercontroller/mock"
+	"github.com/ehousecy/fabric/common/flogging/floggingtest"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/common/metrics/metricsfakes"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/core/container/ccintf"
+	"github.com/ehousecy/fabric/core/container/dockercontroller/mock"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // This test used to be part of an integration style test in core/container, moved to here
 func TestIntegrationPath(t *testing.T) {
 	client, err := docker.NewClientFromEnv()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	fakePlatformBuilder := &mock.PlatformBuilder{}
 	fakePlatformBuilder.GenerateDockerBuildReturns(InMemBuilder{}.Build())
@@ -56,7 +57,7 @@ func TestIntegrationPath(t *testing.T) {
 	}, bytes.NewBuffer([]byte("code-package")))
 	require.NoError(t, err)
 
-	require.Equal(t, &ContainerInstance{
+	assert.Equal(t, &ContainerInstance{
 		CCID:     "simple",
 		Type:     "TYPE",
 		DockerVM: &dc,
@@ -98,11 +99,11 @@ func TestGetArgs(t *testing.T) {
 
 		args, err := vm.GetArgs(tc.ccType.String(), "peer-address")
 		if tc.expectedErr != "" {
-			require.EqualError(t, err, tc.expectedErr)
+			assert.EqualError(t, err, tc.expectedErr)
 			continue
 		}
-		require.NoError(t, err)
-		require.Equal(t, tc.expectedArgs, args)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.expectedArgs, args)
 	}
 }
 
@@ -114,7 +115,7 @@ func TestGetEnv(t *testing.T) {
 
 	t.Run("nil TLS config", func(t *testing.T) {
 		env := vm.GetEnv("test", nil)
-		require.Equal(t, []string{"CORE_CHAINCODE_ID_NAME=test", "LOG_ENV=foo", "CORE_PEER_TLS_ENABLED=false", "CORE_PEER_LOCALMSPID=mspid"}, env)
+		assert.Equal(t, []string{"CORE_CHAINCODE_ID_NAME=test", "LOG_ENV=foo", "CORE_PEER_TLS_ENABLED=false", "CORE_PEER_LOCALMSPID=mspid"}, env)
 	})
 
 	t.Run("real TLS config", func(t *testing.T) {
@@ -123,7 +124,7 @@ func TestGetEnv(t *testing.T) {
 			ClientCert: []byte("cert"),
 			RootCert:   []byte("root"),
 		})
-		require.Equal(t, []string{
+		assert.Equal(t, []string{
 			"CORE_CHAINCODE_ID_NAME=test",
 			"LOG_ENV=foo",
 			"CORE_PEER_TLS_ENABLED=true",
@@ -279,7 +280,7 @@ func Test_Stop(t *testing.T) {
 
 	// Success case
 	err := dvm.Stop(ccid)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func Test_Wait(t *testing.T) {
@@ -291,14 +292,14 @@ func Test_Wait(t *testing.T) {
 
 	client.WaitContainerReturns(99, nil)
 	exitCode, err := dvm.Wait("the-name:the-version")
-	require.NoError(t, err)
-	require.Equal(t, 99, exitCode)
-	require.Equal(t, "the-name-the-version", client.WaitContainerArgsForCall(0))
+	assert.NoError(t, err)
+	assert.Equal(t, 99, exitCode)
+	assert.Equal(t, "the-name-the-version", client.WaitContainerArgsForCall(0))
 
 	// wait fails
 	client.WaitContainerReturns(99, errors.New("no-wait-for-you"))
 	_, err = dvm.Wait("")
-	require.EqualError(t, err, "no-wait-for-you")
+	assert.EqualError(t, err, "no-wait-for-you")
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -306,12 +307,12 @@ func TestHealthCheck(t *testing.T) {
 	vm := &DockerVM{Client: client}
 
 	err := vm.HealthCheck(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	client.PingWithContextReturns(errors.New("Error pinging daemon"))
 	err = vm.HealthCheck(context.Background())
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Error pinging daemon")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Error pinging daemon")
 }
 
 type testCase struct {
@@ -363,8 +364,8 @@ func TestGetVMNameForDocker(t *testing.T) {
 
 	for _, test := range tc {
 		name, err := test.vm.GetVMNameForDocker(test.ccid)
-		require.Nil(t, err, "Expected nil error")
-		require.Equal(t, test.expectedOutput, name, "Unexpected output for test case name: %s", test.name)
+		assert.Nil(t, err, "Expected nil error")
+		assert.Equal(t, test.expectedOutput, name, "Unexpected output for test case name: %s", test.name)
 	}
 
 }
@@ -381,7 +382,7 @@ func TestGetVMName(t *testing.T) {
 
 	for _, test := range tc {
 		name := test.vm.GetVMName(test.ccid)
-		require.Equal(t, test.expectedOutput, name, "Unexpected output for test case name: %s", test.name)
+		assert.Equal(t, test.expectedOutput, name, "Unexpected output for test case name: %s", test.name)
 	}
 
 }
@@ -395,15 +396,15 @@ func Test_buildImage(t *testing.T) {
 	}
 
 	err := dvm.buildImage("simple", &bytes.Buffer{})
-	require.NoError(t, err)
-	require.Equal(t, 1, client.BuildImageCallCount())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, client.BuildImageCallCount())
 
 	opts := client.BuildImageArgsForCall(0)
-	require.Equal(t, "simple-a7a39b72f29718e653e73503210fbb597057b7a1c77d1fe321a1afcff041d4e1", opts.Name)
-	require.False(t, opts.Pull)
-	require.Equal(t, "network-mode", opts.NetworkMode)
-	require.Equal(t, &bytes.Buffer{}, opts.InputStream)
-	require.NotNil(t, opts.OutputStream)
+	assert.Equal(t, "simple-a7a39b72f29718e653e73503210fbb597057b7a1c77d1fe321a1afcff041d4e1", opts.Name)
+	assert.False(t, opts.Pull)
+	assert.Equal(t, "network-mode", opts.NetworkMode)
+	assert.Equal(t, &bytes.Buffer{}, opts.InputStream)
+	assert.NotNil(t, opts.OutputStream)
 }
 
 func Test_buildImageFailure(t *testing.T) {
@@ -416,7 +417,7 @@ func Test_buildImageFailure(t *testing.T) {
 	}
 
 	err := dvm.buildImage("simple", &bytes.Buffer{})
-	require.EqualError(t, err, "oh-bother-we-failed-badly")
+	assert.EqualError(t, err, "oh-bother-we-failed-badly")
 }
 
 func TestBuild(t *testing.T) {
@@ -435,17 +436,17 @@ func TestBuild(t *testing.T) {
 
 		dvm := &DockerVM{Client: client, BuildMetrics: buildMetrics, PlatformBuilder: fakePlatformBuilder}
 		_, err := dvm.Build("chaincode-name:chaincode-version", md, bytes.NewBuffer([]byte("code-package")))
-		require.NoError(t, err, "should have built successfully")
+		assert.NoError(t, err, "should have built successfully")
 
-		require.Equal(t, 1, client.BuildImageCallCount())
+		assert.Equal(t, 1, client.BuildImageCallCount())
 
 		require.Equal(t, 1, fakePlatformBuilder.GenerateDockerBuildCallCount())
 		ccType, path, codePackageStream := fakePlatformBuilder.GenerateDockerBuildArgsForCall(0)
-		require.Equal(t, "TYPE", ccType)
-		require.Equal(t, "path", path)
+		assert.Equal(t, "TYPE", ccType)
+		assert.Equal(t, "path", path)
 		codePackage, err := ioutil.ReadAll(codePackageStream)
 		require.NoError(t, err)
-		require.Equal(t, []byte("code-package"), codePackage)
+		assert.Equal(t, []byte("code-package"), codePackage)
 
 	})
 
@@ -455,9 +456,9 @@ func TestBuild(t *testing.T) {
 
 		dvm := &DockerVM{Client: client, BuildMetrics: buildMetrics}
 		_, err := dvm.Build("chaincode-name:chaincode-version", md, bytes.NewBuffer([]byte("code-package")))
-		require.EqualError(t, err, "docker image inspection failed: inspecting-image-fails")
+		assert.EqualError(t, err, "docker image inspection failed: inspecting-image-fails")
 
-		require.Equal(t, 0, client.BuildImageCallCount())
+		assert.Equal(t, 0, client.BuildImageCallCount())
 	})
 
 	t.Run("when the image exists", func(t *testing.T) {
@@ -465,9 +466,9 @@ func TestBuild(t *testing.T) {
 
 		dvm := &DockerVM{Client: client, BuildMetrics: buildMetrics}
 		_, err := dvm.Build("chaincode-name:chaincode-version", md, bytes.NewBuffer([]byte("code-package")))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
-		require.Equal(t, 0, client.BuildImageCallCount())
+		assert.Equal(t, 0, client.BuildImageCallCount())
 	})
 
 	t.Run("when the platform builder fails", func(t *testing.T) {
@@ -480,10 +481,10 @@ func TestBuild(t *testing.T) {
 
 		dvm := &DockerVM{Client: client, BuildMetrics: buildMetrics, PlatformBuilder: fakePlatformBuilder}
 		_, err := dvm.Build("chaincode-name:chaincode-version", md, bytes.NewBuffer([]byte("code-package")))
-		require.Equal(t, 1, client.InspectImageCallCount())
-		require.Equal(t, 1, fakePlatformBuilder.GenerateDockerBuildCallCount())
-		require.Equal(t, 0, client.BuildImageCallCount())
-		require.EqualError(t, err, "platform builder failed: fake-builder-error")
+		assert.Equal(t, 1, client.InspectImageCallCount())
+		assert.Equal(t, 1, fakePlatformBuilder.GenerateDockerBuildCallCount())
+		assert.Equal(t, 0, client.BuildImageCallCount())
+		assert.EqualError(t, err, "platform builder failed: fake-builder-error")
 	})
 
 	t.Run("when building the image fails", func(t *testing.T) {
@@ -495,9 +496,9 @@ func TestBuild(t *testing.T) {
 
 		dvm := &DockerVM{Client: client, BuildMetrics: buildMetrics, PlatformBuilder: fakePlatformBuilder}
 		_, err := dvm.Build("chaincode-name:chaincode-version", md, bytes.NewBuffer([]byte("code-package")))
-		require.Equal(t, 1, client.InspectImageCallCount())
-		require.Equal(t, 1, client.BuildImageCallCount())
-		require.EqualError(t, err, "docker image build failed: no-build-for-you")
+		assert.Equal(t, 1, client.InspectImageCallCount())
+		assert.Equal(t, 1, client.BuildImageCallCount())
+		assert.EqualError(t, err, "docker image build failed: no-build-for-you")
 	})
 }
 

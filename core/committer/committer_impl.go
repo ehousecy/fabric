@@ -8,8 +8,8 @@ package committer
 
 import (
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/ledger"
 )
 
 var logger = flogging.MustGetLogger("committer")

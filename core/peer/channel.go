@@ -10,14 +10,14 @@ import (
 	"sync"
 
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/ledger/blockledger"
-	"github.com/hyperledger/fabric/common/ledger/blockledger/fileledger"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/transientstore"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/ledger/blockledger"
+	"github.com/ehousecy/fabric/common/ledger/blockledger/fileledger"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/transientstore"
+	"github.com/ehousecy/fabric/msp"
 )
 
 // Channel manages objects and configuration associated with a Channel.

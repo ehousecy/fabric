@@ -20,12 +20,11 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-lib-go/healthz"
-	"github.com/hyperledger/fabric/common/fabhttp"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/common/metrics/prometheus"
-	"github.com/hyperledger/fabric/common/metrics/statsd"
-	"github.com/hyperledger/fabric/core/operations"
-	"github.com/hyperledger/fabric/core/operations/fakes"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/common/metrics/prometheus"
+	"github.com/ehousecy/fabric/common/metrics/statsd"
+	"github.com/ehousecy/fabric/core/operations"
+	"github.com/ehousecy/fabric/core/operations/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -56,19 +55,17 @@ var _ = Describe("System", func() {
 
 		fakeLogger = &fakes.Logger{}
 		options = operations.Options{
-			Options: fabhttp.Options{
-				Logger:        fakeLogger,
-				ListenAddress: "127.0.0.1:0",
-				TLS: fabhttp.TLS{
-					Enabled:            true,
-					CertFile:           filepath.Join(tempDir, "server-cert.pem"),
-					KeyFile:            filepath.Join(tempDir, "server-key.pem"),
-					ClientCertRequired: false,
-					ClientCACertFiles:  []string{filepath.Join(tempDir, "client-ca.pem")},
-				},
-			},
+			Logger:        fakeLogger,
+			ListenAddress: "127.0.0.1:0",
 			Metrics: operations.MetricsOptions{
 				Provider: "disabled",
+			},
+			TLS: operations.TLS{
+				Enabled:            true,
+				CertFile:           filepath.Join(tempDir, "server-cert.pem"),
+				KeyFile:            filepath.Join(tempDir, "server-key.pem"),
+				ClientCertRequired: false,
+				ClientCACertFiles:  []string{filepath.Join(tempDir, "client-ca.pem")},
 			},
 			Version: "test-version",
 		}
@@ -125,7 +122,7 @@ var _ = Describe("System", func() {
 	})
 
 	It("hosts a secure endpoint for additional APIs when added", func() {
-		system.RegisterHandler(AdditionalTestApiPath, &fakes.Handler{Code: http.StatusOK, Text: "secure"}, options.TLS.Enabled)
+		system.RegisterHandler(AdditionalTestApiPath, &fakes.Handler{Code: http.StatusOK, Text: "secure"})
 		err := system.Start()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -172,7 +169,7 @@ var _ = Describe("System", func() {
 		})
 
 		It("hosts an insecure endpoint for additional APIs when added", func() {
-			system.RegisterHandler(AdditionalTestApiPath, &fakes.Handler{Code: http.StatusOK, Text: "insecure"}, options.TLS.Enabled)
+			system.RegisterHandler(AdditionalTestApiPath, &fakes.Handler{Code: http.StatusOK, Text: "insecure"})
 			err := system.Start()
 			Expect(err).NotTo(HaveOccurred())
 

@@ -11,12 +11,12 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/tx"
-	pkgtx "github.com/hyperledger/fabric/pkg/tx"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/core/tx"
+	pkgtx "github.com/ehousecy/fabric/pkg/tx"
+	"github.com/ehousecy/fabric/protoutil"
 
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateProcessor(t *testing.T) {
@@ -27,7 +27,7 @@ func TestCreateProcessor(t *testing.T) {
 	env := protoutil.MarshalOrPanic(&common.Envelope{Payload: protoutil.MarshalOrPanic(&common.Payload{Header: &common.Header{ChannelHeader: protoutil.MarshalOrPanic(&common.ChannelHeader{ChannelId: "myc", TxId: "tid", Type: invalidType}), SignatureHeader: protoutil.MarshalOrPanic(&common.SignatureHeader{Creator: []byte("creator"), Nonce: []byte("nonce")})}}), Signature: []byte("signature")})
 
 	_, _, err := f.CreateProcessor(env)
-	require.Equal(t, err.Error(), "ValidationCode = UNKNOWN_TX_TYPE, ActualErr = invalid transaction type -1")
+	assert.Equal(t, err.Error(), "ValidationCode = UNKNOWN_TX_TYPE, ActualErr = invalid transaction type -1")
 }
 
 func TestBasicTxValidity(t *testing.T) {
@@ -77,12 +77,12 @@ func TestBasicTxValidity(t *testing.T) {
 
 	for _, ic := range invalidConfigs {
 		_, _, err := f.CreateProcessor(ic.env)
-		require.Equal(t, err.Error(), ic.expectedErr.Error())
+		assert.Equal(t, err.Error(), ic.expectedErr.Error())
 	}
 
 	// NOTE: common.HeaderType_CONFIG is a valid type and this should succeed when we populate ProcessorFactory (and signifies successful validation). Till then, a negative test
 	env := protoutil.MarshalOrPanic(&common.Envelope{Payload: protoutil.MarshalOrPanic(&common.Payload{Header: &common.Header{ChannelHeader: protoutil.MarshalOrPanic(&common.ChannelHeader{ChannelId: "myc", TxId: "tid", Type: int32(common.HeaderType_CONFIG)}), SignatureHeader: protoutil.MarshalOrPanic(&common.SignatureHeader{Creator: []byte("creator"), Nonce: []byte("nonce")})}}), Signature: []byte("signature")})
 
 	_, _, err := f.CreateProcessor(env)
-	require.Equal(t, err.Error(), "ValidationCode = UNKNOWN_TX_TYPE, ActualErr = invalid transaction type 1")
+	assert.Equal(t, err.Error(), "ValidationCode = UNKNOWN_TX_TYPE, ActualErr = invalid transaction type 1")
 }

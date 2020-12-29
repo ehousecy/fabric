@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
+	tls "github.com/tjfoc/gmtls"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -107,7 +107,7 @@ func NewGRPCServerFromListener(listener net.Listener, serverConfig ServerConfig)
 				grpcServer.tls.config.ClientAuth = tls.RequireAndVerifyClientCert
 				//if we have client root CAs, create a certPool
 				if len(secureConfig.ClientRootCAs) > 0 {
-					grpcServer.tls.config.ClientCAs = x509.NewCertPool()
+					grpcServer.tls.config.ClientCAs = sm2.NewCertPool()
 					for _, clientRootCA := range secureConfig.ClientRootCAs {
 						err = grpcServer.appendClientRootCA(clientRootCA)
 						if err != nil {
@@ -229,7 +229,7 @@ func (gServer *GRPCServer) Stop() {
 
 // internal function to add a PEM-encoded clientRootCA
 func (gServer *GRPCServer) appendClientRootCA(clientRoot []byte) error {
-	certs, err := pemToX509Certs(clientRoot)
+	certs, err := pemToGMSM2Certs(clientRoot)
 	if err != nil {
 		return errors.WithMessage(err, "failed to append client root certificate(s)")
 	}
@@ -251,10 +251,10 @@ func (gServer *GRPCServer) SetClientRootCAs(clientRoots [][]byte) error {
 	gServer.lock.Lock()
 	defer gServer.lock.Unlock()
 
-	certPool := x509.NewCertPool()
+	certPool := sm2.NewCertPool()
 
 	for _, clientRoot := range clientRoots {
-		certs, err := pemToX509Certs(clientRoot)
+		certs, err := pemToGMSM2Certs(clientRoot)
 		if err != nil {
 			return errors.WithMessage(err, "failed to set client root certificate(s)")
 		}

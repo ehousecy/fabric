@@ -16,7 +16,7 @@ limitations under the License.
 
 package kvledger
 
-import "github.com/hyperledger/fabric/core/ledger"
+import "github.com/ehousecy/fabric/core/ledger"
 
 type recoverable interface {
 	// ShouldRecover return whether recovery is need.
@@ -30,6 +30,6 @@ type recoverable interface {
 }
 
 type recoverer struct {
-	nextRequiredBlock uint64
-	recoverable       recoverable
+	firstBlockNum uint64
+	recoverable   recoverable
 }

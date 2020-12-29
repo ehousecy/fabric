@@ -11,8 +11,8 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/peer"
 
-	"github.com/hyperledger/fabric/pkg/tx"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/pkg/tx"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 

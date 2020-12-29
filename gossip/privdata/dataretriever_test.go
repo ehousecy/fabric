@@ -14,11 +14,11 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric-protos-go/transientstore"
-	"github.com/hyperledger/fabric/core/ledger"
-	privdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
-	"github.com/hyperledger/fabric/gossip/privdata/mocks"
+	"github.com/ehousecy/fabric/core/ledger"
+	privdatacommon "github.com/ehousecy/fabric/gossip/privdata/common"
+	"github.com/ehousecy/fabric/gossip/privdata/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 /*
@@ -73,7 +73,7 @@ func TestNewDataRetriever_GetDataFromTransientStore(t *testing.T) {
 		SeqInBlock: 1,
 	}}, 2)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.NoError(err)
 	assertion.NotEmpty(rwSets)
 	dig2pvtRWSet := rwSets[privdatacommon.DigKey{
@@ -139,7 +139,7 @@ func TestNewDataRetriever_GetDataFromLedger(t *testing.T) {
 		SeqInBlock: 1,
 	}}, uint64(5))
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.NoError(err)
 	assertion.NotEmpty(rwSets)
 	pvtRWSet := rwSets[privdatacommon.DigKey{
@@ -185,7 +185,7 @@ func TestNewDataRetriever_FailGetPvtDataFromLedger(t *testing.T) {
 		SeqInBlock: 1,
 	}}, uint64(5))
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.Error(err)
 	assertion.Empty(rwSets)
 }
@@ -230,7 +230,7 @@ func TestNewDataRetriever_GetOnlyRelevantPvtData(t *testing.T) {
 		SeqInBlock: 1,
 	}}, 5)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.NoError(err)
 	assertion.NotEmpty(rwSets)
 	pvtRWSet := rwSets[privdatacommon.DigKey{
@@ -324,7 +324,7 @@ func TestNewDataRetriever_GetMultipleDigests(t *testing.T) {
 		SeqInBlock: 2,
 	}}, 5)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.NoError(err)
 	assertion.NotEmpty(rwSets)
 	assertion.Equal(2, len(rwSets))
@@ -391,7 +391,7 @@ func TestNewDataRetriever_EmptyWriteSet(t *testing.T) {
 		SeqInBlock: 1,
 	}}, 5)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.NoError(err)
 	assertion.NotEmpty(rwSets)
 
@@ -443,7 +443,7 @@ func TestNewDataRetriever_FailedObtainConfigHistoryRetriever(t *testing.T) {
 		SeqInBlock: 1,
 	}}, 5)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.Contains(err.Error(), "failed to obtain ConfigHistoryRetriever")
 }
 
@@ -489,8 +489,7 @@ func TestNewDataRetriever_NoCollectionConfig(t *testing.T) {
 	committer.On("GetConfigHistoryRetriever").Return(historyRetreiver, nil)
 
 	retriever := NewDataRetriever("testchannel", store.store, committer)
-	assertion := require.New(t)
-
+	assertion := assert.New(t)
 	_, _, err := retriever.CollectionRWSet([]*gossip2.PvtDataDigest{{
 		Namespace:  ns1,
 		Collection: col1,
@@ -532,7 +531,7 @@ func TestNewDataRetriever_FailedGetLedgerHeight(t *testing.T) {
 		SeqInBlock: 1,
 	}}, 5)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.Error(err)
 	assertion.Contains(err.Error(), "failed to read ledger height")
 }
@@ -558,7 +557,7 @@ func TestNewDataRetriever_EmptyPvtRWSetInTransientStore(t *testing.T) {
 		SeqInBlock: 1,
 	}}, 2)
 
-	assertion := require.New(t)
+	assertion := assert.New(t)
 	assertion.NoError(err)
 	assertion.NotEmpty(rwSets)
 	assertion.Empty(rwSets[privdatacommon.DigKey{

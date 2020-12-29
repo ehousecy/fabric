@@ -19,7 +19,7 @@ package util
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetSortedKeys(t *testing.T) {
@@ -30,7 +30,7 @@ func TestGetSortedKeys(t *testing.T) {
 	mapKeyValue["123"] = 22
 	mapKeyValue["a"] = 33
 	mapKeyValue[""] = 30
-	require.Equal(t, []string{"", "123", "a", "apple", "blue", "red"}, GetSortedKeys(mapKeyValue))
+	assert.Equal(t, []string{"", "123", "a", "apple", "blue", "red"}, GetSortedKeys(mapKeyValue))
 }
 
 func TestGetValuesBySortedKeys(t *testing.T) {
@@ -46,7 +46,7 @@ func TestGetValuesBySortedKeys(t *testing.T) {
 
 	sortedRes := []*name{}
 	GetValuesBySortedKeys(&mapKeyValue, &sortedRes)
-	require.Equal(
+	assert.Equal(
 		t,
 		[]*name{{"None", "none"}, {"Two", "two"}, {"Three", "three"}, {"Five", "five"}},
 		sortedRes,

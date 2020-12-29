@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
-	"github.com/hyperledger/fabric/core/chaincode"
-	"github.com/hyperledger/fabric/core/chaincode/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/core/chaincode"
+	"github.com/ehousecy/fabric/core/chaincode/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 const totalQueryLimit = 103
@@ -89,30 +89,30 @@ func TestBuildQueryResponse(t *testing.T) {
 			totalResultCount := 0
 			for hasMoreCount := 0; hasMoreCount <= tc.expectedHasMoreCount; hasMoreCount++ {
 				queryResponse, err := responseGenerator.BuildQueryResponse(transactionContext, resultsIterator, "query-id", tc.isPaginated, int32(tc.totalQueryLimit))
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				switch {
 				case hasMoreCount < tc.expectedHasMoreCount:
 					// max limit sized batch retrieved, more expected
-					require.True(t, queryResponse.GetHasMore())
-					require.Len(t, queryResponse.GetResults(), tc.maxResultLimit)
+					assert.True(t, queryResponse.GetHasMore())
+					assert.Len(t, queryResponse.GetResults(), tc.maxResultLimit)
 				default:
 					// remainder retrieved, no more expected
-					require.Len(t, queryResponse.GetResults(), tc.expectedResultCount-totalResultCount)
-					require.False(t, queryResponse.GetHasMore())
+					assert.Len(t, queryResponse.GetResults(), tc.expectedResultCount-totalResultCount)
+					assert.False(t, queryResponse.GetHasMore())
 
 				}
 				totalResultCount += len(queryResponse.GetResults())
 			}
 
 			// assert the total number of records is correct
-			require.Equal(t, tc.expectedResultCount, totalResultCount)
+			assert.Equal(t, tc.expectedResultCount, totalResultCount)
 
 			if tc.isPaginated {
 				// this case checks if the expected method was called to close the recordset
-				require.Equal(t, 1, resultsIterator.GetBookmarkAndCloseCallCount())
+				assert.Equal(t, 1, resultsIterator.GetBookmarkAndCloseCallCount())
 			} else {
-				require.Equal(t, 1, resultsIterator.CloseCallCount())
+				assert.Equal(t, 1, resultsIterator.CloseCallCount())
 			}
 		})
 	}
@@ -152,12 +152,12 @@ func TestBuildQueryResponseErrors(t *testing.T) {
 
 			resp, err := responseGenerator.BuildQueryResponse(transactionContext, resultsIterator, "query-id", false, totalQueryLimit)
 			if tc.expectedErrValue == "" {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			} else {
-				require.EqualError(t, err, tc.expectedErrValue)
+				assert.EqualError(t, err, tc.expectedErrValue)
 			}
-			require.Nil(t, resp)
-			require.Equal(t, 1, resultsIterator.CloseCallCount())
+			assert.Nil(t, resp)
+			assert.Equal(t, 1, resultsIterator.CloseCallCount())
 		})
 	}
 }

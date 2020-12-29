@@ -13,9 +13,9 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,23 +140,23 @@ func checkBlocks(t *testing.T, expectedBlocks []*common.Block, store *BlockStore
 func checkWithWrongInputs(t *testing.T, store *BlockStore, numBlocks int) {
 	block, err := store.RetrieveBlockByHash([]byte("non-existent-hash"))
 	require.Nil(t, block)
-	require.EqualError(t, err, fmt.Sprintf("no such block hash [%x] in index", []byte("non-existent-hash")))
+	require.Equal(t, ErrNotFoundInIndex, err)
 
 	block, err = store.RetrieveBlockByTxID("non-existent-txid")
 	require.Nil(t, block)
-	require.EqualError(t, err, "no such transaction ID [non-existent-txid] in index")
+	require.Equal(t, ErrNotFoundInIndex, err)
 
 	tx, err := store.RetrieveTxByID("non-existent-txid")
 	require.Nil(t, tx)
-	require.EqualError(t, err, "no such transaction ID [non-existent-txid] in index")
+	require.Equal(t, ErrNotFoundInIndex, err)
 
 	tx, err = store.RetrieveTxByBlockNumTranNum(uint64(numBlocks+1), uint64(0))
 	require.Nil(t, tx)
-	require.EqualError(t, err, fmt.Sprintf("no such blockNumber, transactionNumber <%d, 0> in index", numBlocks+1))
+	require.Equal(t, ErrNotFoundInIndex, err)
 
 	txCode, err := store.RetrieveTxValidationCodeByTxID("non-existent-txid")
 	require.Equal(t, peer.TxValidationCode(-1), txCode)
-	require.EqualError(t, err, "no such transaction ID [non-existent-txid] in index")
+	require.Equal(t, ErrNotFoundInIndex, err)
 }
 
 func TestBlockStoreProvider(t *testing.T) {
@@ -193,7 +193,7 @@ func TestBlockStoreProvider(t *testing.T) {
 
 }
 
-func TestDrop(t *testing.T) {
+func TestRemove(t *testing.T) {
 	env := newTestEnv(t, NewConf(testPath(), 0))
 	defer env.Cleanup()
 
@@ -214,16 +214,16 @@ func TestDrop(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, storeNames, []string{"ledger1", "ledger2"})
 
-	require.NoError(t, provider.Drop("ledger1"))
+	require.NoError(t, provider.Remove("ledger1"))
 
 	// verify ledger1 block dir and block indexes are deleted
 	exists, err := provider.Exists("ledger1")
 	require.NoError(t, err)
 	require.False(t, exists)
-
-	empty, err := provider.leveldbProvider.GetDBHandle("ledger1").IsEmpty()
+	itr, err := provider.leveldbProvider.GetDBHandle("ledger1").GetIterator(nil, nil)
 	require.NoError(t, err)
-	require.True(t, empty)
+	defer itr.Release()
+	require.False(t, itr.Next())
 
 	// verify ledger2 ledger data are remained same
 	checkBlocks(t, blocks2, store2)
@@ -231,8 +231,8 @@ func TestDrop(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, storeNames, []string{"ledger2"})
 
-	// drop again should return no error
-	require.NoError(t, provider.Drop("ledger1"))
+	// remove again should return no error
+	require.NoError(t, provider.Remove("ledger1"))
 
 	// verify "ledger1" store can be opened again after remove, but it is an empty store
 	newstore1, err := provider.Open("ledger1")
@@ -243,7 +243,7 @@ func TestDrop(t *testing.T) {
 
 	// negative test
 	provider.Close()
-	require.EqualError(t, provider.Drop("ledger2"), "internal leveldb error while obtaining db iterator: leveldb: closed")
+	require.EqualError(t, provider.Remove("ledger2"), "internal leveldb error while obtaining db iterator: leveldb: closed")
 }
 
 func constructLedgerid(id int) string {

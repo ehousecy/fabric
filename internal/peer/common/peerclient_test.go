@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func initPeerTestEnv(t *testing.T) (cleanup func()) {
@@ -28,7 +28,7 @@ func initPeerTestEnv(t *testing.T) (cleanup func()) {
 
 	return func() {
 		err := os.Unsetenv("FABRIC_CFG_PATH")
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		viper.Reset()
 	}
 }
@@ -38,45 +38,45 @@ func TestNewPeerClientFromEnv(t *testing.T) {
 	defer cleanup()
 
 	pClient, err := common.NewPeerClientFromEnv()
-	require.NoError(t, err)
-	require.NotNil(t, pClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, pClient)
 
 	viper.Set("peer.tls.enabled", true)
 	pClient, err = common.NewPeerClientFromEnv()
-	require.NoError(t, err)
-	require.NotNil(t, pClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, pClient)
 
 	viper.Set("peer.tls.enabled", true)
 	viper.Set("peer.tls.clientAuthRequired", true)
 	pClient, err = common.NewPeerClientFromEnv()
-	require.NoError(t, err)
-	require.NotNil(t, pClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, pClient)
 
 	// bad key file
 	badKeyFile := filepath.Join("certs", "bad.key")
 	viper.Set("peer.tls.clientKey.file", badKeyFile)
 	pClient, err = common.NewPeerClientFromEnv()
-	require.Contains(t, err.Error(), "failed to create PeerClient from config")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "failed to create PeerClient from config")
+	assert.Nil(t, pClient)
 
 	// bad cert file path
 	viper.Set("peer.tls.clientCert.file", "./nocert.crt")
 	pClient, err = common.NewPeerClientFromEnv()
-	require.Contains(t, err.Error(), "unable to load peer.tls.clientCert.file")
-	require.Contains(t, err.Error(), "failed to load config for PeerClient")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "unable to load peer.tls.clientCert.file")
+	assert.Contains(t, err.Error(), "failed to load config for PeerClient")
+	assert.Nil(t, pClient)
 
 	// bad key file path
 	viper.Set("peer.tls.clientKey.file", "./nokey.key")
 	pClient, err = common.NewPeerClientFromEnv()
-	require.Contains(t, err.Error(), "unable to load peer.tls.clientKey.file")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "unable to load peer.tls.clientKey.file")
+	assert.Nil(t, pClient)
 
 	// bad ca path
 	viper.Set("peer.tls.rootcert.file", "noroot.crt")
 	pClient, err = common.NewPeerClientFromEnv()
-	require.Contains(t, err.Error(), "unable to load peer.tls.rootcert.file")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "unable to load peer.tls.rootcert.file")
+	assert.Nil(t, pClient)
 }
 
 func TestPeerClient(t *testing.T) {
@@ -100,18 +100,18 @@ func TestPeerClient(t *testing.T) {
 		t.Fatalf("failed to create PeerClient for test: %v", err)
 	}
 	eClient, err := pClient1.Endorser()
-	require.NoError(t, err)
-	require.NotNil(t, eClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, eClient)
 	eClient, err = common.GetEndorserClient("", "")
-	require.NoError(t, err)
-	require.NotNil(t, eClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, eClient)
 
 	dClient, err := pClient1.Deliver()
-	require.NoError(t, err)
-	require.NotNil(t, dClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, dClient)
 	dClient, err = common.GetDeliverClient("", "")
-	require.NoError(t, err)
-	require.NotNil(t, dClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, dClient)
 }
 
 func TestPeerClientTimeout(t *testing.T) {
@@ -124,14 +124,14 @@ func TestPeerClientTimeout(t *testing.T) {
 			t.Fatalf("failed to create PeerClient for test: %v", err)
 		}
 		_, err = pClient.Endorser()
-		require.Contains(t, err.Error(), "endorser client failed to connect")
+		assert.Contains(t, err.Error(), "endorser client failed to connect")
 	})
 	t.Run("GetEndorserClient() timeout", func(t *testing.T) {
 		cleanup := initPeerTestEnv(t)
 		viper.Set("peer.client.connTimeout", 10*time.Millisecond)
 		defer cleanup()
 		_, err := common.GetEndorserClient("", "")
-		require.Contains(t, err.Error(), "endorser client failed to connect")
+		assert.Contains(t, err.Error(), "endorser client failed to connect")
 	})
 	t.Run("PeerClient.Deliver() timeout", func(t *testing.T) {
 		cleanup := initPeerTestEnv(t)
@@ -142,14 +142,14 @@ func TestPeerClientTimeout(t *testing.T) {
 			t.Fatalf("failed to create PeerClient for test: %v", err)
 		}
 		_, err = pClient.Deliver()
-		require.Contains(t, err.Error(), "deliver client failed to connect")
+		assert.Contains(t, err.Error(), "deliver client failed to connect")
 	})
 	t.Run("GetDeliverClient() timeout", func(t *testing.T) {
 		cleanup := initPeerTestEnv(t)
 		viper.Set("peer.client.connTimeout", 10*time.Millisecond)
 		defer cleanup()
 		_, err := common.GetDeliverClient("", "")
-		require.Contains(t, err.Error(), "deliver client failed to connect")
+		assert.Contains(t, err.Error(), "deliver client failed to connect")
 	})
 	t.Run("PeerClient.Certificate()", func(t *testing.T) {
 		cleanup := initPeerTestEnv(t)
@@ -159,73 +159,14 @@ func TestPeerClientTimeout(t *testing.T) {
 			t.Fatalf("failed to create PeerClient for test: %v", err)
 		}
 		cert := pClient.Certificate()
-		require.NotNil(t, cert)
+		assert.NotNil(t, cert)
 	})
-}
-
-func TestGetClientCertificate(t *testing.T) {
-	t.Run("GetClientCertificate_clientAuthRequired_disabled", func(t *testing.T) {
+	t.Run("GetCertificate()", func(t *testing.T) {
 		cleanup := initPeerTestEnv(t)
 		defer cleanup()
-		cert, err := common.GetClientCertificate()
-		require.NotEqual(t, cert, &tls.Certificate{})
-		require.NoError(t, err)
-	})
-
-	t.Run("GetClientCertificate_clientAuthRequired_enabled", func(t *testing.T) {
-		viper.Set("peer.tls.clientAuthRequired", true)
-		viper.Set("peer.tls.clientKey.file", filepath.Join("./testdata/certs", "client.key"))
-		viper.Set("peer.tls.clientCert.file", filepath.Join("./testdata/certs", "client.crt"))
-		defer viper.Reset()
-
-		cert, err := common.GetClientCertificate()
-		require.NoError(t, err)
-		require.NotEqual(t, cert, tls.Certificate{})
-	})
-
-	t.Run("GetClientCertificate_empty_keyfile", func(t *testing.T) {
-		viper.Set("peer.tls.clientAuthRequired", true)
-		viper.Set("peer.tls.clientKey.file", filepath.Join("./testdata/certs", "empty.key"))
-		viper.Set("peer.tls.clientCert.file", filepath.Join("./testdata/certs", "client.crt"))
-		defer viper.Reset()
-
-		cert, err := common.GetClientCertificate()
-		require.EqualError(t, err, "failed to load client certificate: tls: failed to find any PEM data in key input")
-		require.Equal(t, cert, tls.Certificate{})
-	})
-
-	t.Run("GetClientCertificate_empty_certfile", func(t *testing.T) {
-		viper.Set("peer.tls.clientAuthRequired", true)
-		viper.Set("peer.tls.clientKey.file", filepath.Join("./testdata/certs", "client.key"))
-		viper.Set("peer.tls.clientCert.file", filepath.Join("./testdata/certs", "empty.crt"))
-		defer viper.Reset()
-
-		cert, err := common.GetClientCertificate()
-		require.EqualError(t, err, "failed to load client certificate: tls: failed to find any PEM data in certificate input")
-		require.Equal(t, cert, tls.Certificate{})
-	})
-
-	t.Run("GetClientCertificate_bad_keyfilepath", func(t *testing.T) {
-		// bad key file path
-		viper.Set("peer.tls.clientAuthRequired", true)
-		viper.Set("peer.tls.clientKey.file", filepath.Join("./testdata/certs", "nokey.key"))
-		viper.Set("peer.tls.clientCert.file", filepath.Join("./testdata/certs", "client.crt"))
-		defer viper.Reset()
-
-		cert, err := common.GetClientCertificate()
-		require.EqualError(t, err, "unable to load peer.tls.clientKey.file: open testdata/certs/nokey.key: no such file or directory")
-		require.Equal(t, cert, tls.Certificate{})
-	})
-
-	t.Run("GetClientCertificate_missing_certfilepath", func(t *testing.T) {
-		// missing cert file path
-		viper.Set("peer.tls.clientAuthRequired", true)
-		viper.Set("peer.tls.clientKey.file", filepath.Join("./testdata/certs", "client.key"))
-		defer viper.Reset()
-
-		cert, err := common.GetClientCertificate()
-		require.EqualError(t, err, "unable to load peer.tls.clientCert.file: open : no such file or directory")
-		require.Equal(t, cert, tls.Certificate{})
+		cert, err := common.GetCertificate()
+		assert.NotEqual(t, cert, &tls.Certificate{})
+		assert.NoError(t, err)
 	})
 }
 
@@ -238,13 +179,13 @@ func TestNewPeerClientForAddress(t *testing.T) {
 
 	// success case
 	pClient, err := common.NewPeerClientForAddress("testPeer", "")
-	require.NoError(t, err)
-	require.NotNil(t, pClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, pClient)
 
 	// failure - no peer address supplied
 	pClient, err = common.NewPeerClientForAddress("", "")
-	require.Contains(t, err.Error(), "peer address must be set")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "peer address must be set")
+	assert.Nil(t, pClient)
 
 	// TLS enabled
 	viper.Set("peer.tls.enabled", true)
@@ -254,31 +195,31 @@ func TestNewPeerClientForAddress(t *testing.T) {
 
 	// success case
 	pClient, err = common.NewPeerClientForAddress("tlsPeer", "./testdata/certs/ca.crt")
-	require.NoError(t, err)
-	require.NotNil(t, pClient)
+	assert.NoError(t, err)
+	assert.NotNil(t, pClient)
 
 	// failure - bad tls root cert file
 	pClient, err = common.NewPeerClientForAddress("badPeer", "bad.crt")
-	require.Contains(t, err.Error(), "unable to load TLS root cert file from bad.crt")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "unable to load TLS root cert file from bad.crt")
+	assert.Nil(t, pClient)
 
 	// failure - empty tls root cert file
 	pClient, err = common.NewPeerClientForAddress("badPeer", "")
-	require.Contains(t, err.Error(), "tls root cert file must be set")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "tls root cert file must be set")
+	assert.Nil(t, pClient)
 
 	// failure - empty tls root cert file
 	viper.Set("peer.tls.clientCert.file", "./nocert.crt")
 	pClient, err = common.NewPeerClientForAddress("badPeer", "")
-	require.Contains(t, err.Error(), "unable to load peer.tls.clientCert.file")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "unable to load peer.tls.clientCert.file")
+	assert.Nil(t, pClient)
 
 	// bad key file
 	viper.Set("peer.tls.clientKey.file", "./nokey.key")
 	viper.Set("peer.client.connTimeout", time.Duration(0))
 	pClient, err = common.NewPeerClientForAddress("badPeer", "")
-	require.Contains(t, err.Error(), "unable to load peer.tls.clientKey.file")
-	require.Nil(t, pClient)
+	assert.Contains(t, err.Error(), "unable to load peer.tls.clientKey.file")
+	assert.Nil(t, pClient)
 
 }
 
@@ -290,10 +231,10 @@ func TestGetClients_AddressError(t *testing.T) {
 
 	// failure
 	eClient, err := common.GetEndorserClient("peer0", "")
-	require.Contains(t, err.Error(), "tls root cert file must be set")
-	require.Nil(t, eClient)
+	assert.Contains(t, err.Error(), "tls root cert file must be set")
+	assert.Nil(t, eClient)
 
 	dClient, err := common.GetDeliverClient("peer0", "")
-	require.Contains(t, err.Error(), "tls root cert file must be set")
-	require.Nil(t, dClient)
+	assert.Contains(t, err.Error(), "tls root cert file must be set")
+	assert.Nil(t, dClient)
 }

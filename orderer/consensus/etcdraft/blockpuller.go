@@ -10,11 +10,11 @@ import (
 	"encoding/pem"
 
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/consensus"
 	"github.com/pkg/errors"
 )
 
@@ -99,7 +99,6 @@ func NewBlockPuller(support consensus.ConsenterSupport,
 		TLSCert:             der.Bytes,
 		Channel:             support.ChannelID(),
 		Dialer:              stdDialer,
-		StopChannel:         make(chan struct{}),
 	}
 
 	return &LedgerBlockPuller{

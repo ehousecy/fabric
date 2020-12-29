@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	credentials "github.com/tjfoc/gmtls/gmcredentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )

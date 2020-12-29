@@ -10,18 +10,18 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/gossip"
-	gossipSupport "github.com/hyperledger/fabric/discovery/support/gossip"
-	"github.com/hyperledger/fabric/discovery/support/gossip/mocks"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/stretchr/testify/require"
+	gossipSupport "github.com/ehousecy/fabric/discovery/support/gossip"
+	"github.com/ehousecy/fabric/discovery/support/gossip/mocks"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestChannelExists(t *testing.T) {
 	g := &mocks.Gossip{}
 	sup := gossipSupport.NewDiscoverySupport(g)
-	require.False(t, sup.ChannelExists(""))
+	assert.False(t, sup.ChannelExists(""))
 }
 
 func TestPeers(t *testing.T) {
@@ -44,7 +44,7 @@ func TestPeers(t *testing.T) {
 	}
 	expected := discovery.Members{{PKIid: common.PKIidType("p1"), Endpoint: "p1", Envelope: p1ExpectedEnvelope}, {PKIid: common.PKIidType("p0"), Endpoint: "p0"}}
 	actual := sup.Peers()
-	require.Equal(t, expected, actual)
+	assert.Equal(t, expected, actual)
 }
 
 func TestPeersOfChannel(t *testing.T) {
@@ -61,7 +61,7 @@ func TestPeersOfChannel(t *testing.T) {
 	g.SelfChannelInfoReturnsOnCall(1, sMsg)
 	g.PeersOfChannelReturnsOnCall(0, []discovery.NetworkMember{{PKIid: common.PKIidType("p1")}, {PKIid: common.PKIidType("p2")}})
 	sup := gossipSupport.NewDiscoverySupport(g)
-	require.Empty(t, sup.PeersOfChannel(common.ChannelID("")))
+	assert.Empty(t, sup.PeersOfChannel(common.ChannelID("")))
 	expected := discovery.Members{{PKIid: common.PKIidType("p1")}, {PKIid: common.PKIidType("p2")}, {PKIid: common.PKIidType("px"), Envelope: sMsg.Envelope}}
-	require.Equal(t, expected, sup.PeersOfChannel(common.ChannelID("")))
+	assert.Equal(t, expected, sup.PeersOfChannel(common.ChannelID("")))
 }

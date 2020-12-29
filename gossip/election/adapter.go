@@ -12,11 +12,11 @@ import (
 	"time"
 
 	proto "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
 )
 
 type msgImpl struct {

@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,12 +29,12 @@ func TestNewPubAndHashUpdates(t *testing.T) {
 func TestContainsPostOrderWrites(t *testing.T) {
 	u := newPubAndHashUpdates()
 	rws := &rwsetutil.TxRwSet{}
-	require.NoError(t, u.applyWriteSet(rws, nil, nil, false))
+	u.applyWriteSet(rws, nil, nil, false)
 	require.False(t, u.publicUpdates.ContainsPostOrderWrites)
-	require.NoError(t, u.applyWriteSet(rws, nil, nil, true))
+	u.applyWriteSet(rws, nil, nil, true)
 	require.True(t, u.publicUpdates.ContainsPostOrderWrites)
 	// once set to true, should always return true
-	require.NoError(t, u.applyWriteSet(rws, nil, nil, false))
+	u.applyWriteSet(rws, nil, nil, false)
 	require.True(t, u.publicUpdates.ContainsPostOrderWrites)
 }
 
@@ -141,7 +141,7 @@ func TestApplyWriteSet(t *testing.T) {
 	testdb := testdbEnv.GetDBHandle("testdb")
 
 	// Call
-	require.NoError(t, pahu.applyWriteSet(txRWSet1, ver1, testdb, false))
+	pahu.applyWriteSet(txRWSet1, ver1, testdb, false)
 
 	// Check result
 	require.Equal(t, expected, pahu)

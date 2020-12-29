@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/core/common/privdata"
 )
 
 var defaultBTL uint64 = math.MaxUint64
@@ -79,15 +79,11 @@ func (p *LSCCBasedBTLPolicy) GetExpiringBlock(namesapce string, collection strin
 	if err != nil {
 		return 0, err
 	}
-	return ComputeExpiringBlock(namesapce, collection, committingBlock, btl), nil
-}
-
-func ComputeExpiringBlock(namesapce, collection string, committingBlock, btl uint64) uint64 {
 	expiryBlk := committingBlock + btl + uint64(1)
 	if expiryBlk <= committingBlock { // committingBlk + btl overflows uint64-max
 		expiryBlk = math.MaxUint64
 	}
-	return expiryBlk
+	return expiryBlk, nil
 }
 
 type collectionInfoProvider interface {

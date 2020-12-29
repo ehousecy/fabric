@@ -8,16 +8,15 @@ package history
 
 import (
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/dataformat"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
-	protoutil "github.com/hyperledger/fabric/protoutil"
-	"github.com/pkg/errors"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/ledger/dataformat"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
+	protoutil "github.com/ehousecy/fabric/protoutil"
 )
 
 var logger = flogging.MustGetLogger("history")
@@ -44,29 +43,18 @@ func NewDBProvider(path string) (*DBProvider, error) {
 	}, nil
 }
 
-// MarkStartingSavepoint creates historydb to be used for a ledger that is created from a snapshot
-func (p *DBProvider) MarkStartingSavepoint(name string, savepoint *version.Height) error {
-	db := p.GetDBHandle(name)
-	err := db.levelDB.Put(savePointKey, savepoint.ToBytes(), true)
-	return errors.WithMessagef(err, "error while writing the starting save point for ledger [%s]", name)
-}
-
 // GetDBHandle gets the handle to a named database
-func (p *DBProvider) GetDBHandle(name string) *DB {
+func (p *DBProvider) GetDBHandle(name string) (*DB, error) {
 	return &DB{
-		levelDB: p.leveldbProvider.GetDBHandle(name),
-		name:    name,
-	}
+			levelDB: p.leveldbProvider.GetDBHandle(name),
+			name:    name,
+		},
+		nil
 }
 
 // Close closes the underlying db
 func (p *DBProvider) Close() {
 	p.leveldbProvider.Close()
-}
-
-// Drop drops channel-specific data from the history db
-func (p *DBProvider) Drop(channelName string) error {
-	return p.leveldbProvider.Drop(channelName)
 }
 
 // DB maintains and provides access to history data for a particular channel
@@ -202,5 +190,9 @@ func (d *DB) CommitLostBlock(blockAndPvtdata *ledger.BlockAndPvtData) error {
 	} else {
 		logger.Debugf("Recommitting block [%d] to history database", block.Header.Number)
 	}
-	return d.Commit(block)
+
+	if err := d.Commit(block); err != nil {
+		return err
+	}
+	return nil
 }

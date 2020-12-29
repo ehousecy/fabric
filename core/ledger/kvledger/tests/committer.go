@@ -11,20 +11,20 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 // committer helps in cutting a block and commits the block (with pvt data) to the ledger
 type committer struct {
 	lgr    ledger.PeerLedger
 	blkgen *blkGenerator
-	assert *require.Assertions
+	assert *assert.Assertions
 }
 
 func newCommitter(lgr ledger.PeerLedger, t *testing.T) *committer {
-	return &committer{lgr, newBlockGenerator(lgr, t), require.New(t)}
+	return &committer{lgr, newBlockGenerator(lgr, t), assert.New(t)}
 }
 
 // cutBlockAndCommitLegacy cuts the next block from the given 'txAndPvtdata' and commits the block (with pvt data) to the ledger
@@ -32,7 +32,7 @@ func newCommitter(lgr ledger.PeerLedger, t *testing.T) *committer {
 // A copy is returned instead of the actual one because, ledger makes some changes to the submitted block before commit
 // (such as setting the metadata) and the test code would want to have the exact copy of the block that was submitted to
 // the ledger
-func (c *committer) cutBlockAndCommitLegacy(trans []*txAndPvtdata, missingPvtData ledger.TxMissingPvtData) *ledger.BlockAndPvtData {
+func (c *committer) cutBlockAndCommitLegacy(trans []*txAndPvtdata, missingPvtData ledger.TxMissingPvtDataMap) *ledger.BlockAndPvtData {
 	blk := c.blkgen.nextBlockAndPvtdata(trans, missingPvtData)
 	blkCopy := c.copyOfBlockAndPvtdata(blk)
 	c.assert.NoError(
@@ -41,12 +41,12 @@ func (c *committer) cutBlockAndCommitLegacy(trans []*txAndPvtdata, missingPvtDat
 	return blkCopy
 }
 
-func (c *committer) cutBlockAndCommitExpectError(trans []*txAndPvtdata, missingPvtData ledger.TxMissingPvtData) *ledger.BlockAndPvtData {
+func (c *committer) cutBlockAndCommitExpectError(trans []*txAndPvtdata, missingPvtData ledger.TxMissingPvtDataMap) (*ledger.BlockAndPvtData, error) {
 	blk := c.blkgen.nextBlockAndPvtdata(trans, missingPvtData)
 	blkCopy := c.copyOfBlockAndPvtdata(blk)
 	err := c.lgr.CommitLegacy(blk, &ledger.CommitOptions{})
 	c.assert.Error(err)
-	return blkCopy
+	return blkCopy, err
 }
 
 func (c *committer) copyOfBlockAndPvtdata(blk *ledger.BlockAndPvtData) *ledger.BlockAndPvtData {
@@ -63,21 +63,21 @@ func (c *committer) copyOfBlockAndPvtdata(blk *ledger.BlockAndPvtData) *ledger.B
 type blkGenerator struct {
 	lastNum  uint64
 	lastHash []byte
-	assert   *require.Assertions
+	assert   *assert.Assertions
 }
 
 // newBlockGenerator constructs a 'blkGenerator' and initializes the 'blkGenerator'
 // from the last block available in the ledger so that the next block can be populated
 // with the correct block number and previous block hash
 func newBlockGenerator(lgr ledger.PeerLedger, t *testing.T) *blkGenerator {
-	require := require.New(t)
+	assert := assert.New(t)
 	info, err := lgr.GetBlockchainInfo()
-	require.NoError(err)
-	return &blkGenerator{info.Height - 1, info.CurrentBlockHash, require}
+	assert.NoError(err)
+	return &blkGenerator{info.Height - 1, info.CurrentBlockHash, assert}
 }
 
 // nextBlockAndPvtdata cuts the next block
-func (g *blkGenerator) nextBlockAndPvtdata(trans []*txAndPvtdata, missingPvtData ledger.TxMissingPvtData) *ledger.BlockAndPvtData {
+func (g *blkGenerator) nextBlockAndPvtdata(trans []*txAndPvtdata, missingPvtData ledger.TxMissingPvtDataMap) *ledger.BlockAndPvtData {
 	block := protoutil.NewBlock(g.lastNum+1, g.lastHash)
 	blockPvtdata := make(map[uint64]*ledger.TxPvtData)
 	for i, tran := range trans {

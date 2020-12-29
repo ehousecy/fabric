@@ -95,6 +95,7 @@ type OrdererTopic struct {
 
 type FileLedger struct {
 	Location string `yaml:"Location,omitempty"`
+	Prefix   string `yaml:"Prefix,omitempty"`
 }
 
 type Kafka struct {
@@ -146,6 +147,5 @@ type OrdererStatsd struct {
 }
 
 type ChannelParticipation struct {
-	Enabled            bool   `yaml:"Enabled"`
-	MaxRequestBodySize string `yaml:"MaxRequestBodySize,omitempty"`
+	Enabled bool `yaml:"Enabled"`
 }

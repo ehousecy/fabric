@@ -9,7 +9,6 @@ package main
 import (
 	"os/exec"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -18,7 +17,7 @@ import (
 
 func TestMissingArguments(t *testing.T) {
 	gt := NewGomegaWithT(t)
-	discover, err := Build("github.com/hyperledger/fabric/cmd/discover")
+	discover, err := Build("github.com/ehousecy/fabric/cmd/discover")
 	gt.Expect(err).NotTo(HaveOccurred())
 	defer CleanupBuildArtifacts()
 
@@ -26,6 +25,6 @@ func TestMissingArguments(t *testing.T) {
 	cmd := exec.Command(discover, "--configFile", "conf.yaml", "--MSP", "SampleOrg", "saveConfig")
 	process, err := Start(cmd, nil, nil)
 	gt.Expect(err).NotTo(HaveOccurred())
-	gt.Eventually(process, 5*time.Second).Should(Exit(1))
+	gt.Eventually(process).Should(Exit(1))
 	gt.Expect(process.Err).To(gbytes.Say("empty string that is mandatory"))
 }

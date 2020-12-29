@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/common/metrics"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/ledger"
 	"github.com/pkg/errors"
 )
 
@@ -35,7 +35,6 @@ var maxLength = 238
 var chainNameAllowedLength = 50
 var namespaceNameAllowedLength = 50
 var collectionNameAllowedLength = 50
-var disableKeepAlive bool
 
 func createCouchInstance(config *ledger.CouchDBConfig, metricsProvider metrics.Provider) (*couchInstance, error) {
 	// make sure the address is valid
@@ -70,7 +69,6 @@ func createCouchInstance(config *ledger.CouchDBConfig, metricsProvider metrics.P
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		DisableKeepAlives:     disableKeepAlive,
 	}
 
 	client.Transport = transport
@@ -317,7 +315,7 @@ func DropApplicationDBs(config *ledger.CouchDBConfig) error {
 		return err
 	}
 	for _, dbName := range dbNames {
-		if err = dropDB(couchInstance, dbName); err != nil {
+		if _, err = dropDB(couchInstance, dbName); err != nil {
 			couchdbLogger.Errorf("Error dropping CouchDB database %s", dbName)
 			return err
 		}
@@ -325,7 +323,7 @@ func DropApplicationDBs(config *ledger.CouchDBConfig) error {
 	return nil
 }
 
-func dropDB(couchInstance *couchInstance, dbName string) error {
+func dropDB(couchInstance *couchInstance, dbName string) (*dbOperationResponse, error) {
 	db := &couchDatabase{
 		couchInstance: couchInstance,
 		dbName:        dbName,

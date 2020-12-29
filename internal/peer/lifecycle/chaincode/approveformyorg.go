@@ -8,17 +8,17 @@ package chaincode
 
 import (
 	"context"
-	"crypto/tls"
+	tls "github.com/tjfoc/gmtls"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/internal/peer/chaincode"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/internal/peer/chaincode"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

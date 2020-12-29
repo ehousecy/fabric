@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUpgradeDBsCmd(t *testing.T) {
@@ -21,5 +21,5 @@ func TestUpgradeDBsCmd(t *testing.T) {
 	defer os.RemoveAll(testPath)
 
 	cmd := upgradeDBsCmd()
-	require.EqualError(t, cmd.Execute(), "the data format is already up to date. No upgrade is required")
+	assert.NoError(t, cmd.Execute())
 }

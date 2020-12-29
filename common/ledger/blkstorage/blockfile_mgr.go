@@ -17,9 +17,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
-	"github.com/hyperledger/fabric/internal/fileutil"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/ledger/util"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -89,7 +89,7 @@ At start up a new manager:
 func newBlockfileMgr(id string, conf *Conf, indexConfig *IndexConfig, indexStore *leveldbhelper.DBHandle) (*blockfileMgr, error) {
 	logger.Debugf("newBlockfileMgr() initializing file-based block storage for ledger: %s ", id)
 	rootDir := conf.getLedgerBlockDir(id)
-	_, err := fileutil.CreateDirIfMissing(rootDir)
+	_, err := util.CreateDirIfMissing(rootDir)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating block storage root dir [%s]: %s", rootDir, err))
 	}
@@ -145,8 +145,6 @@ func newBlockfileMgr(id string, conf *Conf, indexConfig *IndexConfig, indexStore
 		bcInfo.Height = mgr.bootstrappingSnapshotInfo.LastBlockNum + 1
 		bcInfo.CurrentBlockHash = mgr.bootstrappingSnapshotInfo.LastBlockHash
 		bcInfo.PreviousBlockHash = mgr.bootstrappingSnapshotInfo.PreviousBlockHash
-		bcInfo.BootstrappingSnapshotInfo = &common.BootstrappingSnapshotInfo{}
-		bcInfo.BootstrappingSnapshotInfo.LastBlockInSnapshot = mgr.bootstrappingSnapshotInfo.LastBlockNum
 	}
 
 	if !blockfilesInfo.noBlockFiles {
@@ -154,24 +152,25 @@ func newBlockfileMgr(id string, conf *Conf, indexConfig *IndexConfig, indexStore
 		if err != nil {
 			panic(fmt.Sprintf("Could not retrieve header of the last block form file: %s", err))
 		}
-		// update bcInfo with lastPersistedBlock
-		bcInfo.Height = blockfilesInfo.lastPersistedBlock + 1
-		bcInfo.CurrentBlockHash = protoutil.BlockHeaderHash(lastBlockHeader)
-		bcInfo.PreviousBlockHash = lastBlockHeader.PreviousHash
+		lastBlockHash := protoutil.BlockHeaderHash(lastBlockHeader)
+		previousBlockHash := lastBlockHeader.PreviousHash
+		bcInfo = &common.BlockchainInfo{
+			Height:            blockfilesInfo.lastPersistedBlock + 1,
+			CurrentBlockHash:  lastBlockHash,
+			PreviousBlockHash: previousBlockHash}
 	}
 	mgr.bcInfo.Store(bcInfo)
 	return mgr, nil
 }
 
 func bootstrapFromSnapshottedTxIDs(
-	ledgerID string,
 	snapshotDir string,
 	snapshotInfo *SnapshotInfo,
 	conf *Conf,
 	indexStore *leveldbhelper.DBHandle,
 ) error {
-	rootDir := conf.getLedgerBlockDir(ledgerID)
-	isEmpty, err := fileutil.CreateDirIfMissing(rootDir)
+	rootDir := conf.getLedgerBlockDir(snapshotInfo.LedgerID)
+	isEmpty, err := util.CreateDirIfMissing(rootDir)
 	if err != nil {
 		return err
 	}
@@ -190,16 +189,12 @@ func bootstrapFromSnapshottedTxIDs(
 		return err
 	}
 
-	if err := fileutil.CreateAndSyncFileAtomically(
+	if err := createAndSyncFileAtomically(
 		rootDir,
 		bootstrappingSnapshotInfoTempFile,
 		bootstrappingSnapshotInfoFile,
 		bsiBytes,
-		0644,
 	); err != nil {
-		return err
-	}
-	if err := fileutil.SyncDir(rootDir); err != nil {
 		return err
 	}
 	if err := importTxIDsFromSnapshot(snapshotDir, snapshotInfo.LastBlockNum, indexStore); err != nil {
@@ -212,7 +207,7 @@ func syncBlockfilesInfoFromFS(rootDir string, blkfilesInfo *blockfilesInfo) {
 	logger.Debugf("Starting blockfilesInfo=%s", blkfilesInfo)
 	//Checks if the file suffix of where the last block was written exists
 	filePath := deriveBlockfilePath(rootDir, blkfilesInfo.latestFileNumber)
-	exists, size, err := fileutil.FileExists(filePath)
+	exists, size, err := util.FileExists(filePath)
 	if err != nil {
 		panic(fmt.Sprintf("Error in checking whether file [%s] exists: %s", filePath, err))
 	}
@@ -490,11 +485,9 @@ func (mgr *blockfileMgr) updateBlockfilesInfo(blkfilesInfo *blockfilesInfo) {
 func (mgr *blockfileMgr) updateBlockchainInfo(latestBlockHash []byte, latestBlock *common.Block) {
 	currentBCInfo := mgr.getBlockchainInfo()
 	newBCInfo := &common.BlockchainInfo{
-		Height:                    currentBCInfo.Height + 1,
-		CurrentBlockHash:          latestBlockHash,
-		PreviousBlockHash:         latestBlock.Header.PreviousHash,
-		BootstrappingSnapshotInfo: currentBCInfo.BootstrappingSnapshotInfo,
-	}
+		Height:            currentBCInfo.Height + 1,
+		CurrentBlockHash:  latestBlockHash,
+		PreviousBlockHash: latestBlock.Header.PreviousHash}
 
 	mgr.bcInfo.Store(newBCInfo)
 }
@@ -584,10 +577,6 @@ func (mgr *blockfileMgr) retrieveBlocks(startNum uint64) (*blocksItr, error) {
 		)
 	}
 	return newBlockItr(mgr, startNum), nil
-}
-
-func (mgr *blockfileMgr) txIDExists(txID string) (bool, error) {
-	return mgr.index.txIDExists(txID)
 }
 
 func (mgr *blockfileMgr) retrieveTransactionByID(txID string) (*common.Envelope, error) {

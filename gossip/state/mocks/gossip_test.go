@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	proto "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGossipMock(t *testing.T) {
@@ -28,27 +28,27 @@ func TestGossipMock(t *testing.T) {
 	a, b := g.Accept(func(o interface{}) bool {
 		return true
 	}, false)
-	require.Nil(t, b)
-	require.NotNil(t, a)
-	require.Panics(t, func() {
+	assert.Nil(t, b)
+	assert.NotNil(t, a)
+	assert.Panics(t, func() {
 		g.SuspectPeers(func(identity api.PeerIdentityType) bool { return false })
 	})
-	require.Panics(t, func() {
+	assert.Panics(t, func() {
 		g.Send(nil, nil)
 	})
-	require.Panics(t, func() {
+	assert.Panics(t, func() {
 		g.Peers()
 	})
 	g.On("PeersOfChannel", mock.Anything).Return([]discovery.NetworkMember{})
-	require.Empty(t, g.PeersOfChannel(common.ChannelID("A")))
+	assert.Empty(t, g.PeersOfChannel(common.ChannelID("A")))
 
-	require.Panics(t, func() {
+	assert.Panics(t, func() {
 		g.UpdateMetadata([]byte{})
 	})
-	require.Panics(t, func() {
+	assert.Panics(t, func() {
 		g.Gossip(nil)
 	})
-	require.NotPanics(t, func() {
+	assert.NotPanics(t, func() {
 		g.UpdateLedgerHeight(0, common.ChannelID("A"))
 		g.Stop()
 		g.JoinChan(nil, common.ChannelID("A"))

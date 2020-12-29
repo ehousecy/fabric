@@ -20,19 +20,20 @@ import (
 	mspproto "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	tspb "github.com/hyperledger/fabric-protos-go/transientstore"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	util2 "github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/transientstore"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	privdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
-	"github.com/hyperledger/fabric/gossip/privdata/mocks"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	msptesttools "github.com/hyperledger/fabric/msp/mgmt/testtools"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	util2 "github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/transientstore"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	privdatacommon "github.com/ehousecy/fabric/gossip/privdata/common"
+	"github.com/ehousecy/fabric/gossip/privdata/mocks"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	msptesttools "github.com/ehousecy/fabric/msp/mgmt/testtools"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -144,7 +145,7 @@ func TestRetrievePvtdata(t *testing.T) {
 						},
 					},
 				},
-				MissingPvtData: ledger.TxMissingPvtData{},
+				MissingPvtData: ledger.TxMissingPvtDataMap{},
 			},
 		},
 		{
@@ -211,7 +212,7 @@ func TestRetrievePvtdata(t *testing.T) {
 			},
 			expectedBlockPvtdata: &ledger.BlockPvtdata{
 				PvtData: ledger.TxPvtDataMap{},
-				MissingPvtData: ledger.TxMissingPvtData{
+				MissingPvtData: ledger.TxMissingPvtDataMap{
 					1: []*ledger.MissingPvtData{
 						{
 							Namespace:  "ns1",
@@ -313,7 +314,7 @@ func TestRetrievePvtdata(t *testing.T) {
 						},
 					},
 				},
-				MissingPvtData: ledger.TxMissingPvtData{},
+				MissingPvtData: ledger.TxMissingPvtDataMap{},
 			},
 		},
 		{
@@ -441,7 +442,7 @@ func TestRetrievePvtdata(t *testing.T) {
 						},
 					},
 				},
-				MissingPvtData: ledger.TxMissingPvtData{},
+				MissingPvtData: ledger.TxMissingPvtDataMap{},
 			},
 		},
 		{
@@ -505,7 +506,7 @@ func TestRetrievePvtdata(t *testing.T) {
 						},
 					},
 				},
-				MissingPvtData: ledger.TxMissingPvtData{},
+				MissingPvtData: ledger.TxMissingPvtDataMap{},
 			},
 		},
 		{
@@ -583,7 +584,7 @@ func TestRetrievePvtdata(t *testing.T) {
 						},
 					},
 				},
-				MissingPvtData: ledger.TxMissingPvtData{},
+				MissingPvtData: ledger.TxMissingPvtDataMap{},
 			},
 		},
 		{
@@ -622,7 +623,7 @@ func TestRetrievePvtdata(t *testing.T) {
 			},
 			expectedBlockPvtdata: &ledger.BlockPvtdata{
 				PvtData: ledger.TxPvtDataMap{},
-				MissingPvtData: ledger.TxMissingPvtData{
+				MissingPvtData: ledger.TxMissingPvtDataMap{
 					1: []*ledger.MissingPvtData{
 						{
 							Namespace:  "ns1",
@@ -710,7 +711,7 @@ func TestRetrievePvtdata(t *testing.T) {
 						},
 					},
 				},
-				MissingPvtData: ledger.TxMissingPvtData{},
+				MissingPvtData: ledger.TxMissingPvtDataMap{},
 			},
 		},
 		{
@@ -808,7 +809,7 @@ func TestRetrievePvtdata(t *testing.T) {
 					},
 				},
 				// Only tx3 is missing since we skip pulling invalid tx from peers
-				MissingPvtData: ledger.TxMissingPvtData{
+				MissingPvtData: ledger.TxMissingPvtDataMap{
 					3: []*ledger.MissingPvtData{
 						{
 							Namespace:  "ns1",
@@ -975,11 +976,11 @@ func TestRetryFetchFromPeer(t *testing.T) {
 	}
 
 	_, err = pdp.RetrievePvtdata(pvtdataToRetrieve)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	maxRetries := int(testConfig.PullRetryThreshold / pullRetrySleepInterval)
-	require.Equal(t, fakeSleeper.SleepCallCount() <= maxRetries, true)
-	require.Equal(t, fakeSleeper.SleepArgsForCall(0), pullRetrySleepInterval)
+	assert.Equal(t, fakeSleeper.SleepCallCount() <= maxRetries, true)
+	assert.Equal(t, fakeSleeper.SleepArgsForCall(0), pullRetrySleepInterval)
 }
 
 func TestSkipPullingAllInvalidTransactions(t *testing.T) {
@@ -1032,7 +1033,7 @@ func TestSkipPullingAllInvalidTransactions(t *testing.T) {
 	expectedDigKeys := []privdatacommon.DigKey{}
 	expectedBlockPvtdata := &ledger.BlockPvtdata{
 		PvtData: ledger.TxPvtDataMap{},
-		MissingPvtData: ledger.TxMissingPvtData{
+		MissingPvtData: ledger.TxMissingPvtDataMap{
 			1: []*ledger.MissingPvtData{
 				{
 					Namespace:  "ns1",
@@ -1070,14 +1071,14 @@ func TestSkipPullingAllInvalidTransactions(t *testing.T) {
 	pdp.fetcher = newFetcher
 
 	retrievedPvtdata, err := pdp.RetrievePvtdata(pvtdataToRetrieve)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	blockPvtdata := sortBlockPvtdata(retrievedPvtdata.GetBlockPvtdata())
-	require.Equal(t, expectedBlockPvtdata, blockPvtdata)
+	assert.Equal(t, expectedBlockPvtdata, blockPvtdata)
 
 	// Check sleep and fetch were never called
-	require.Equal(t, fakeSleeper.SleepCallCount(), 0)
-	require.Len(t, newFetcher.Calls, 0)
+	assert.Equal(t, fakeSleeper.SleepCallCount(), 0)
+	assert.Len(t, newFetcher.Calls, 0)
 }
 
 func TestRetrievedPvtdataPurgeBelowHeight(t *testing.T) {
@@ -1154,7 +1155,7 @@ func TestRetrievedPvtdataPurgeBelowHeight(t *testing.T) {
 			defer iterator.Close()
 			res, err := iterator.Next()
 			require.NoError(t, err, fmt.Sprintf("Failed iterating, got err %s", err))
-			require.NotNil(t, res)
+			assert.NotNil(t, res)
 		}()
 	}
 
@@ -1204,9 +1205,9 @@ func TestRetrievedPvtdataPurgeBelowHeight(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("Failed iterating, got err %s", err))
 			// Check that only the fetched private write set was purged because we haven't reached a blockNum that's a multiple of 5 yet
 			if i == 9 {
-				require.Nil(t, res)
+				assert.Nil(t, res)
 			} else {
-				require.NotNil(t, res)
+				assert.NotNil(t, res)
 			}
 		}()
 	}
@@ -1228,9 +1229,9 @@ func TestRetrievedPvtdataPurgeBelowHeight(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("Failed iterating, got err %s", err))
 			// Check that the first 5 sets have been purged alongside the 9th set purged earlier
 			if i < 6 || i == 9 {
-				require.Nil(t, res)
+				assert.Nil(t, res)
 			} else {
-				require.NotNil(t, res)
+				assert.NotNil(t, res)
 			}
 		}()
 	}
@@ -1242,7 +1243,7 @@ func TestFetchStats(t *testing.T) {
 		fromTransientStore: 2,
 		fromRemotePeer:     3,
 	}
-	require.Equal(t, "(1 from local cache, 2 from transient store, 3 from other peers)", fetchStats.String())
+	assert.Equal(t, "(1 from local cache, 2 from transient store, 3 from other peers)", fetchStats.String())
 }
 
 func testRetrievePvtdataSuccess(t *testing.T,
@@ -1272,12 +1273,12 @@ func testRetrievePvtdataSuccess(t *testing.T,
 	require.NotNil(t, pdp, scenario)
 
 	retrievedPvtdata, err := pdp.RetrievePvtdata(pvtdataToRetrieve)
-	require.NoError(t, err, scenario)
+	assert.NoError(t, err, scenario)
 
 	// sometimes the collection private write sets are added out of order
 	// so we need to sort it to check equality with expected
 	blockPvtdata := sortBlockPvtdata(retrievedPvtdata.GetBlockPvtdata())
-	require.Equal(t, expectedBlockPvtdata, blockPvtdata, scenario)
+	assert.Equal(t, expectedBlockPvtdata, blockPvtdata, scenario)
 
 	// Test pvtdata is purged from store on Done() call
 	testPurged(t, scenario, retrievedPvtdata, store, pvtdataToRetrieve)
@@ -1311,7 +1312,7 @@ func testRetrievePvtdataFailure(t *testing.T,
 	require.NotNil(t, pdp, scenario)
 
 	_, err = pdp.RetrievePvtdata(pvtdataToRetrieve)
-	require.EqualError(t, err, expectedErr, scenario)
+	assert.EqualError(t, err, expectedErr, scenario)
 }
 
 func setupPrivateDataProvider(t *testing.T,
@@ -1378,7 +1379,7 @@ func testPurged(t *testing.T,
 			res, err := iterator.Next()
 			require.NoError(t, err, fmt.Sprintf("Failed iterating, got err %s", err))
 
-			require.Nil(t, res, scenario)
+			assert.Nil(t, res, scenario)
 		}()
 	}
 }

@@ -11,11 +11,11 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/core/aclmgmt/resources"
-	"github.com/hyperledger/fabric/core/policy"
-	"github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/core/aclmgmt/resources"
+	"github.com/ehousecy/fabric/core/policy"
+	"github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 const (
@@ -60,11 +60,6 @@ func newDefaultACLProvider(policyChecker policy.PolicyChecker) defaultACLProvide
 	d.cResourcePolicyMap[resources.Lifecycle_QueryChaincodeDefinitions] = CHANNELWRITERS
 	d.cResourcePolicyMap[resources.Lifecycle_CheckCommitReadiness] = CHANNELWRITERS
 
-	//-------------- snapshot ---------------
-	d.pResourcePolicyMap[resources.Snapshot_submitrequest] = mgmt.Admins
-	d.pResourcePolicyMap[resources.Snapshot_cancelrequest] = mgmt.Admins
-	d.pResourcePolicyMap[resources.Snapshot_listpending] = mgmt.Admins
-
 	//-------------- LSCC --------------
 	//p resources (implemented by the chaincode currently)
 	d.pResourcePolicyMap[resources.Lscc_Install] = mgmt.Admins
@@ -92,13 +87,10 @@ func newDefaultACLProvider(policyChecker policy.PolicyChecker) defaultACLProvide
 	//--------------- CSCC resources -----------
 	//p resources (implemented by the chaincode currently)
 	d.pResourcePolicyMap[resources.Cscc_JoinChain] = mgmt.Admins
-	d.pResourcePolicyMap[resources.Cscc_JoinChainBySnapshot] = mgmt.Admins
-	d.pResourcePolicyMap[resources.Cscc_JoinBySnapshotStatus] = mgmt.Admins
 	d.pResourcePolicyMap[resources.Cscc_GetChannels] = mgmt.Members
 
 	//c resources
 	d.cResourcePolicyMap[resources.Cscc_GetConfigBlock] = CHANNELREADERS
-	d.cResourcePolicyMap[resources.Cscc_GetChannelConfig] = CHANNELREADERS
 
 	//---------------- non-scc resources ------------
 	//Peer resources
@@ -146,30 +138,4 @@ func (d *defaultACLProviderImpl) CheckACL(resName string, channelID string, idin
 		aclLogger.Errorf("Unmapped id on checkACL %s", resName)
 		return fmt.Errorf("Unknown id on checkACL %s", resName)
 	}
-}
-
-// CheckACL provides default behavior by mapping channelless resources to their ACL.
-func (d *defaultACLProviderImpl) CheckACLNoChannel(resName string, idinfo interface{}) error {
-	policy := d.pResourcePolicyMap[resName]
-	if policy == "" {
-		aclLogger.Errorf("Unmapped channelless policy for %s", resName)
-		return fmt.Errorf("Unmapped channelless policy for %s", resName)
-	}
-
-	switch typedData := idinfo.(type) {
-	case *pb.SignedProposal:
-		return d.policyChecker.CheckPolicyNoChannel(policy, typedData)
-	case *common.Envelope:
-		sd, err := protoutil.EnvelopeAsSignedData(typedData)
-		if err != nil {
-			return err
-		}
-		return d.policyChecker.CheckPolicyNoChannelBySignedData(policy, sd)
-	case []*protoutil.SignedData:
-		return d.policyChecker.CheckPolicyNoChannelBySignedData(policy, typedData)
-	default:
-		aclLogger.Errorf("Unmapped id on channelless checkACL %s", resName)
-		return fmt.Errorf("Unknown id on channelless checkACL %s", resName)
-	}
-
 }

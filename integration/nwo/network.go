@@ -24,10 +24,10 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/hyperledger/fabric/integration/helpers"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/nwo/fabricconfig"
-	"github.com/hyperledger/fabric/integration/runner"
+	"github.com/ehousecy/fabric/integration/helpers"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/integration/nwo/fabricconfig"
+	"github.com/ehousecy/fabric/integration/runner"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -66,11 +66,9 @@ type Consortium struct {
 // Consensus indicates the orderer types and how many broker and zookeeper
 // instances.
 type Consensus struct {
-	Type                        string `yaml:"type,omitempty"`
-	BootstrapMethod             string `yaml:"bootstrap_method,omitempty"`
-	Brokers                     int    `yaml:"brokers,omitempty"`
-	ZooKeepers                  int    `yaml:"zookeepers,omitempty"`
-	ChannelParticipationEnabled bool   `yaml:"channel_participation_enabled,omitempty"`
+	Type       string `yaml:"type,omitempty"`
+	Brokers    int    `yaml:"brokers,omitempty"`
+	ZooKeepers int    `yaml:"zookeepers,omitempty"`
 }
 
 // The SystemChannel declares the name of the network system channel and its
@@ -141,18 +139,19 @@ type Profile struct {
 
 // Network holds information about a fabric network.
 type Network struct {
-	RootDir               string
-	StartPort             uint16
-	Components            *Components
-	DockerClient          *docker.Client
-	ExternalBuilders      []fabricconfig.ExternalBuilder
-	NetworkID             string
-	EventuallyTimeout     time.Duration
-	SessionCreateInterval time.Duration
-	MetricsProvider       string
-	StatsdEndpoint        string
-	ClientAuthRequired    bool
-	TLSEnabled            bool
+	RootDir                     string
+	StartPort                   uint16
+	Components                  *Components
+	DockerClient                *docker.Client
+	ExternalBuilders            []fabricconfig.ExternalBuilder
+	NetworkID                   string
+	EventuallyTimeout           time.Duration
+	SessionCreateInterval       time.Duration
+	MetricsProvider             string
+	StatsdEndpoint              string
+	ClientAuthRequired          bool
+	ChannelParticipationEnabled bool
+	TLSEnabled                  bool
 
 	PortsByBrokerID  map[string]Ports
 	PortsByOrdererID map[string]Ports
@@ -476,19 +475,6 @@ func (n *Network) PeerUserCert(p *Peer, user string) string {
 	)
 }
 
-// PeerCACert returns the path to the CA certificate for the peer
-// organization.
-func (n *Network) PeerCACert(p *Peer) string {
-	org := n.Organization(p.Organization)
-	Expect(org).NotTo(BeNil())
-
-	return filepath.Join(
-		n.PeerOrgMSPDir(org),
-		"cacerts",
-		fmt.Sprintf("ca.%s-cert.pem", org.Domain),
-	)
-}
-
 // OrdererUserCert returns the path to the certificate for the specified user in
 // the orderer organization.
 func (n *Network) OrdererUserCert(o *Orderer, user string) string {
@@ -499,19 +485,6 @@ func (n *Network) OrdererUserCert(o *Orderer, user string) string {
 		n.OrdererUserMSPDir(o, user),
 		"signcerts",
 		fmt.Sprintf("%s@%s-cert.pem", user, org.Domain),
-	)
-}
-
-// OrdererCACert returns the path to the CA certificate for the orderer
-// organization.
-func (n *Network) OrdererCACert(o *Orderer) string {
-	org := n.Organization(o.Organization)
-	Expect(org).NotTo(BeNil())
-
-	return filepath.Join(
-		n.OrdererOrgMSPDir(org),
-		"cacerts",
-		fmt.Sprintf("ca.%s-cert.pem", org.Domain),
 	)
 }
 
@@ -841,6 +814,7 @@ func hostIPv4Addrs() []net.IP {
 // bootstrapIdemix creates the idemix-related crypto material
 func (n *Network) bootstrapIdemix() {
 	for j, org := range n.IdemixOrgs() {
+
 		output := n.IdemixOrgMSPDir(org)
 		// - ca-keygen
 		sess, err := n.Idemixgen(commands.CAKeyGen{
@@ -851,13 +825,13 @@ func (n *Network) bootstrapIdemix() {
 
 		// - signerconfig
 		usersOutput := filepath.Join(n.IdemixOrgMSPDir(org), "users")
-		userOutput := filepath.Join(usersOutput, "User1@"+org.Domain)
+		userOutput := filepath.Join(usersOutput, fmt.Sprintf("User%d@%s", 1, org.Domain))
 		sess, err = n.Idemixgen(commands.SignerConfig{
 			CAInput:          output,
 			Output:           userOutput,
 			OrgUnit:          org.Domain,
-			EnrollmentID:     "User1",
-			RevocationHandle: fmt.Sprintf("11%d", j),
+			EnrollmentID:     "User" + string(1),
+			RevocationHandle: fmt.Sprintf("1%d%d", 1, j),
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
@@ -1115,31 +1089,6 @@ func (n *Network) JoinChannel(name string, o *Orderer, peers ...*Peer) {
 	}
 }
 
-func (n *Network) JoinChannelBySnapshot(snapshotDir string, peers ...*Peer) {
-	if len(peers) == 0 {
-		return
-	}
-
-	for _, p := range peers {
-		sess, err := n.PeerAdminSession(p, commands.ChannelJoinBySnapshot{
-			SnapshotPath: snapshotDir,
-			ClientAuth:   n.ClientAuthRequired,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
-	}
-}
-
-func (n *Network) JoinBySnapshotStatus(p *Peer) []byte {
-	sess, err := n.PeerAdminSession(p, commands.ChannelJoinBySnapshotStatus{
-		ClientAuth: n.ClientAuthRequired,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
-	return sess.Out.Contents()
-
-}
-
 // Cryptogen starts a gexec.Session for the provided cryptogen command.
 func (n *Network) Cryptogen(command Command) (*gexec.Session, error) {
 	cmd := NewCommand(n.Components.Cryptogen(), command)
@@ -1326,13 +1275,12 @@ func (n *Network) NetworkGroupRunner() ifrit.Runner {
 func (n *Network) peerCommand(command Command, tlsDir string, env ...string) *exec.Cmd {
 	cmd := NewCommand(n.Components.Peer(), command)
 	cmd.Env = append(cmd.Env, env...)
-
-	if connectsToOrderer(command) && n.TLSEnabled {
+	if ConnectsToOrderer(command) && n.TLSEnabled {
 		cmd.Args = append(cmd.Args, "--tls")
 		cmd.Args = append(cmd.Args, "--cafile", n.CACertsBundlePath())
 	}
 
-	if clientAuthEnabled(command) {
+	if ClientAuthEnabled(command) {
 		certfilePath := filepath.Join(tlsDir, "client.crt")
 		keyfilePath := filepath.Join(tlsDir, "client.key")
 
@@ -1349,32 +1297,7 @@ func (n *Network) peerCommand(command Command, tlsDir string, env ...string) *ex
 		cmd.Args = append(cmd.Args, "--tlsRootCertFiles")
 		cmd.Args = append(cmd.Args, n.CACertsBundlePath())
 	}
-
-	// If there is --peerAddress, add --tlsRootCertFile parameter
-	requiredPeerAddress := flagCount("--peerAddress", cmd.Args)
-	if requiredPeerAddress > 0 {
-		cmd.Args = append(cmd.Args, "--tlsRootCertFile")
-		cmd.Args = append(cmd.Args, n.CACertsBundlePath())
-	}
 	return cmd
-}
-
-func connectsToOrderer(c Command) bool {
-	for _, arg := range c.Args() {
-		if arg == "--orderer" {
-			return true
-		}
-	}
-	return false
-}
-
-func clientAuthEnabled(c Command) bool {
-	for _, arg := range c.Args() {
-		if arg == "--clientauth" {
-			return true
-		}
-	}
-	return false
 }
 
 func flagCount(flag string, args []string) int {
@@ -1669,7 +1592,6 @@ const (
 	ProfilePort    PortName = "Profile"
 	OperationsPort PortName = "Operations"
 	ClusterPort    PortName = "Cluster"
-	AdminPort      PortName = "Admin"
 )
 
 // PeerPortNames returns the list of ports that need to be reserved for a Peer.
@@ -1680,7 +1602,7 @@ func PeerPortNames() []PortName {
 // OrdererPortNames  returns the list of ports that need to be reserved for an
 // Orderer.
 func OrdererPortNames() []PortName {
-	return []PortName{ListenPort, ProfilePort, OperationsPort, ClusterPort, AdminPort}
+	return []PortName{ListenPort, ProfilePort, OperationsPort, ClusterPort}
 }
 
 // BrokerPortNames returns the list of ports that need to be reserved for a

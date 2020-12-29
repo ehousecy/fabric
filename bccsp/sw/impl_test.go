@@ -26,11 +26,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/signer"
-	"github.com/hyperledger/fabric/bccsp/sw/mocks"
-	"github.com/hyperledger/fabric/bccsp/utils"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/signer"
+	"github.com/ehousecy/fabric/bccsp/sw/mocks"
+	"github.com/ehousecy/fabric/bccsp/utils"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -46,11 +46,11 @@ type testConfig struct {
 
 func (tc testConfig) Provider(t *testing.T) (bccsp.BCCSP, bccsp.KeyStore, func()) {
 	td, err := ioutil.TempDir(tempDir, "test")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	ks, err := NewFileBasedKeyStore(nil, td, false)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	p, err := NewWithParams(tc.securityLevel, tc.hashFamily, ks)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return p, ks, func() { os.RemoveAll(td) }
 }
 
@@ -1344,15 +1344,15 @@ func TestAddWrapper(t *testing.T) {
 	defer cleanup()
 
 	sw, ok := p.(*CSP)
-	require.True(t, ok)
+	assert.True(t, ok)
 
 	tester := func(o interface{}, getter func(t reflect.Type) (interface{}, bool)) {
 		tt := reflect.TypeOf(o)
 		err := sw.AddWrapper(tt, o)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		o2, ok := getter(tt)
-		require.True(t, ok)
-		require.Equal(t, o, o2)
+		assert.True(t, ok)
+		assert.Equal(t, o, o2)
 	}
 
 	tester(&mocks.KeyGenerator{}, func(t reflect.Type) (interface{}, bool) { o, ok := sw.KeyGenerators[t]; return o, ok })
@@ -1366,6 +1366,6 @@ func TestAddWrapper(t *testing.T) {
 
 	// Add invalid wrapper
 	err := sw.AddWrapper(reflect.TypeOf(cleanup), cleanup)
-	require.Error(t, err)
-	require.Equal(t, err.Error(), "wrapper type not valid, must be on of: KeyGenerator, KeyDeriver, KeyImporter, Encryptor, Decryptor, Signer, Verifier, Hasher")
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "wrapper type not valid, must be on of: KeyGenerator, KeyDeriver, KeyImporter, Encryptor, Decryptor, Signer, Verifier, Hasher")
 }

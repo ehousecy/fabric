@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package privacyenabledstate
 
 import (
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
 )
 
 type metadataHint struct {
@@ -33,7 +33,7 @@ func (h *metadataHint) metadataEverUsedFor(namespace string) bool {
 	return h.cache[namespace]
 }
 
-func (h *metadataHint) setMetadataUsedFlag(updates *UpdateBatch) error {
+func (h *metadataHint) setMetadataUsedFlag(updates *UpdateBatch) {
 	batch := h.bookkeeper.NewUpdateBatch()
 	for ns := range filterNamespacesThatHasMetadata(updates) {
 		if h.cache[ns] {
@@ -42,15 +42,7 @@ func (h *metadataHint) setMetadataUsedFlag(updates *UpdateBatch) error {
 		h.cache[ns] = true
 		batch.Put([]byte(ns), []byte{})
 	}
-	return h.bookkeeper.WriteBatch(batch, true)
-}
-
-func (h *metadataHint) importNamespacesThatUseMetadata(namespaces map[string]struct{}) error {
-	batch := h.bookkeeper.NewUpdateBatch()
-	for ns := range namespaces {
-		batch.Put([]byte(ns), []byte{})
-	}
-	return h.bookkeeper.WriteBatch(batch, true)
+	h.bookkeeper.WriteBatch(batch, true)
 }
 
 func filterNamespacesThatHasMetadata(updates *UpdateBatch) map[string]bool {

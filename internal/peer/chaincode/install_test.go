@@ -13,11 +13,11 @@ import (
 	"testing"
 
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/internal/peer/common"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func initInstallTest(t *testing.T, fsPath string, ec pb.EndorserClient, mockResponse *pb.ProposalResponse) (*cobra.Command, *ChaincodeCmdFactory) {
@@ -43,7 +43,7 @@ func initInstallTest(t *testing.T, fsPath string, ec pb.EndorserClient, mockResp
 		EndorserClients: []pb.EndorserClient{ec},
 	}
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	cmd := installCmd(mockCF, nil, cryptoProvider)
 	addFlags(cmd)
@@ -57,12 +57,12 @@ func cleanupInstallTest(fsPath string) {
 
 func TestInstallBadVersion(t *testing.T) {
 	fsPath, err := ioutil.TempDir("", "installbadversion")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	cmd, _ := initInstallTest(t, fsPath, nil, nil)
 	defer cleanupInstallTest(fsPath)
 
-	args := []string{"-n", "mychaincode", "-p", "github.com/hyperledger/fabric/internal/peer/chaincode/testdata/src/chaincodes/noop"}
+	args := []string{"-n", "mychaincode", "-p", "github.com/ehousecy/fabric/internal/peer/chaincode/testdata/src/chaincodes/noop"}
 	cmd.SetArgs(args)
 
 	if err := cmd.Execute(); err == nil {
@@ -72,12 +72,12 @@ func TestInstallBadVersion(t *testing.T) {
 
 func TestInstallNonExistentCC(t *testing.T) {
 	fsPath, err := ioutil.TempDir("", "install-nonexistentcc")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	cmd, _ := initInstallTest(t, fsPath, nil, nil)
 	defer cleanupInstallTest(fsPath)
 
-	args := []string{"-n", "badmychaincode", "-p", "github.com/hyperledger/fabric/internal/peer/chaincode/testdata/src/chaincodes/bad_mychaincode", "-v", "testversion"}
+	args := []string{"-n", "badmychaincode", "-p", "github.com/ehousecy/fabric/internal/peer/chaincode/testdata/src/chaincodes/bad_mychaincode", "-v", "testversion"}
 	cmd.SetArgs(args)
 
 	if err := cmd.Execute(); err == nil {
@@ -146,11 +146,11 @@ func installCC(t *testing.T) error {
 	defer viper.Reset()
 
 	fsPath, err := ioutil.TempDir("", "installLegacyEx02")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	cmd, _ := initInstallTest(t, fsPath, nil, nil)
 	defer cleanupInstallTest(fsPath)
 
-	args := []string{"-n", "mychaincode", "-p", "github.com/hyperledger/fabric/internal/peer/chaincode/testdata/src/chaincodes/noop", "-v", "anotherversion"}
+	args := []string{"-n", "mychaincode", "-p", "github.com/ehousecy/fabric/internal/peer/chaincode/testdata/src/chaincodes/noop", "-v", "anotherversion"}
 	cmd.SetArgs(args)
 
 	if err := cmd.Execute(); err != nil {

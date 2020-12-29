@@ -25,15 +25,16 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/protobuf/proto"
 	conftx "github.com/hyperledger/fabric-config/configtx"
+	"github.com/hyperledger/fabric-config/configtx/orderer"
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/cmd/common/signer"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/ordererclient"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/cmd/common/signer"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/util"
+	intconftx "github.com/ehousecy/fabric/integration/configtx"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -110,7 +111,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 
 			By("performing operation with orderer1")
 			env := CreateBroadcastEnvelope(network, o1, network.SystemChannel.Name, []byte("foo"))
-			resp, err := ordererclient.Broadcast(network, o1, env)
+			resp, err := nwo.Broadcast(network, o1, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -125,7 +126,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			Eventually(o2Runner.Err(), network.EventuallyTimeout).Should(gbytes.Say("Current active nodes in cluster are: \\[2 3\\]"))
 
 			By("broadcasting envelope to running orderer")
-			resp, err = ordererclient.Broadcast(network, o2, env)
+			resp, err = nwo.Broadcast(network, o2, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -139,7 +140,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			findLeader([]*ginkgomon.Runner{o1Runner})
 
 			By("broadcasting envelope to restarted orderer")
-			resp, err = ordererclient.Broadcast(network, o1, env)
+			resp, err = nwo.Broadcast(network, o1, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -185,7 +186,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			env := CreateBroadcastEnvelope(network, o2, channelID, make([]byte, 2000))
 			for i := 1; i <= 4; i++ { // 4 < MaxSnapshotFiles(5), so that no snapshot is pruned
 				// Note that MaxMessageCount is 1 be default, so every tx results in a new block
-				resp, err := ordererclient.Broadcast(network, o2, env)
+				resp, err := nwo.Broadcast(network, o2, env)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -231,7 +232,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 
 			By("Asserting cluster is still functional")
 			env = CreateBroadcastEnvelope(network, o1, channelID, make([]byte, 1000))
-			resp, err := ordererclient.Broadcast(network, o1, env)
+			resp, err := nwo.Broadcast(network, o1, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -343,7 +344,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			// This should fail because current leader steps down
 			// and there is no leader at this point of time
 			env := CreateBroadcastEnvelope(network, leader, network.SystemChannel.Name, []byte("foo"))
-			resp, err := ordererclient.Broadcast(network, leader, env)
+			resp, err := nwo.Broadcast(network, leader, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SERVICE_UNAVAILABLE))
 		})
@@ -658,11 +659,12 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			ordererCAKey, err := ioutil.ReadFile(ordererCAKeyPath)
 			Expect(err).NotTo(HaveOccurred())
 
-			ordererCACertPath := network.OrdererCACert(orderer)
+			ordererCACertPath := filepath.Join(network.RootDir, "crypto", "ordererOrganizations", ordererDomain, "ca", fmt.Sprintf("ca.%s-cert.pem", ordererDomain))
 			ordererCACert, err := ioutil.ReadFile(ordererCACertPath)
 			Expect(err).NotTo(HaveOccurred())
 
-			adminCertPath := network.OrdererUserCert(orderer, "Admin")
+			adminCertPath := fmt.Sprintf("Admin@%s-cert.pem", ordererDomain)
+			adminCertPath = filepath.Join(network.OrdererUserMSPDir(orderer, "Admin"), "signcerts", adminCertPath)
 
 			originalAdminCert, err := ioutil.ReadFile(adminCertPath)
 			Expect(err).NotTo(HaveOccurred())
@@ -679,7 +681,8 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			err = ioutil.WriteFile(ordererCACertPath, earlyCACert, 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			ordererCACertPath = network.OrdererCACert(orderer)
+			ordererCACertPath = filepath.Join(network.RootDir, "crypto", "ordererOrganizations",
+				ordererDomain, "msp", "cacerts", fmt.Sprintf("ca.%s-cert.pem", ordererDomain))
 			err = ioutil.WriteFile(ordererCACertPath, earlyCACert, 0600)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -722,7 +725,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			channelCreateTxn := createConfigTx(updateTransaction, network.SystemChannel.Name, network, orderer, peer)
 
 			By("Updating channel config and failing")
-			p, err := ordererclient.Broadcast(network, orderer, channelCreateTxn)
+			p, err := nwo.Broadcast(network, orderer, channelCreateTxn)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(p.Status).To(Equal(common.Status_BAD_REQUEST))
 			Expect(p.Info).To(ContainSubstring("identity expired"))
@@ -731,7 +734,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			denv := CreateDeliverEnvelope(network, orderer, 0, network.SystemChannel.Name)
 			Expect(denv).NotTo(BeNil())
 
-			block, err := ordererclient.Deliver(network, orderer, denv)
+			block, err := nwo.Deliver(network, orderer, denv)
 			Expect(err).To(HaveOccurred())
 			Expect(block).To(BeNil())
 			Eventually(runner.Err(), time.Minute, time.Second).Should(gbytes.Say("client identity expired"))
@@ -749,7 +752,7 @@ var _ = Describe("EndToEnd Crash Fault Tolerance", func() {
 			findLeader([]*ginkgomon.Runner{runner})
 
 			By("Updating channel config and succeeding")
-			p, err = ordererclient.Broadcast(network, orderer, channelCreateTxn)
+			p, err = nwo.Broadcast(network, orderer, channelCreateTxn)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(p.Status).To(Equal(common.Status_SUCCESS))
 
@@ -1040,4 +1043,28 @@ func updateOrdererConfig(n *nwo.Network, orderer *nwo.Orderer, port nwo.PortName
 		return currentConfigBlockNumber(n, submitter, orderer, port, channel, tlsHandshakeTimeShift)
 	}
 	Eventually(ccb, n.EventuallyTimeout).Should(BeNumerically(">", currentBlockNumber))
+}
+
+func consenterChannelConfig(n *nwo.Network, o *nwo.Orderer) orderer.Consenter {
+	host, port := intconftx.OrdererClusterHostPort(n, o)
+	tlsCert := parseCertificate(filepath.Join(n.OrdererLocalTLSDir(o), "server.crt"))
+	return orderer.Consenter{
+		Address: orderer.EtcdAddress{
+			Host: host,
+			Port: port,
+		},
+		ClientTLSCert: tlsCert,
+		ServerTLSCert: tlsCert,
+	}
+}
+
+// parseCertificate loads the PEM-encoded x509 certificate at the specified
+// path.
+func parseCertificate(path string) *x509.Certificate {
+	certBytes, err := ioutil.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	pemBlock, _ := pem.Decode(certBytes)
+	cert, err := x509.ParseCertificate(pemBlock.Bytes)
+	Expect(err).NotTo(HaveOccurred())
+	return cert
 }

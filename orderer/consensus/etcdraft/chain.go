@@ -19,13 +19,11 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/types"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/raft"
 	"go.etcd.io/etcd/raft/raftpb"
@@ -196,12 +194,7 @@ type Chain struct {
 	periodicChecker *PeriodicCheck
 
 	haltCallback func()
-
-	statusReportMutex sync.Mutex
-	consensusRelation types.ConsensusRelation
-	status            types.Status
-
-	// BCCSP instance
+	// BCCSP instane
 	CryptoProvider bccsp.BCCSP
 }
 
@@ -251,31 +244,29 @@ func NewChain(
 	}
 
 	c := &Chain{
-		configurator:      conf,
-		rpc:               rpc,
-		channelID:         support.ChannelID(),
-		raftID:            opts.RaftID,
-		submitC:           make(chan *submit),
-		applyC:            make(chan apply),
-		haltC:             make(chan struct{}),
-		doneC:             make(chan struct{}),
-		startC:            make(chan struct{}),
-		snapC:             make(chan *raftpb.Snapshot),
-		errorC:            make(chan struct{}),
-		gcC:               make(chan *gc),
-		observeC:          observeC,
-		support:           support,
-		fresh:             fresh,
-		appliedIndex:      opts.BlockMetadata.RaftIndex,
-		lastBlock:         b,
-		sizeLimit:         sizeLimit,
-		lastSnapBlockNum:  snapBlkNum,
-		confState:         cc,
-		createPuller:      f,
-		clock:             opts.Clock,
-		haltCallback:      haltCallback,
-		consensusRelation: types.ConsensusRelationConsenter,
-		status:            types.StatusActive,
+		configurator:     conf,
+		rpc:              rpc,
+		channelID:        support.ChannelID(),
+		raftID:           opts.RaftID,
+		submitC:          make(chan *submit),
+		applyC:           make(chan apply),
+		haltC:            make(chan struct{}),
+		doneC:            make(chan struct{}),
+		startC:           make(chan struct{}),
+		snapC:            make(chan *raftpb.Snapshot),
+		errorC:           make(chan struct{}),
+		gcC:              make(chan *gc),
+		observeC:         observeC,
+		support:          support,
+		fresh:            fresh,
+		appliedIndex:     opts.BlockMetadata.RaftIndex,
+		lastBlock:        b,
+		sizeLimit:        sizeLimit,
+		lastSnapBlockNum: snapBlkNum,
+		confState:        cc,
+		createPuller:     f,
+		clock:            opts.Clock,
+		haltCallback:     haltCallback,
 		Metrics: &Metrics{
 			ClusterSize:             opts.Metrics.ClusterSize.With("channel", support.ChannelID()),
 			IsLeader:                opts.Metrics.IsLeader.With("channel", support.ChannelID()),
@@ -377,7 +368,6 @@ func (c *Chain) Start() {
 	c.periodicChecker = &PeriodicCheck{
 		Logger:        c.logger,
 		Report:        es.confirmSuspicion,
-		ReportCleared: es.clearSuspicion,
 		CheckInterval: interval,
 		Condition:     c.suspectEviction,
 	}
@@ -423,50 +413,22 @@ func (c *Chain) Errored() <-chan struct{} {
 
 // Halt stops the chain.
 func (c *Chain) Halt() {
-	c.stop()
-}
-
-func (c *Chain) stop() bool {
 	select {
 	case <-c.startC:
 	default:
-		c.logger.Warn("Attempted to halt a chain that has not started")
-		return false
+		c.logger.Warnf("Attempted to halt a chain that has not started")
+		return
 	}
 
 	select {
 	case c.haltC <- struct{}{}:
 	case <-c.doneC:
-		return false
+		return
 	}
 	<-c.doneC
 
-	c.statusReportMutex.Lock()
-	defer c.statusReportMutex.Unlock()
-	c.status = types.StatusInactive
-
-	return true
-}
-
-// halt stops the chain and calls the haltCallback function, which allows the
-// chain to transfer responsibility to a follower or the inactive chain registry when a chain
-// discovers it is no longer a member of a channel.
-func (c *Chain) halt() {
-	if stopped := c.stop(); !stopped {
-		c.logger.Info("This node was stopped, the haltCallback will not be called")
-		return
-	}
 	if c.haltCallback != nil {
-		c.haltCallback() // Must be invoked WITHOUT any internal lock
-
-		c.statusReportMutex.Lock()
-		defer c.statusReportMutex.Unlock()
-
-		// If the haltCallback registers the chain in to the inactive chain registry (i.e., system channel exists) then
-		// this is the correct consensusRelation. If the haltCallback transfers responsibility to a follower.Chain, then
-		// this chain is about to be GC anyway. The new follower.Chain replacing this one will report the correct
-		// StatusReport.
-		c.consensusRelation = types.ConsensusRelationConfigTracker
+		c.haltCallback()
 	}
 }
 
@@ -495,12 +457,6 @@ func (c *Chain) Consensus(req *orderer.ConsensusRequest, sender uint64) error {
 	stepMsg := &raftpb.Message{}
 	if err := proto.Unmarshal(req.Payload, stepMsg); err != nil {
 		return fmt.Errorf("failed to unmarshal StepRequest payload to Raft Message: %s", err)
-	}
-
-	if stepMsg.To != c.raftID {
-		c.logger.Warnf("Received msg to %d, my ID is probably wrong due to out of date, cowardly halting", stepMsg.To)
-		c.halt()
-		return nil
 	}
 
 	if err := c.Node.Step(context.TODO(), *stepMsg); err != nil {
@@ -910,6 +866,8 @@ func (c *Chain) propose(ch chan<- *common.Block, bc *blockCreator, batches ...[]
 
 		c.blockInflight++
 	}
+
+	return
 }
 
 func (c *Chain) catchUp(snap *raftpb.Snapshot) error {
@@ -920,11 +878,6 @@ func (c *Chain) catchUp(snap *raftpb.Snapshot) error {
 
 	if c.lastBlock.Header.Number >= b.Header.Number {
 		c.logger.Warnf("Snapshot is at block [%d], local block number is %d, no sync needed", b.Header.Number, c.lastBlock.Header.Number)
-		return nil
-	} else if b.Header.Number == c.lastBlock.Header.Number+1 {
-		c.logger.Infof("The only missing block [%d] is encapsulated in snapshot, committing it to shortcut catchup process", b.Header.Number)
-		c.commitBlock(b)
-		c.lastBlock = b
 		return nil
 	}
 
@@ -943,37 +896,33 @@ func (c *Chain) catchUp(snap *raftpb.Snapshot) error {
 		if block == nil {
 			return errors.Errorf("failed to fetch block [%d] from cluster", next)
 		}
-		c.commitBlock(block)
+		if protoutil.IsConfigBlock(block) {
+			c.support.WriteConfigBlock(block, nil)
+
+			configMembership := c.detectConfChange(block)
+
+			if configMembership != nil && configMembership.Changed() {
+				c.logger.Infof("Config block [%d] changes consenter set, communication should be reconfigured", block.Header.Number)
+
+				c.raftMetadataLock.Lock()
+				c.opts.BlockMetadata = configMembership.NewBlockMetadata
+				c.opts.Consenters = configMembership.NewConsenters
+				c.raftMetadataLock.Unlock()
+
+				if err := c.configureComm(); err != nil {
+					c.logger.Panicf("Failed to configure communication: %s", err)
+				}
+			}
+		} else {
+			c.support.WriteBlock(block, nil)
+		}
+
 		c.lastBlock = block
 		next++
 	}
 
 	c.logger.Infof("Finished syncing with cluster up to and including block [%d]", b.Header.Number)
 	return nil
-}
-
-func (c *Chain) commitBlock(block *common.Block) {
-	if !protoutil.IsConfigBlock(block) {
-		c.support.WriteBlock(block, nil)
-		return
-	}
-
-	c.support.WriteConfigBlock(block, nil)
-
-	configMembership := c.detectConfChange(block)
-
-	if configMembership != nil && configMembership.Changed() {
-		c.logger.Infof("Config block [%d] changes consenter set, communication should be reconfigured", block.Header.Number)
-
-		c.raftMetadataLock.Lock()
-		c.opts.BlockMetadata = configMembership.NewBlockMetadata
-		c.opts.Consenters = configMembership.NewConsenters
-		c.raftMetadataLock.Unlock()
-
-		if err := c.configureComm(); err != nil {
-			c.logger.Panicf("Failed to configure communication: %s", err)
-		}
-	}
 }
 
 func (c *Chain) detectConfChange(block *common.Block) *MembershipChanges {
@@ -993,7 +942,7 @@ func (c *Chain) detectConfChange(block *common.Block) *MembershipChanges {
 		c.sizeLimit = configMetadata.Options.SnapshotIntervalSize
 	}
 
-	changes, err := ComputeMembershipChanges(c.opts.BlockMetadata, c.opts.Consenters, configMetadata.Consenters)
+	changes, err := ComputeMembershipChanges(c.opts.BlockMetadata, c.opts.Consenters, configMetadata.Consenters, c.support.SharedConfig())
 	if err != nil {
 		c.logger.Panicf("illegal configuration change detected: %s", err)
 	}
@@ -1087,7 +1036,7 @@ func (c *Chain) apply(ents []raftpb.Entry) {
 
 				if shouldHalt {
 					c.logger.Infof("This node is being removed from replica set")
-					c.halt()
+					c.Halt()
 					return
 				}
 			}()
@@ -1113,6 +1062,8 @@ func (c *Chain) apply(ents []raftpb.Entry) {
 			c.logger.Warnf("Snapshotting is in progress, it is very likely that SnapshotIntervalSize is too small")
 		}
 	}
+
+	return
 }
 
 func (c *Chain) gc() {
@@ -1318,51 +1269,34 @@ func (c *Chain) newConfigMetadata(block *common.Block) *etcdraft.ConfigMetadata 
 
 // ValidateConsensusMetadata determines the validity of a
 // ConsensusMetadata update during config updates on the channel.
-func (c *Chain) ValidateConsensusMetadata(oldOrdererConfig, newOrdererConfig channelconfig.Orderer, newChannel bool) error {
-	if newOrdererConfig == nil {
-		c.logger.Panic("Programming Error: ValidateConsensusMetadata called with nil new channel config")
-		return nil
-	}
-
+func (c *Chain) ValidateConsensusMetadata(oldMetadataBytes, newMetadataBytes []byte, newChannel bool) error {
 	// metadata was not updated
-	if newOrdererConfig.ConsensusMetadata() == nil {
+	if newMetadataBytes == nil {
 		return nil
 	}
-
-	if oldOrdererConfig == nil {
-		c.logger.Panic("Programming Error: ValidateConsensusMetadata called with nil old channel config")
-		return nil
-	}
-
-	if oldOrdererConfig.ConsensusMetadata() == nil {
+	if oldMetadataBytes == nil {
 		c.logger.Panic("Programming Error: ValidateConsensusMetadata called with nil old metadata")
-		return nil
 	}
 
 	oldMetadata := &etcdraft.ConfigMetadata{}
-	if err := proto.Unmarshal(oldOrdererConfig.ConsensusMetadata(), oldMetadata); err != nil {
+	if err := proto.Unmarshal(oldMetadataBytes, oldMetadata); err != nil {
 		c.logger.Panicf("Programming Error: Failed to unmarshal old etcdraft consensus metadata: %v", err)
 	}
-
 	newMetadata := &etcdraft.ConfigMetadata{}
-	if err := proto.Unmarshal(newOrdererConfig.ConsensusMetadata(), newMetadata); err != nil {
+	if err := proto.Unmarshal(newMetadataBytes, newMetadata); err != nil {
 		return errors.Wrap(err, "failed to unmarshal new etcdraft metadata configuration")
 	}
 
-	verifyOpts, err := createX509VerifyOptions(newOrdererConfig)
+	err := CheckConfigMetadata(newMetadata)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create x509 verify options from old and new orderer config")
-	}
-
-	if err := VerifyConfigMetadata(newMetadata, verifyOpts); err != nil {
-		return errors.Wrap(err, "invalid new config metadata")
+		return errors.Wrap(err, "invalid new config metdadata")
 	}
 
 	if newChannel {
 		// check if the consenters are a subset of the existing consenters (system channel consenters)
 		set := ConsentersToMap(oldMetadata.Consenters)
 		for _, c := range newMetadata.Consenters {
-			if !set.Exists(c) {
+			if _, exits := set[string(c.ClientTlsCert)]; !exits {
 				return errors.New("new channel has consenter that is not part of system consenter set")
 			}
 		}
@@ -1370,21 +1304,11 @@ func (c *Chain) ValidateConsensusMetadata(oldOrdererConfig, newOrdererConfig cha
 	}
 
 	// create the dummy parameters for ComputeMembershipChanges
-	c.raftMetadataLock.RLock()
-	dummyOldBlockMetadata := proto.Clone(c.opts.BlockMetadata).(*etcdraft.BlockMetadata)
-	c.raftMetadataLock.RUnlock()
-
+	dummyOldBlockMetadata, _ := ReadBlockMetadata(nil, oldMetadata)
 	dummyOldConsentersMap := CreateConsentersMap(dummyOldBlockMetadata, oldMetadata)
-	changes, err := ComputeMembershipChanges(dummyOldBlockMetadata, dummyOldConsentersMap, newMetadata.Consenters)
+	changes, err := ComputeMembershipChanges(dummyOldBlockMetadata, dummyOldConsentersMap, newMetadata.Consenters, c.support.SharedConfig())
 	if err != nil {
 		return err
-	}
-
-	//new config metadata was verified above. Additionally need to check new consenters for certificates expiration
-	for _, c := range changes.AddedNodes {
-		if err := validateConsenterTLSCerts(c, verifyOpts, false); err != nil {
-			return errors.Wrapf(err, "consenter %s:%d has invalid certificates", c.Host, c.Port)
-		}
 	}
 
 	active := c.ActiveNodes.Load().([]uint64)
@@ -1393,14 +1317,6 @@ func (c *Chain) ValidateConsensusMetadata(oldOrdererConfig, newOrdererConfig cha
 	}
 
 	return nil
-}
-
-// StatusReport returns the ConsensusRelation & Status
-func (c *Chain) StatusReport() (types.ConsensusRelation, types.Status) {
-	c.statusReportMutex.Lock()
-	defer c.statusReportMutex.Unlock()
-
-	return c.consensusRelation, c.status
 }
 
 func (c *Chain) suspectEviction() bool {
@@ -1413,7 +1329,6 @@ func (c *Chain) suspectEviction() bool {
 
 func (c *Chain) newEvictionSuspector() *evictionSuspector {
 	consenterCertificate := &ConsenterCertificate{
-		Logger:               c.logger,
 		ConsenterCertificate: c.opts.Cert,
 		CryptoProvider:       c.CryptoProvider,
 	}
@@ -1427,7 +1342,7 @@ func (c *Chain) newEvictionSuspector() *evictionSuspector {
 		triggerCatchUp:             c.triggerCatchup,
 		logger:                     c.logger,
 		halt: func() {
-			c.halt()
+			c.Halt()
 		},
 	}
 }

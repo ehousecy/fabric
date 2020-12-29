@@ -15,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hyperledger/fabric/core/container/ccintf"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/core/container/ccintf"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"github.com/pkg/errors"
 )
 
@@ -35,10 +35,12 @@ type Instance struct {
 }
 
 // Duration used for the DialTimeout property
-type Duration time.Duration
+type Duration struct {
+	time.Duration
+}
 
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Duration(d).String())
+	return json.Marshal(d.Seconds())
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
@@ -49,18 +51,17 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 	switch value := v.(type) {
 	case float64:
-		*d = Duration(time.Duration(value))
+		d.Duration = time.Duration(value)
+		return nil
 	case string:
-		dur, err := time.ParseDuration(value)
-		if err != nil {
+		var err error
+		if d.Duration, err = time.ParseDuration(value); err != nil {
 			return err
 		}
-		*d = Duration(dur)
+		return nil
 	default:
 		return errors.New("invalid duration")
 	}
-
-	return nil
 }
 
 // ChaincodeServerUserData holds "connection.json" information
@@ -81,9 +82,10 @@ func (c *ChaincodeServerUserData) ChaincodeServerInfo(cryptoDir string) (*ccintf
 	}
 	connInfo := &ccintf.ChaincodeServerInfo{Address: c.Address}
 
-	connInfo.ClientConfig.Timeout = time.Duration(c.DialTimeout)
-	if connInfo.ClientConfig.Timeout == 0 {
+	if c.DialTimeout == (Duration{}) {
 		connInfo.ClientConfig.Timeout = DialTimeout
+	} else {
+		connInfo.ClientConfig.Timeout = c.DialTimeout.Duration
 	}
 
 	// we can expose this if necessary

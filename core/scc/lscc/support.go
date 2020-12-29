@@ -8,11 +8,11 @@ package lscc
 
 import (
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/cauthdsl"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/cauthdsl"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 

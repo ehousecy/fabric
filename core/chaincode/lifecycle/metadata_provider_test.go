@@ -11,13 +11,13 @@ import (
 	"github.com/hyperledger/fabric-protos-go/msp"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle/mock"
+	"github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle/mock"
 	"github.com/pkg/errors"
 
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

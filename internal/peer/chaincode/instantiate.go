@@ -13,8 +13,8 @@ import (
 
 	protcommon "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/spf13/cobra"
 )
 

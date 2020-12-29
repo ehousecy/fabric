@@ -14,10 +14,10 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	pcommon "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/stretchr/testify/assert"
 )
 
 //helper to sign an existing package
@@ -49,7 +49,7 @@ func TestSignExistingPackage(t *testing.T) {
 	defer os.RemoveAll(pdir)
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	ccpackfile := pdir + "/ccpack.file"
 	err = createSignedCDSPackage(t, []string{"-n", "somecc", "-p", "some/go/package", "-v", "0", "-s", "-S", ccpackfile}, true)
@@ -106,7 +106,7 @@ func TestFailSignUnsignedPackage(t *testing.T) {
 	pdir := newTempDir()
 	defer os.RemoveAll(pdir)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	ccpackfile := pdir + "/ccpack.file"
 	// don't sign it ... no "-S"

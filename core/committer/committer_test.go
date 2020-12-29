@@ -11,12 +11,12 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	ledger2 "github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	ledger2 "github.com/ehousecy/fabric/core/ledger"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 type mockLedger struct {
@@ -57,12 +57,6 @@ func (m *mockLedger) GetBlocksIterator(startBlockNumber uint64) (ledger.ResultsI
 
 func (m *mockLedger) Close() {
 
-}
-
-// TxIDExists returns true if the specified txID is already present in one of the already committed blocks
-func (m *mockLedger) TxIDExists(txID string) (bool, error) {
-	args := m.Called(txID)
-	return args.Get(0).(bool), args.Error(1)
 }
 
 func (m *mockLedger) GetTransactionByID(txID string) (*peer.ProcessedTransaction, error) {
@@ -143,26 +137,26 @@ func TestKVLedgerBlockStorage(t *testing.T) {
 
 	ledger.On("CommitLegacy", mock.Anything).Run(func(args mock.Arguments) {
 		b := args.Get(0).(*ledger2.BlockAndPvtData)
-		require.Equal(t, uint64(1), b.Block.Header.GetNumber())
-		require.Equal(t, gb.Header.DataHash, b.Block.Header.PreviousHash)
-		require.Equal(t, block1.Header.DataHash, b.Block.Header.DataHash)
+		assert.Equal(t, uint64(1), b.Block.Header.GetNumber())
+		assert.Equal(t, gb.Header.DataHash, b.Block.Header.PreviousHash)
+		assert.Equal(t, block1.Header.DataHash, b.Block.Header.DataHash)
 	}).Return(nil)
 
 	ledger.On("GetBlockByNumber", uint64(0)).Return(gb, nil)
 
 	committer := NewLedgerCommitter(ledger)
 	height, err := committer.LedgerHeight()
-	require.Equal(t, uint64(1), height)
-	require.NoError(t, err)
+	assert.Equal(t, uint64(1), height)
+	assert.NoError(t, err)
 
 	err = committer.CommitLegacy(&ledger2.BlockAndPvtData{Block: block1}, &ledger2.CommitOptions{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	height, err = committer.LedgerHeight()
-	require.Equal(t, uint64(2), height)
-	require.NoError(t, err)
+	assert.Equal(t, uint64(2), height)
+	assert.NoError(t, err)
 
 	blocks := committer.GetBlocks([]uint64{0})
-	require.Equal(t, 1, len(blocks))
-	require.NoError(t, err)
+	assert.Equal(t, 1, len(blocks))
+	assert.NoError(t, err)
 }

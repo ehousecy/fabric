@@ -8,12 +8,13 @@ package msp
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/tjfoc/gmsm/sm2"
 	"os"
 	"path/filepath"
 
-	"github.com/hyperledger/fabric/internal/cryptogen/ca"
-	"github.com/hyperledger/fabric/internal/cryptogen/csp"
-	fabricmsp "github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/internal/cryptogen/ca"
+	"github.com/ehousecy/fabric/internal/cryptogen/csp"
+	fabricmsp "github.com/ehousecy/fabric/msp"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -96,17 +97,18 @@ func GenerateLocalMSP(
 	// write artifacts to MSP folders
 
 	// the signing CA certificate goes into cacerts
-	err = x509Export(
+	//TODO
+	err = sm2Export(
 		filepath.Join(mspDir, "cacerts", x509Filename(signCA.Name)),
-		signCA.SignCert,
+		signCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
 	}
 	// the TLS CA certificate goes into tlscacerts
-	err = x509Export(
+	err = sm2Export(
 		filepath.Join(mspDir, "tlscacerts", x509Filename(tlsCA.Name)),
-		tlsCA.SignCert,
+		tlsCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
@@ -126,7 +128,7 @@ func GenerateLocalMSP(
 	// we leave a valid admin for now for the sake
 	// of unit tests
 	if !nodeOUs {
-		err = x509Export(filepath.Join(mspDir, "admincerts", x509Filename(name)), cert)
+		err = sm2Export(filepath.Join(mspDir, "admincerts", x509Filename(name)), cert)
 		if err != nil {
 			return err
 		}
@@ -156,7 +158,7 @@ func GenerateLocalMSP(
 	if err != nil {
 		return err
 	}
-	err = x509Export(filepath.Join(tlsDir, "ca.crt"), tlsCA.SignCert)
+	err = sm2Export(filepath.Join(tlsDir, "ca.crt"), tlsCA.SignSm2Cert)
 	if err != nil {
 		return err
 	}
@@ -193,17 +195,17 @@ func GenerateVerifyingMSP(
 		return err
 	}
 	// the signing CA certificate goes into cacerts
-	err = x509Export(
+	err = sm2Export(
 		filepath.Join(baseDir, "cacerts", x509Filename(signCA.Name)),
-		signCA.SignCert,
+		signCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
 	}
 	// the TLS CA certificate goes into tlscacerts
-	err = x509Export(
+	err = sm2Export(
 		filepath.Join(baseDir, "tlscacerts", x509Filename(tlsCA.Name)),
-		tlsCA.SignCert,
+		tlsCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
@@ -278,6 +280,10 @@ func x509Filename(name string) string {
 }
 
 func x509Export(path string, cert *x509.Certificate) error {
+	return pemExport(path, "CERTIFICATE", cert.Raw)
+}
+
+func sm2Export(path string, cert *sm2.Certificate) error {
 	return pemExport(path, "CERTIFICATE", cert.Raw)
 }
 

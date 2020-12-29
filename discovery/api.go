@@ -8,10 +8,10 @@ package discovery
 
 import (
 	discprotos "github.com/hyperledger/fabric-protos-go/discovery"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 // AccessControlSupport checks if clients are eligible of being serviced

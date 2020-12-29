@@ -14,9 +14,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/ledger"
-	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	btltestutil "github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,7 +65,8 @@ func TestV11v12(t *testing.T) {
 	checkDataExists(t, s, 14)
 
 	_, err = s.GetPvtDataByBlockNum(uint64(15), nil)
-	require.EqualError(t, err, "last committed block number [14] smaller than the requested block number [15]")
+	_, ok := err.(*ErrOutOfRange)
+	require.True(t, ok)
 }
 
 func checkDataNotExists(t *testing.T, s *Store, blkNum int) {

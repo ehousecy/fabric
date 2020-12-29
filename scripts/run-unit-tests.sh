@@ -15,18 +15,18 @@ excluded_packages=(
 
 # packages that must be run serially
 serial_packages=(
-    "github.com/hyperledger/fabric/gossip/..."
+    "github.com/ehousecy/fabric/gossip/..."
 )
 
 # packages which need to be tested with build tag pkcs11
 pkcs11_packages=(
-    "github.com/hyperledger/fabric/bccsp/factory"
-    "github.com/hyperledger/fabric/bccsp/pkcs11"
+    "github.com/ehousecy/fabric/bccsp/factory"
+    "github.com/ehousecy/fabric/bccsp/pkcs11"
 )
 
 # packages that are only tested when they (or their deps) change
 conditional_packages=(
-    "github.com/hyperledger/fabric/gossip/..."
+    "github.com/ehousecy/fabric/gossip/..."
 )
 
 # join array elements by the specified string

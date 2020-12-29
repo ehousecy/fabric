@@ -8,8 +8,8 @@ package node
 import (
 	"fmt"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/internal/peer/common"
 	"github.com/spf13/cobra"
 )
 

@@ -15,13 +15,12 @@ import (
 	"github.com/hyperledger/fabric-protos-go/msp"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/core/chaincode/implicitcollection"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/core/container"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/core/container"
+	"github.com/ehousecy/fabric/protoutil"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -653,7 +652,7 @@ func (ef *ExternalFunctions) QueryOrgApprovals(name string, cd *ChaincodeDefinit
 			return nil, errors.WithMessagef(err, "serialization check failed for key %s", privateName)
 		}
 
-		_, org := implicitcollection.MspIDIfImplicitCollection(orgState.CollectionName())
+		org := OrgFromImplicitCollectionName(orgState.CollectionName())
 		approvals[org] = match
 	}
 

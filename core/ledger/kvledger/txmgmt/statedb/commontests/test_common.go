@@ -11,23 +11,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// CheckDBsAfterDropFunc checks if the channel-specific dbs have been dropped
-type CheckDBsAfterDropFunc func(channelName string)
 
 // TestGetStateMultipleKeys tests read for given multiple keys
 func TestGetStateMultipleKeys(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testgetmultiplekeys", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Test that savepoint is nil for a new state db
 	sp, err := db.GetLatestSavePoint()
-	require.NoError(t, err, "Error upon GetLatestSavePoint()")
-	require.Nil(t, sp)
+	assert.NoError(t, err, "Error upon GetLatestSavePoint()")
+	assert.Nil(t, sp)
 
 	batch := statedb.NewUpdateBatch()
 	expectedValues := make([]*statedb.VersionedValue, 2)
@@ -42,27 +40,27 @@ func TestGetStateMultipleKeys(t *testing.T, dbProvider statedb.VersionedDBProvid
 	batch.Put("ns2", "key3", vv3.Value, vv3.Version)
 	batch.Put("ns2", "key4", vv4.Value, vv4.Version)
 	savePoint := version.NewHeight(2, 5)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	actualValues, _ := db.GetStateMultipleKeys("ns1", []string{"key1", "key2"})
-	require.Equal(t, expectedValues, actualValues)
+	assert.Equal(t, expectedValues, actualValues)
 }
 
 // TestBasicRW tests basic read-write
 func TestBasicRW(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testbasicrw", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Test that savepoint is nil for a new state db
 	sp, err := db.GetLatestSavePoint()
-	require.NoError(t, err, "Error upon GetLatestSavePoint()")
-	require.Nil(t, sp)
+	assert.NoError(t, err, "Error upon GetLatestSavePoint()")
+	assert.Nil(t, sp)
 
 	// Test retrieval of non-existent key - returns nil rather than error
 	// For more details see https://github.com/hyperledger-archives/fabric/issues/936.
 	val, err := db.GetState("ns", "key1")
-	require.NoError(t, err, "Should receive nil rather than error upon reading non existent key")
-	require.Nil(t, val)
+	assert.NoError(t, err, "Should receive nil rather than error upon reading non existent key")
+	assert.Nil(t, val)
 
 	batch := statedb.NewUpdateBatch()
 	vv1 := statedb.VersionedValue{Value: []byte("value1"), Version: version.NewHeight(1, 1)}
@@ -76,81 +74,30 @@ func TestBasicRW(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch.Put("ns2", "key4", vv4.Value, vv4.Version)
 	batch.Put("ns2", "key5", vv5.Value, vv5.Version)
 	savePoint := version.NewHeight(2, 5)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	vv, _ := db.GetState("ns1", "key1")
-	require.Equal(t, &vv1, vv)
+	assert.Equal(t, &vv1, vv)
 
 	vv, _ = db.GetState("ns2", "key4")
-	require.Equal(t, &vv4, vv)
+	assert.Equal(t, &vv4, vv)
 
 	vv, _ = db.GetState("ns2", "key5")
-	require.Equal(t, &vv5, vv)
+	assert.Equal(t, &vv5, vv)
 
 	sp, err = db.GetLatestSavePoint()
-	require.NoError(t, err)
-	require.Equal(t, savePoint, sp)
+	assert.NoError(t, err)
+	assert.Equal(t, savePoint, sp)
 
-}
-
-// TestDrop tests dropping channel-specific ledger data
-func TestDrop(t *testing.T, dbProvider statedb.VersionedDBProvider, checkDBsAfterDropFunc CheckDBsAfterDropFunc) {
-	channel1 := "testdrop-channel-1"
-	channel2 := "testdrop-channel-2"
-	namespaces := map[string]string{
-		channel1: "ns1",
-		channel2: "ns2",
-	}
-
-	vv1 := statedb.VersionedValue{Value: []byte("value1"), Version: version.NewHeight(1, 1)}
-	vv2 := statedb.VersionedValue{Value: []byte("value2"), Version: version.NewHeight(1, 2)}
-
-	for channelName, ns := range namespaces {
-		db, err := dbProvider.GetDBHandle(channelName, nil)
-		require.NoError(t, err)
-
-		batch := statedb.NewUpdateBatch()
-		batch.Put(ns, "key1", vv1.Value, vv1.Version)
-		batch.Put(ns, "key2", vv2.Value, vv2.Version)
-		savePoint := version.NewHeight(2, 2)
-		require.NoError(t, db.ApplyUpdates(batch, savePoint))
-
-		vv, err := db.GetState(ns, "key1")
-		require.NoError(t, err)
-		require.Equal(t, &vv1, vv)
-		vv, err = db.GetState(ns, "key2")
-		require.NoError(t, err)
-		require.Equal(t, &vv2, vv)
-	}
-
-	require.NoError(t, dbProvider.Drop(channel1))
-
-	// verify channel1 data are dropped
-	checkDBsAfterDropFunc(channel1)
-
-	// verify channel2 data remain as is
-	db2, err := dbProvider.GetDBHandle(channel2, nil)
-	require.NoError(t, err)
-
-	vv, err := db2.GetState("ns2", "key1")
-	require.NoError(t, err)
-	require.Equal(t, &vv1, vv)
-
-	vv, err = db2.GetState("ns2", "key2")
-	require.NoError(t, err)
-	require.Equal(t, &vv2, vv)
-
-	// drop again should not fail
-	require.NoError(t, dbProvider.Drop(channel1))
 }
 
 // TestMultiDBBasicRW tests basic read-write on multiple dbs
 func TestMultiDBBasicRW(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db1, err := dbProvider.GetDBHandle("testmultidbbasicrw", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	db2, err := dbProvider.GetDBHandle("testmultidbbasicrw2", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	batch1 := statedb.NewUpdateBatch()
 	vv1 := statedb.VersionedValue{Value: []byte("value1_db1"), Version: version.NewHeight(1, 1)}
@@ -158,7 +105,7 @@ func TestMultiDBBasicRW(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch1.Put("ns1", "key1", vv1.Value, vv1.Version)
 	batch1.Put("ns1", "key2", vv2.Value, vv2.Version)
 	savePoint1 := version.NewHeight(1, 2)
-	require.NoError(t, db1.ApplyUpdates(batch1, savePoint1))
+	db1.ApplyUpdates(batch1, savePoint1)
 
 	batch2 := statedb.NewUpdateBatch()
 	vv3 := statedb.VersionedValue{Value: []byte("value1_db2"), Version: version.NewHeight(1, 4)}
@@ -166,27 +113,27 @@ func TestMultiDBBasicRW(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch2.Put("ns1", "key1", vv3.Value, vv3.Version)
 	batch2.Put("ns1", "key2", vv4.Value, vv4.Version)
 	savePoint2 := version.NewHeight(1, 5)
-	require.NoError(t, db2.ApplyUpdates(batch2, savePoint2))
+	db2.ApplyUpdates(batch2, savePoint2)
 
 	vv, _ := db1.GetState("ns1", "key1")
-	require.Equal(t, &vv1, vv)
+	assert.Equal(t, &vv1, vv)
 
 	sp, err := db1.GetLatestSavePoint()
-	require.NoError(t, err)
-	require.Equal(t, savePoint1, sp)
+	assert.NoError(t, err)
+	assert.Equal(t, savePoint1, sp)
 
 	vv, _ = db2.GetState("ns1", "key1")
-	require.Equal(t, &vv3, vv)
+	assert.Equal(t, &vv3, vv)
 
 	sp, err = db2.GetLatestSavePoint()
-	require.NoError(t, err)
-	require.Equal(t, savePoint2, sp)
+	assert.NoError(t, err)
+	assert.Equal(t, savePoint2, sp)
 }
 
 // TestDeletes tests deletes
 func TestDeletes(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testdeletes", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	batch := statedb.NewUpdateBatch()
 	vv1 := statedb.VersionedValue{Value: []byte("value1"), Version: version.NewHeight(1, 1)}
@@ -201,28 +148,28 @@ func TestDeletes(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch.Delete("ns", "key3", version.NewHeight(1, 5))
 	savePoint := version.NewHeight(1, 5)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	vv, _ := db.GetState("ns", "key2")
-	require.Equal(t, &vv2, vv)
+	assert.Equal(t, &vv2, vv)
 
 	vv, err = db.GetState("ns", "key3")
-	require.NoError(t, err)
-	require.Nil(t, vv)
+	assert.NoError(t, err)
+	assert.Nil(t, vv)
 
 	batch = statedb.NewUpdateBatch()
 	batch.Delete("ns", "key2", version.NewHeight(1, 6))
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	vv, err = db.GetState("ns", "key2")
-	require.NoError(t, err)
-	require.Nil(t, vv)
+	assert.NoError(t, err)
+	assert.Nil(t, vv)
 }
 
 // TestIterator tests the iterator
 func TestIterator(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testiterator", nil)
-	require.NoError(t, err)
-	require.NoError(t, db.Open())
+	assert.NoError(t, err)
+	db.Open()
 	defer db.Close()
 	batch := statedb.NewUpdateBatch()
 	batch.Put("ns1", "key1", []byte("value1"), version.NewHeight(1, 1))
@@ -233,7 +180,7 @@ func TestIterator(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch.Put("ns2", "key6", []byte("value6"), version.NewHeight(1, 6))
 	batch.Put("ns3", "key7", []byte("value7"), version.NewHeight(1, 7))
 	savePoint := version.NewHeight(2, 5)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 	itr1, _ := db.GetStateRangeScanIterator("ns1", "key1", "")
 	testItr(t, itr1, []string{"key1", "key2", "key3", "key4"})
 
@@ -251,19 +198,20 @@ func TestIterator(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 func testItr(t *testing.T, itr statedb.ResultsIterator, expectedKeys []string) {
 	defer itr.Close()
 	for _, expectedKey := range expectedKeys {
-		queryResult, err := itr.Next()
-		require.NoError(t, err)
-		require.Equal(t, expectedKey, queryResult.Key)
+		queryResult, _ := itr.Next()
+		vkv := queryResult.(*statedb.VersionedKV)
+		key := vkv.Key
+		assert.Equal(t, expectedKey, key)
 	}
 	_, err := itr.Next()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 // TestQuery tests queries
 func TestQuery(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testquery", nil)
-	require.NoError(t, err)
-	require.NoError(t, db.Open())
+	assert.NoError(t, err)
+	db.Open()
 	defer db.Close()
 	batch := statedb.NewUpdateBatch()
 	jsonValue1 := `{"asset_name": "marble1","color": "blue","size": 1,"owner": "tom"}`
@@ -302,229 +250,239 @@ func TestQuery(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch.Put("ns2", "key10", []byte(jsonValue10), version.NewHeight(1, 21))
 
 	savePoint := version.NewHeight(2, 22)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	// query for owner=jerry, use namespace "ns1"
 	itr, err := db.ExecuteQuery("ns1", `{"selector":{"owner":"jerry"}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one jerry result
 	queryResult1, err := itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-
-	stringRecord := string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord := queryResult1.(*statedb.VersionedKV)
+	stringRecord := string(versionedQueryRecord.Value)
 	bFoundRecord := strings.Contains(stringRecord, "jerry")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err := itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 	// query for owner=jerry, use namespace "ns2"
 	itr, err = db.ExecuteQuery("ns2", `{"selector":{"owner":"jerry"}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one jerry result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "jerry")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 	// query for owner=jerry, use namespace "ns3"
 	itr, err = db.ExecuteQuery("ns3", `{"selector":{"owner":"jerry"}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify results - should be no records
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult1)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult1)
 
 	// query using bad query string
 	_, err = db.ExecuteQuery("ns1", "this is an invalid query string")
-	require.Error(t, err, "Should have received an error for invalid query string")
+	assert.Error(t, err, "Should have received an error for invalid query string")
 
 	// query returns 0 records
 	_, err = db.ExecuteQuery("ns1", `{"selector":{"owner":"not_a_valid_name"}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify no results
 	queryResult3, err := itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult3)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult3)
 
 	// query with fields, namespace "ns1"
 	itr, err = db.ExecuteQuery("ns1", `{"selector":{"owner":"jerry"},"fields": ["owner", "asset_name", "color", "size"]}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one jerry result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "jerry")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 	// query with fields, namespace "ns2"
 	itr, err = db.ExecuteQuery("ns2", `{"selector":{"owner":"jerry"},"fields": ["owner", "asset_name", "color", "size"]}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one jerry result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "jerry")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 	// query with fields, namespace "ns3"
 	itr, err = db.ExecuteQuery("ns3", `{"selector":{"owner":"jerry"},"fields": ["owner", "asset_name", "color", "size"]}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify no results
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult1)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult1)
 
 	// query with complex selector, namespace "ns1"
 	itr, err = db.ExecuteQuery("ns1", `{"selector":{"$and":[{"size":{"$gt": 5}},{"size":{"$lt":8}},{"$not":{"size":6}}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one fred result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "fred")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 	// query with complex selector, namespace "ns2"
 	itr, err = db.ExecuteQuery("ns2", `{"selector":{"$and":[{"size":{"$gt": 5}},{"size":{"$lt":8}},{"$not":{"size":6}}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one fred result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "fred")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 	// query with complex selector, namespace "ns3"
 	itr, err = db.ExecuteQuery("ns3", `{"selector":{"$and":[{"size":{"$gt": 5}},{"size":{"$lt":8}},{"$not":{"size":6}}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify no more results
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult1)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult1)
 
 	// query with embedded implicit "AND" and explicit "OR", namespace "ns1"
 	itr, err = db.ExecuteQuery("ns1", `{"selector":{"color":"green","$or":[{"owner":"fred"},{"owner":"mary"}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one green result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "green")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify another green result
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult2)
-	stringRecord = string(queryResult2.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult2)
+	versionedQueryRecord = queryResult2.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "green")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult3, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult3)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult3)
 
 	// query with embedded implicit "AND" and explicit "OR", namespace "ns2"
 	itr, err = db.ExecuteQuery("ns2", `{"selector":{"color":"green","$or":[{"owner":"fred"},{"owner":"mary"}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one green result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "green")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify another green result
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult2)
-	stringRecord = string(queryResult2.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult2)
+	versionedQueryRecord = queryResult2.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "green")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult3, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult3)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult3)
 
 	// query with embedded implicit "AND" and explicit "OR", namespace "ns3"
 	itr, err = db.ExecuteQuery("ns3", `{"selector":{"color":"green","$or":[{"owner":"fred"},{"owner":"mary"}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify no results
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult1)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult1)
 
 	// query with integer with digit-count equals 7 and response received is also received
 	// with same digit-count and there is no float transformation
 	itr, err = db.ExecuteQuery("ns1", `{"selector":{"$and":[{"size":{"$eq": 1000007}}]}}`)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// verify one jerry result
 	queryResult1, err = itr.Next()
-	require.NoError(t, err)
-	require.NotNil(t, queryResult1)
-	stringRecord = string(queryResult1.Value)
+	assert.NoError(t, err)
+	assert.NotNil(t, queryResult1)
+	versionedQueryRecord = queryResult1.(*statedb.VersionedKV)
+	stringRecord = string(versionedQueryRecord.Value)
 	bFoundRecord = strings.Contains(stringRecord, "joe")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 	bFoundRecord = strings.Contains(stringRecord, "1000007")
-	require.True(t, bFoundRecord)
+	assert.True(t, bFoundRecord)
 
 	// verify no more results
 	queryResult2, err = itr.Next()
-	require.NoError(t, err)
-	require.Nil(t, queryResult2)
+	assert.NoError(t, err)
+	assert.Nil(t, queryResult2)
 
 }
 
@@ -532,7 +490,7 @@ func TestQuery(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 func TestGetVersion(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 
 	db, err := dbProvider.GetDBHandle("testgetversion", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	batch := statedb.NewUpdateBatch()
 	vv1 := statedb.VersionedValue{Value: []byte("value1"), Version: version.NewHeight(1, 1)}
@@ -546,7 +504,7 @@ func TestGetVersion(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch.Put("ns", "key4", vv2.Value, vv4.Version)
 	savePoint := version.NewHeight(1, 5)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	//check to see if the bulk optimizable interface is supported (couchdb)
 	if bulkdb, ok := db.(statedb.BulkOptimizable); ok {
@@ -556,13 +514,13 @@ func TestGetVersion(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 
 	//retrieve a version by namespace and key
 	resp, err := db.GetVersion("ns", "key2")
-	require.NoError(t, err)
-	require.Equal(t, version.NewHeight(1, 2), resp)
+	assert.NoError(t, err)
+	assert.Equal(t, version.NewHeight(1, 2), resp)
 
 	//attempt to retrieve an non-existent namespace and key
 	resp, err = db.GetVersion("ns2", "key2")
-	require.NoError(t, err)
-	require.Nil(t, resp)
+	assert.NoError(t, err)
+	assert.Nil(t, resp)
 
 	//check to see if the bulk optimizable interface is supported (couchdb)
 	if bulkdb, ok := db.(statedb.BulkOptimizable); ok {
@@ -576,12 +534,12 @@ func TestGetVersion(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 		compositeKey := statedb.CompositeKey{Namespace: "ns", Key: "key3"}
 		loadKeys = append(loadKeys, &compositeKey)
 		//load the committed versions
-		require.NoError(t, bulkdb.LoadCommittedVersions(loadKeys))
+		bulkdb.LoadCommittedVersions(loadKeys)
 
 		//retrieve a version by namespace and key
 		resp, err := db.GetVersion("ns", "key3")
-		require.NoError(t, err)
-		require.Equal(t, version.NewHeight(1, 3), resp)
+		assert.NoError(t, err)
+		assert.Equal(t, version.NewHeight(1, 3), resp)
 
 	}
 }
@@ -589,8 +547,8 @@ func TestGetVersion(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 // TestSmallBatchSize tests multiple update batches
 func TestSmallBatchSize(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testsmallbatchsize", nil)
-	require.NoError(t, err)
-	require.NoError(t, db.Open())
+	assert.NoError(t, err)
+	db.Open()
 	defer db.Close()
 	batch := statedb.NewUpdateBatch()
 	jsonValue1 := []byte(`{"asset_name": "marble1","color": "blue","size": 1,"owner": "tom"}`)
@@ -617,49 +575,49 @@ func TestSmallBatchSize(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	batch.Put("ns1", "key11", jsonValue11, version.NewHeight(1, 11))
 
 	savePoint := version.NewHeight(1, 12)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	//Verify all marbles were added
 
 	vv, _ := db.GetState("ns1", "key1")
-	require.JSONEq(t, string(jsonValue1), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue1), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key2")
-	require.JSONEq(t, string(jsonValue2), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue2), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key3")
-	require.JSONEq(t, string(jsonValue3), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue3), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key4")
-	require.JSONEq(t, string(jsonValue4), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue4), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key5")
-	require.JSONEq(t, string(jsonValue5), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue5), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key6")
-	require.JSONEq(t, string(jsonValue6), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue6), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key7")
-	require.JSONEq(t, string(jsonValue7), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue7), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key8")
-	require.JSONEq(t, string(jsonValue8), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue8), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key9")
-	require.JSONEq(t, string(jsonValue9), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue9), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key10")
-	require.JSONEq(t, string(jsonValue10), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue10), string(vv.Value))
 
 	vv, _ = db.GetState("ns1", "key11")
-	require.JSONEq(t, string(jsonValue11), string(vv.Value))
+	assert.JSONEq(t, string(jsonValue11), string(vv.Value))
 }
 
 // TestBatchWithIndividualRetry tests a single failure in a batch
 func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 
 	db, err := dbProvider.GetDBHandle("testbatchretry", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	batch := statedb.NewUpdateBatch()
 	vv1 := statedb.VersionedValue{Value: []byte("value1"), Version: version.NewHeight(1, 1)}
@@ -673,7 +631,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns", "key4", vv4.Value, vv4.Version)
 	savePoint := version.NewHeight(1, 5)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Clear the cache for the next batch, in place of simulation
 	if bulkdb, ok := db.(statedb.BulkOptimizable); ok {
@@ -688,7 +646,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns", "key4", vv4.Value, vv4.Version)
 	savePoint = version.NewHeight(1, 6)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Update document key3
 	batch = statedb.NewUpdateBatch()
@@ -696,7 +654,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns", "key3", vv3.Value, vv3.Version)
 	savePoint = version.NewHeight(1, 7)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// This should force a retry for couchdb revision conflict for both delete and update
 	// Retry logic should correct the update and prevent delete from throwing an error
@@ -705,7 +663,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns", "key3", vv3.Value, vv3.Version)
 	savePoint = version.NewHeight(1, 8)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	//Create a new set of values that use JSONs instead of binary
 	jsonValue5 := []byte(`{"asset_name": "marble5","color": "blue","size": 5,"owner": "fred"}`)
@@ -726,7 +684,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns1", "key8", jsonValue8, version.NewHeight(1, 12))
 	savePoint = version.NewHeight(1, 6)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Clear the cache for the next batch, in place of simulation
 	if bulkdb, ok := db.(statedb.BulkOptimizable); ok {
@@ -742,7 +700,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns1", "key8", jsonValue8, version.NewHeight(1, 12))
 	savePoint = version.NewHeight(1, 6)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Update document key3
 	// this will cause an inconsistent cache entry for connection db2
@@ -751,7 +709,7 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns1", "key7", jsonValue7, version.NewHeight(1, 14))
 	savePoint = version.NewHeight(1, 15)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// This should force a retry for couchdb revision conflict for both delete and update
 	// Retry logic should correct the update and prevent delete from throwing an error
@@ -760,14 +718,14 @@ func TestBatchWithIndividualRetry(t *testing.T, dbProvider statedb.VersionedDBPr
 	batch.Put("ns1", "key7", jsonValue7, version.NewHeight(1, 17))
 	savePoint = version.NewHeight(1, 18)
 	err = db.ApplyUpdates(batch, savePoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 }
 
 // TestValueAndMetadataWrites tests statedb for value and metadata read-writes
 func TestValueAndMetadataWrites(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testvalueandmetadata", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	batch := statedb.NewUpdateBatch()
 
 	vv1 := statedb.VersionedValue{Value: []byte("value1"), Metadata: []byte("metadata1"), Version: version.NewHeight(1, 1)}
@@ -779,26 +737,26 @@ func TestValueAndMetadataWrites(t *testing.T, dbProvider statedb.VersionedDBProv
 	batch.PutValAndMetadata("ns1", "key2", vv2.Value, vv2.Metadata, vv2.Version)
 	batch.PutValAndMetadata("ns2", "key3", vv3.Value, vv3.Metadata, vv3.Version)
 	batch.PutValAndMetadata("ns2", "key4", vv4.Value, vv4.Metadata, vv4.Version)
-	require.NoError(t, db.ApplyUpdates(batch, version.NewHeight(2, 5)))
+	db.ApplyUpdates(batch, version.NewHeight(2, 5))
 
 	vv, _ := db.GetState("ns1", "key1")
-	require.Equal(t, &vv1, vv)
+	assert.Equal(t, &vv1, vv)
 
 	vv, _ = db.GetState("ns1", "key2")
-	require.Equal(t, &vv2, vv)
+	assert.Equal(t, &vv2, vv)
 
 	vv, _ = db.GetState("ns2", "key3")
-	require.Equal(t, &vv3, vv)
+	assert.Equal(t, &vv3, vv)
 
 	vv, _ = db.GetState("ns2", "key4")
-	require.Equal(t, &vv4, vv)
+	assert.Equal(t, &vv4, vv)
 }
 
 // TestPaginatedRangeQuery tests range queries with pagination
 func TestPaginatedRangeQuery(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testpaginatedrangequery", nil)
-	require.NoError(t, err)
-	require.NoError(t, db.Open())
+	assert.NoError(t, err)
+	db.Open()
 	defer db.Close()
 	batch := statedb.NewUpdateBatch()
 	jsonValue1 := `{"asset_name": "marble1","color": "blue","size": 1,"owner": "tom"}`
@@ -886,46 +844,46 @@ func TestPaginatedRangeQuery(t *testing.T, dbProvider statedb.VersionedDBProvide
 	batch.Put("ns1", "key40", []byte(jsonValue40), version.NewHeight(1, 4))
 
 	savePoint := version.NewHeight(2, 22)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	//Test range query with no pagination
 	returnKeys := []string{}
 	_, err = executeRangeQuery(t, db, "ns1", "key1", "key15", int32(0), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	//Test range query with large page size (single page return)
 	returnKeys = []string{"key1", "key10", "key11", "key12", "key13", "key14"}
 	_, err = executeRangeQuery(t, db, "ns1", "key1", "key15", int32(10), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	//Test explicit pagination
 	//Test range query with multiple pages
 	returnKeys = []string{"key1", "key10"}
 	nextStartKey, err := executeRangeQuery(t, db, "ns1", "key1", "key22", int32(2), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// NextStartKey is now passed in as startKey,  verify the pagesize is working
 	returnKeys = []string{"key11", "key12"}
 	_, err = executeRangeQuery(t, db, "ns1", nextStartKey, "key22", int32(2), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	//Test implicit pagination
 	//Test range query with no pagesize and a small queryLimit
 	returnKeys = []string{}
 	_, err = executeRangeQuery(t, db, "ns1", "key1", "key15", int32(0), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	//Test range query with pagesize greater than the queryLimit
 	returnKeys = []string{"key1", "key10", "key11", "key12"}
 	_, err = executeRangeQuery(t, db, "ns1", "key1", "key15", int32(4), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 // TestRangeQuerySpecialCharacters tests range queries for keys with special characters and/or non-English characters
 func TestRangeQuerySpecialCharacters(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("testrangequeryspecialcharacters", nil)
-	require.NoError(t, err)
-	require.NoError(t, db.Open())
+	assert.NoError(t, err)
+	db.Open()
 	defer db.Close()
 
 	batch := statedb.NewUpdateBatch()
@@ -953,13 +911,13 @@ func TestRangeQuerySpecialCharacters(t *testing.T, dbProvider statedb.VersionedD
 	batch.Put("ns1", "key1z", []byte(jsonValue11), version.NewHeight(1, 11))
 
 	savePoint := version.NewHeight(2, 22)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	//Test range query for the keys with special or non-English characters
 	returnKeys := []string{"key1", "key1%=", "key1&%-", "key1-a", "key10", "key1español", "key1z", "key1中文", "key1한국어"}
 	// returnKeys := []string{"key1", "key1%=", "key1&%-", "key1-a", "key10", "key1español", "key1z"}
 	_, err = executeRangeQuery(t, db, "ns1", "key1", "key2", int32(10), returnKeys)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func executeRangeQuery(t *testing.T, db statedb.VersionedDB, namespace, startKey, endKey string, pageSize int32, returnKeys []string) (string, error) {
@@ -996,130 +954,103 @@ func executeRangeQuery(t *testing.T, db statedb.VersionedDB, namespace, startKey
 func TestItrWithoutClose(t *testing.T, itr statedb.ResultsIterator, expectedKeys []string) {
 	for _, expectedKey := range expectedKeys {
 		queryResult, err := itr.Next()
-		require.NoError(t, err, "An unexpected error was thrown during iterator Next()")
-		require.Equal(t, expectedKey, queryResult.Key)
+		assert.NoError(t, err, "An unexpected error was thrown during iterator Next()")
+		vkv := queryResult.(*statedb.VersionedKV)
+		key := vkv.Key
+		assert.Equal(t, expectedKey, key)
 	}
 	queryResult, err := itr.Next()
-	require.NoError(t, err, "An unexpected error was thrown during iterator Next()")
-	require.Nil(t, queryResult)
+	assert.NoError(t, err, "An unexpected error was thrown during iterator Next()")
+	assert.Nil(t, queryResult)
 }
 
-// TestApplyUpdatesWithNilHeight is a common test that is invoked by leveldb and couchdb for verifying that
-// the statedb commits the batch with a nil height (used for committing the missing private data for the old blocks)
 func TestApplyUpdatesWithNilHeight(t *testing.T, dbProvider statedb.VersionedDBProvider) {
 	db, err := dbProvider.GetDBHandle("test-apply-updates-with-nil-height", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	batch1 := statedb.NewUpdateBatch()
 	batch1.Put("ns", "key1", []byte("value1"), version.NewHeight(1, 4))
 	savePoint := version.NewHeight(1, 5)
-	require.NoError(t, db.ApplyUpdates(batch1, savePoint))
+	assert.NoError(t, db.ApplyUpdates(batch1, savePoint))
 
 	batch2 := statedb.NewUpdateBatch()
 	batch2.Put("ns", "key1", []byte("value2"), version.NewHeight(1, 1))
-	require.NoError(t, db.ApplyUpdates(batch2, nil))
+	assert.NoError(t, db.ApplyUpdates(batch2, nil))
 
 	ht, err := db.GetLatestSavePoint()
-	require.NoError(t, err)
-	require.Equal(t, savePoint, ht) // savepoint should still be what was set with batch1
+	assert.NoError(t, err)
+	assert.Equal(t, savePoint, ht) // savepoint should still be what was set with batch1
 	// (because batch2 calls ApplyUpdates with savepoint as nil)
 }
 
-// TestDataExportImport is a common test that is invoked by leveldb and couchdb for testing the export and import of
-// statedb for snapshotting functionality
-func TestDataExportImport(
+func TestFullScanIterator(
 	t *testing.T,
 	dbProvider statedb.VersionedDBProvider,
-) {
+	valueFormat byte,
+	dbValueDeserializer func(b []byte) (*statedb.VersionedValue, error)) {
 
-	sourceDB, err := dbProvider.GetDBHandle("source_ledger", nil)
-	require.NoError(t, err)
+	db, err := dbProvider.GetDBHandle("test-full-scan-iterator", nil)
+	assert.NoError(t, err)
 
 	// generateSampleData returns a slice of KVs. The returned value contains five KVs for each of the namespaces
 	generateSampleData := func(namespaces ...string) []*statedb.VersionedKV {
 		sampleData := []*statedb.VersionedKV{}
 		for _, ns := range namespaces {
-			for i := 0; i < 6; i++ {
+			for i := 0; i < 5; i++ {
 				sampleKV := &statedb.VersionedKV{
-					CompositeKey: &statedb.CompositeKey{
+					CompositeKey: statedb.CompositeKey{
 						Namespace: ns,
 						Key:       fmt.Sprintf("key-%d", i),
 					},
-					VersionedValue: &statedb.VersionedValue{
+					VersionedValue: statedb.VersionedValue{
+						Value:    []byte(fmt.Sprintf("value-for-key-%d-for-%s", i, ns)),
 						Version:  version.NewHeight(1, 1),
 						Metadata: []byte(fmt.Sprintf("metadata-for-key-%d-for-%s", i, ns)),
 					},
 				}
-				switch {
-				case i < 3:
-					binaryVal := fmt.Sprintf("value-for-key-%d-for-%s", i, ns)
-					sampleKV.VersionedValue.Value = []byte(binaryVal)
-				default:
-					jsonVal := fmt.Sprintf(`{"color":"blue,"marble":"m%d", "namespace":"%s"}`, i, ns)
-					sampleKV.VersionedValue.Value = []byte(jsonVal)
-				}
-
 				sampleData = append(sampleData, sampleKV)
 			}
 		}
 		return sampleData
 	}
 
-	// add the sample data for five namespaces to the db
-	allNamesapces := stringset{"", "ns1", "ns2", "ns3", "ns4"}
+	// add the sample data for four namespaces to the db
 	batch := statedb.NewUpdateBatch()
-	for _, kv := range generateSampleData(allNamesapces...) {
+	for _, kv := range generateSampleData("", "ns1", "ns2", "ns3", "ns4") {
 		batch.PutValAndMetadata(kv.Namespace, kv.Key, kv.Value, kv.Metadata, kv.Version)
 	}
-	require.NoError(t, sourceDB.ApplyUpdates(batch, version.NewHeight(5, 5)))
+	db.ApplyUpdates(batch, version.NewHeight(5, 5))
 
-	// verifyExportImport uses FullScanIterator (with skipping zero or more namespaces)
-	// for exporting the data to import into another ledger instance and verifies the
-	// correctness of the imported data
-	verifyExportImport := func(destDBName string, skipNamespaces stringset) {
-		fullScanItr, err := sourceDB.GetFullScanIterator(
+	// verifyFullScanIterator verifies the output of the FullScanIterator with skipping zero or more namespaces
+	verifyFullScanIterator := func(skipNamespaces stringset) {
+		fullScanItr, valFormat, err := db.GetFullScanIterator(
 			func(ns string) bool {
 				return skipNamespaces.contains(ns)
 			},
 		)
 		require.NoError(t, err)
-
-		err = dbProvider.ImportFromSnapshot(destDBName, version.NewHeight(10, 10), fullScanItr)
-		require.NoError(t, err)
-
-		destinationDB, err := dbProvider.GetDBHandle(destDBName, nil)
-		require.NoError(t, err)
-
-		fullScanItr, err = destinationDB.GetFullScanIterator(
-			func(ns string) bool {
-				return false
-			},
-		)
-		require.NoError(t, err)
-
-		expectedNamespacesInDestinationDB := allNamesapces.minus(skipNamespaces)
-		actualResults := []*statedb.VersionedKV{}
+		require.Equal(t, valueFormat, valFormat)
+		results := []*statedb.VersionedKV{}
 		for {
-			kv, err := fullScanItr.Next()
+			compositeKV, serializedVersionedValue, err := fullScanItr.Next()
 			require.NoError(t, err)
-			if kv == nil {
+			if compositeKV == nil {
 				break
 			}
-			vv, err := destinationDB.GetState(kv.Namespace, kv.Key)
+			versionedVal, err := dbValueDeserializer(serializedVersionedValue)
 			require.NoError(t, err)
-			actualResults = append(
-				actualResults,
-				&statedb.VersionedKV{
-					CompositeKey:   kv.CompositeKey,
-					VersionedValue: vv,
-				},
-			)
+			results = append(results, &statedb.VersionedKV{
+				CompositeKey:   *compositeKV,
+				VersionedValue: *versionedVal,
+			})
 		}
 
-		require.Equal(t, generateSampleData(expectedNamespacesInDestinationDB...), actualResults)
-		retrievedSavepoint, err := destinationDB.GetLatestSavePoint()
-		require.NoError(t, err)
-		require.Equal(t, version.NewHeight(10, 10), retrievedSavepoint)
+		expectedNamespacesInResults := stringset{"", "ns1", "ns2", "ns3", "ns4"}.minus(skipNamespaces)
+		expectedResults := []*statedb.VersionedKV{}
+		for _, ns := range expectedNamespacesInResults {
+			expectedResults = append(expectedResults, generateSampleData(ns)...)
+		}
+		require.Equal(t, expectedResults, results)
 	}
 
 	testCases := []stringset{
@@ -1136,41 +1067,19 @@ func TestDataExportImport(
 	}
 
 	for i, testCase := range testCases {
-		name := fmt.Sprintf("test_case_%d", i)
 		t.Run(
-			name,
+			fmt.Sprintf("testCase %d", i),
 			func(t *testing.T) {
-				verifyExportImport(name, testCase)
+				verifyFullScanIterator(testCase)
 			},
 		)
 	}
 }
 
-// CreateTestData creates test data for the given namespace and number of keys.
-func CreateTestData(t *testing.T, db statedb.VersionedDB, ns string, numKeys int) []string {
-	batch := statedb.NewUpdateBatch()
-	expectedKeys := make([]string, numKeys)
-	for i := 0; i < numKeys; i++ {
-		expectedKeys[i] = fmt.Sprintf("key%d", i)
-		vv := statedb.VersionedValue{Value: []byte(fmt.Sprintf("value%d", i)), Version: version.NewHeight(1, uint64(i+1))}
-		batch.Put(ns, expectedKeys[i], vv.Value, vv.Version)
-	}
-	savePoint := version.NewHeight(1, uint64(numKeys))
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
-	itr, _ := db.GetStateRangeScanIterator(ns, "", "")
-	defer itr.Close()
-	for _, expectedKey := range expectedKeys {
-		queryResult, err := itr.Next()
-		require.NoError(t, err)
-		require.Equal(t, expectedKey, queryResult.Key)
-	}
-	return expectedKeys
-}
-
 type stringset []string
 
-func (s stringset) contains(str string) bool {
-	for _, element := range s {
+func (universe stringset) contains(str string) bool {
+	for _, element := range universe {
 		if element == str {
 			return true
 		}
@@ -1178,9 +1087,9 @@ func (s stringset) contains(str string) bool {
 	return false
 }
 
-func (s stringset) minus(toMinus stringset) stringset {
+func (universe stringset) minus(toMinus stringset) stringset {
 	var final stringset
-	for _, element := range s {
+	for _, element := range universe {
 		if toMinus.contains(element) {
 			continue
 		}

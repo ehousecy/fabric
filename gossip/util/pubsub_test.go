@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewPubsub(t *testing.T) {
@@ -19,18 +19,18 @@ func TestNewPubsub(t *testing.T) {
 	// Check a publishing to a topic with a subscription succeeds
 	sub1 := ps.Subscribe("test", time.Second)
 	sub2 := ps.Subscribe("test2", time.Second)
-	require.NotNil(t, sub1)
+	assert.NotNil(t, sub1)
 	go func() {
 		err := ps.Publish("test", 5)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}()
 	item, err := sub1.Listen()
-	require.NoError(t, err)
-	require.Equal(t, 5, item)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, item)
 	// Check that a publishing to a topic with no subscribers fails
 	err = ps.Publish("test3", 5)
-	require.Error(t, err)
-	require.Contains(t, "no subscribers", err.Error())
+	assert.Error(t, err)
+	assert.Contains(t, "no subscribers", err.Error())
 	// Check that a listen on a topic that its publish is too late, times out
 	// and returns an error
 	go func() {
@@ -38,9 +38,9 @@ func TestNewPubsub(t *testing.T) {
 		ps.Publish("test2", 10)
 	}()
 	item, err = sub2.Listen()
-	require.Error(t, err)
-	require.Contains(t, "timed out", err.Error())
-	require.Nil(t, item)
+	assert.Error(t, err)
+	assert.Contains(t, "timed out", err.Error())
+	assert.Nil(t, item)
 	// Have multiple subscribers subscribe to the same topic
 	subscriptions := []Subscription{}
 	n := 100
@@ -52,7 +52,7 @@ func TestNewPubsub(t *testing.T) {
 		// it by 1 item
 		for i := 0; i <= subscriptionBuffSize; i++ {
 			err := ps.Publish("test4", 100+i)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 		}
 	}()
 	wg := sync.WaitGroup{}
@@ -63,14 +63,14 @@ func TestNewPubsub(t *testing.T) {
 			defer wg.Done()
 			for i := 0; i < subscriptionBuffSize; i++ {
 				item, err := s.Listen()
-				require.NoError(t, err)
-				require.Equal(t, 100+i, item)
+				assert.NoError(t, err)
+				assert.Equal(t, 100+i, item)
 			}
 			// The last item that we published was dropped
 			// due to the buffer being full
 			item, err := s.Listen()
-			require.Nil(t, item)
-			require.Error(t, err)
+			assert.Nil(t, item)
+			assert.Error(t, err)
 		}(s)
 	}
 	wg.Wait()
@@ -87,5 +87,5 @@ func TestNewPubsub(t *testing.T) {
 	}
 	ps.Lock()
 	defer ps.Unlock()
-	require.Empty(t, ps.subscriptions)
+	assert.Empty(t, ps.subscriptions)
 }

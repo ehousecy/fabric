@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/cmd/common/comm"
-	"github.com/hyperledger/fabric/cmd/common/signer"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/cmd/common/comm"
+	"github.com/ehousecy/fabric/cmd/common/signer"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfig(t *testing.T) {
@@ -40,26 +40,26 @@ func TestConfig(t *testing.T) {
 
 		err := c.ToFile(configFilePath)
 		defer os.RemoveAll(configFilePath)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		c2, err := ConfigFromFile(configFilePath)
-		require.NoError(t, err)
-		require.Equal(t, c, c2)
+		assert.NoError(t, err)
+		assert.Equal(t, c, c2)
 	})
 
 	t.Run("bad config isn't saved", func(t *testing.T) {
 		c := Config{}
 		err := c.ToFile(configFilePath)
-		require.Contains(t, err.Error(), "config isn't valid")
+		assert.Contains(t, err.Error(), "config isn't valid")
 	})
 
 	t.Run("bad config isn't loaded", func(t *testing.T) {
 		_, err := ConfigFromFile(filepath.Join("testdata", "not_a_yaml.yaml"))
-		require.Contains(t, err.Error(), "error unmarshaling YAML file")
+		assert.Contains(t, err.Error(), "error unmarshaling YAML file")
 	})
 
 	t.Run("file that doesn't exist isn't loaded", func(t *testing.T) {
 		_, err := ConfigFromFile(filepath.Join("testdata", "not_a_file.yaml"))
-		require.Contains(t, err.Error(), "no such file or directory")
+		assert.Contains(t, err.Error(), "no such file or directory")
 	})
 }

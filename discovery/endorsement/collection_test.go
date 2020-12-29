@@ -15,19 +15,19 @@ import (
 	"github.com/hyperledger/fabric-protos-go/discovery"
 	"github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/gossip/api"
-	gcommon "github.com/hyperledger/fabric/gossip/common"
-	disc "github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/gossip/api"
+	gcommon "github.com/ehousecy/fabric/gossip/common"
+	disc "github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPrincipalsFromCollectionConfig(t *testing.T) {
 	t.Run("Empty config", func(t *testing.T) {
 		res, err := principalsFromCollectionConfig(nil)
-		require.NoError(t, err)
-		require.Empty(t, res)
+		assert.NoError(t, err)
+		assert.Empty(t, res)
 	})
 
 	t.Run("Not empty config", func(t *testing.T) {
@@ -39,10 +39,10 @@ func TestPrincipalsFromCollectionConfig(t *testing.T) {
 		}
 		config := buildCollectionConfig(col2principals)
 		res, err := principalsFromCollectionConfig(config)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assertEqualPrincipalSets(t, policies.PrincipalSet(org1AndOrg2), res["foo"])
 		assertEqualPrincipalSets(t, policies.PrincipalSet(org3AndOrg4), res["bar"])
-		require.Empty(t, res["baz"])
+		assert.Empty(t, res["baz"])
 	})
 }
 
@@ -55,8 +55,8 @@ func TestNewCollectionFilterInvalidInput(t *testing.T) {
 			},
 		}
 		filter, err := principalsFromCollectionConfig(collections)
-		require.Nil(t, filter)
-		require.Contains(t, err.Error(), "expected a static collection")
+		assert.Nil(t, filter)
+		assert.Contains(t, err.Error(), "expected a static collection")
 	})
 
 	t.Run("Invalid membership policy", func(t *testing.T) {
@@ -71,8 +71,8 @@ func TestNewCollectionFilterInvalidInput(t *testing.T) {
 			},
 		}
 		filter, err := principalsFromCollectionConfig(collections)
-		require.Nil(t, filter)
-		require.Contains(t, err.Error(), "MemberOrgsPolicy of foo is nil")
+		assert.Nil(t, filter)
+		assert.Contains(t, err.Error(), "MemberOrgsPolicy of foo is nil")
 	})
 
 	t.Run("Missing policy", func(t *testing.T) {
@@ -88,8 +88,8 @@ func TestNewCollectionFilterInvalidInput(t *testing.T) {
 			},
 		}
 		filter, err := principalsFromCollectionConfig(collections)
-		require.Nil(t, filter)
-		require.Contains(t, err.Error(), "policy of foo is nil")
+		assert.Nil(t, filter)
+		assert.Contains(t, err.Error(), "policy of foo is nil")
 	})
 }
 
@@ -102,8 +102,8 @@ func TestToIdentityFilter(t *testing.T) {
 			Name:            "mycc",
 			CollectionNames: []string{"bar"},
 		})
-		require.Nil(t, filter)
-		require.Equal(t, "collection bar doesn't exist in collection config for chaincode mycc", err.Error())
+		assert.Nil(t, filter)
+		assert.Equal(t, "collection bar doesn't exist in collection config for chaincode mycc", err.Error())
 	})
 
 	t.Run("collection exists in mapping", func(t *testing.T) {
@@ -111,15 +111,15 @@ func TestToIdentityFilter(t *testing.T) {
 			Name:            "mycc",
 			CollectionNames: []string{"foo"},
 		})
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		identity := protoutil.MarshalOrPanic(&msp.SerializedIdentity{
 			Mspid: "Org2MSP",
 		})
-		require.True(t, filter(identity))
+		assert.True(t, filter(identity))
 		identity = protoutil.MarshalOrPanic(&msp.SerializedIdentity{
 			Mspid: "Org3MSP",
 		})
-		require.False(t, filter(identity))
+		assert.False(t, filter(identity))
 	})
 }
 
@@ -133,10 +133,10 @@ func TestCombine(t *testing.T) {
 	})
 
 	filter := identityFilters{filter1, filter2}.combine()
-	require.False(t, filter(api.PeerIdentityType("p1")))
-	require.True(t, filter(api.PeerIdentityType("p2")))
-	require.False(t, filter(api.PeerIdentityType("p3")))
-	require.False(t, filter(api.PeerIdentityType("p4")))
+	assert.False(t, filter(api.PeerIdentityType("p1")))
+	assert.True(t, filter(api.PeerIdentityType("p2")))
+	assert.False(t, filter(api.PeerIdentityType("p3")))
+	assert.False(t, filter(api.PeerIdentityType("p4")))
 }
 
 func TestToMemberFilter(t *testing.T) {
@@ -157,21 +157,21 @@ func TestToMemberFilter(t *testing.T) {
 		authorized := memberFilter(disc.NetworkMember{
 			PKIid: gcommon.PKIidType(authorizedIdentity),
 		})
-		require.True(t, authorized)
+		assert.True(t, authorized)
 	})
 
 	t.Run("Member is unauthorized", func(t *testing.T) {
 		authorized := memberFilter(disc.NetworkMember{
 			PKIid: gcommon.PKIidType(unauthorizedIdentity),
 		})
-		require.False(t, authorized)
+		assert.False(t, authorized)
 	})
 
 	t.Run("Member is not found in mapping", func(t *testing.T) {
 		authorized := memberFilter(disc.NetworkMember{
 			PKIid: gcommon.PKIidType(notPresentIdentity),
 		})
-		require.False(t, authorized)
+		assert.False(t, authorized)
 	})
 
 }
@@ -183,7 +183,7 @@ func TestIsIdentityAuthorizedByPrincipalSet(t *testing.T) {
 			Mspid: "Org1MSP",
 		})
 		authorized := isIdentityAuthorizedByPrincipalSet("mychannel", &principalEvaluatorMock{}, principals, identity)
-		require.True(t, authorized)
+		assert.True(t, authorized)
 	})
 
 	t.Run("Unauthorized", func(t *testing.T) {
@@ -191,7 +191,7 @@ func TestIsIdentityAuthorizedByPrincipalSet(t *testing.T) {
 			Mspid: "Org3MSP",
 		})
 		authorized := isIdentityAuthorizedByPrincipalSet("mychannel", &principalEvaluatorMock{}, principals, identity)
-		require.False(t, authorized)
+		assert.False(t, authorized)
 	})
 }
 
@@ -206,12 +206,12 @@ func TestFilterForPrincipalSets(t *testing.T) {
 
 	t.Run("Identity is authorized by all principals", func(t *testing.T) {
 		filter := filterForPrincipalSets("mychannel", &principalEvaluatorMock{}, policies.PrincipalSets{org1AndOrg2, org2AndOrg3})
-		require.True(t, filter(identity))
+		assert.True(t, filter(identity))
 	})
 
 	t.Run("Identity is not authorized by all principals", func(t *testing.T) {
 		filter := filterForPrincipalSets("mychannel", &principalEvaluatorMock{}, policies.PrincipalSets{org1AndOrg2, org3AndOrg4})
-		require.False(t, filter(identity))
+		assert.False(t, filter(identity))
 	})
 }
 
@@ -250,5 +250,5 @@ func orgPrincipal(mspID string) *msp.MSPPrincipal {
 func assertEqualPrincipalSets(t *testing.T, ps1, ps2 policies.PrincipalSet) {
 	ps1s := fmt.Sprintf("%v", ps1)
 	ps2s := fmt.Sprintf("%v", ps2)
-	require.Equal(t, ps1s, ps2s)
+	assert.Equal(t, ps1s, ps2s)
 }

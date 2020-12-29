@@ -7,10 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 package kvledger
 
 import (
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/statecouchdb"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb/statecouchdb"
 	"github.com/pkg/errors"
 )
 
@@ -26,16 +26,7 @@ func RebuildDBs(config *ledger.Config) error {
 	}
 	defer fileLock.Unlock()
 
-	blockstorePath := BlockStorePath(rootFSPath)
-	ledgerIDs, err := blkstorage.GetLedgersBootstrappedFromSnapshot(blockstorePath)
-	if err != nil {
-		return errors.WithMessage(err, "error while checking if any ledger has been bootstrapped from snapshot")
-	}
-	if len(ledgerIDs) > 0 {
-		return errors.Errorf("cannot rebuild databases because the peer contains channel(s) %s that were bootstrapped from snapshot", ledgerIDs)
-	}
-
-	if config.StateDBConfig.StateDatabase == ledger.CouchDB {
+	if config.StateDBConfig.StateDatabase == "CouchDB" {
 		if err := statecouchdb.DropApplicationDBs(config.StateDBConfig.CouchDB); err != nil {
 			return err
 		}
@@ -43,5 +34,7 @@ func RebuildDBs(config *ledger.Config) error {
 	if err := dropDBs(rootFSPath); err != nil {
 		return err
 	}
+
+	blockstorePath := BlockStorePath(rootFSPath)
 	return blkstorage.DeleteBlockStoreIndex(blockstorePath)
 }

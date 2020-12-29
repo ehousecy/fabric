@@ -19,17 +19,17 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/deliver"
-	"github.com/hyperledger/fabric/common/ledger/blockledger"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	fake "github.com/hyperledger/fabric/core/peer/mock"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/deliver"
+	"github.com/ehousecy/fabric/common/ledger/blockledger"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	fake "github.com/ehousecy/fabric/core/peer/mock"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 	peer2 "google.golang.org/grpc/peer"
 )
@@ -179,7 +179,7 @@ type testConfig struct {
 	chaincodeName string
 	txID          string
 	payload       *common.Payload
-	*require.Assertions
+	*assert.Assertions
 }
 
 type testCase struct {
@@ -190,8 +190,8 @@ type testCase struct {
 func TestFilteredBlockResponseSenderIsFiltered(t *testing.T) {
 	var fbrs interface{} = &filteredBlockResponseSender{}
 	filtered, ok := fbrs.(deliver.Filtered)
-	require.True(t, ok, "should be filtered")
-	require.True(t, filtered.IsFiltered(), "should return true from IsFiltered")
+	assert.True(t, ok, "should be filtered")
+	assert.True(t, filtered.IsFiltered(), "should return true from IsFiltered")
 }
 
 func TestEventsServer_DeliverFiltered(t *testing.T) {
@@ -269,7 +269,7 @@ func TestEventsServer_DeliverFiltered(t *testing.T) {
 						Behavior: orderer.SeekInfo_BLOCK_UNTIL_READY,
 					}),
 				},
-				Assertions: require.New(t),
+				Assertions: assert.New(t),
 			}),
 		},
 		{
@@ -342,7 +342,7 @@ func TestEventsServer_DeliverFiltered(t *testing.T) {
 						Behavior: orderer.SeekInfo_BLOCK_UNTIL_READY,
 					}),
 				},
-				Assertions: require.New(t),
+				Assertions: assert.New(t),
 			}),
 		},
 		{
@@ -396,7 +396,7 @@ func TestEventsServer_DeliverFiltered(t *testing.T) {
 						Behavior: orderer.SeekInfo_BLOCK_UNTIL_READY,
 					}),
 				},
-				Assertions: require.New(t),
+				Assertions: assert.New(t),
 			}),
 		},
 	}
@@ -414,7 +414,7 @@ func TestEventsServer_DeliverFiltered(t *testing.T) {
 			err := server.DeliverFiltered(deliverServer)
 			wg.Wait()
 			// no error expected
-			require.NoError(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -504,7 +504,7 @@ func TestEventsServer_DeliverWithPrivateData(t *testing.T) {
 						Behavior: orderer.SeekInfo_BLOCK_UNTIL_READY,
 					}),
 				},
-				Assertions: require.New(t),
+				Assertions: assert.New(t),
 			}),
 		},
 		{
@@ -553,7 +553,7 @@ func TestEventsServer_DeliverWithPrivateData(t *testing.T) {
 						Behavior: orderer.SeekInfo_BLOCK_UNTIL_READY,
 					}),
 				},
-				Assertions: require.New(t),
+				Assertions: assert.New(t),
 			}),
 		},
 	}
@@ -574,7 +574,7 @@ func TestEventsServer_DeliverWithPrivateData(t *testing.T) {
 			err := server.DeliverWithPrivateData(deliverServer)
 			wg.Wait()
 			// no error expected
-			require.NoError(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }

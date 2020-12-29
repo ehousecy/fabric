@@ -11,9 +11,9 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/ledger/snapshot"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/ledger/snapshot"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
 )
 
 // BlockStore - filesystem based implementation for `BlockStore`
@@ -70,11 +70,6 @@ func (store *BlockStore) RetrieveBlockByHash(blockHash []byte) (*common.Block, e
 // RetrieveBlockByNumber returns the block at a given blockchain height
 func (store *BlockStore) RetrieveBlockByNumber(blockNum uint64) (*common.Block, error) {
 	return store.fileMgr.retrieveBlockByNumber(blockNum)
-}
-
-// TxIDExists returns true if a transaction with the txID is ever committed
-func (store *BlockStore) TxIDExists(txID string) (bool, error) {
-	return store.fileMgr.txIDExists(txID)
 }
 
 // RetrieveTxByID returns a transaction for given transaction id

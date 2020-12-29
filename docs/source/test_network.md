@@ -486,12 +486,12 @@ organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/
     ├── IssuerPublicKey
     ├── IssuerRevocationPublicKey
     ├── cacerts
-    │   └── localhost-7054-ca-org1.pem
+    │   └── localhost-7054-ca-org1.pem
     ├── config.yaml
     ├── keystore
-    │   └── 58e81e6f1ee8930df46841bf88c22a08ae53c1332319854608539ee78ed2fd65_sk
+    │   └── 58e81e6f1ee8930df46841bf88c22a08ae53c1332319854608539ee78ed2fd65_sk
     ├── signcerts
-    │   └── cert.pem
+    │   └── cert.pem
     └── user
 ```
 You can find the certificate of the admin user in the `signcerts` folder and the

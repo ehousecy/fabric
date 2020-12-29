@@ -29,37 +29,37 @@ import (
 	"github.com/hyperledger/fabric-protos-go/gossip"
 	msprotos "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	bccsp "github.com/hyperledger/fabric/bccsp/utils"
-	"github.com/hyperledger/fabric/common/cauthdsl"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/cclifecycle"
-	lifecyclemocks "github.com/hyperledger/fabric/core/cclifecycle/mocks"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/discovery"
-	disc "github.com/hyperledger/fabric/discovery/client"
-	"github.com/hyperledger/fabric/discovery/endorsement"
-	discsupport "github.com/hyperledger/fabric/discovery/support"
-	discacl "github.com/hyperledger/fabric/discovery/support/acl"
-	ccsupport "github.com/hyperledger/fabric/discovery/support/chaincode"
-	"github.com/hyperledger/fabric/discovery/support/config"
-	"github.com/hyperledger/fabric/discovery/support/mocks"
-	"github.com/hyperledger/fabric/gossip/api"
-	gcommon "github.com/hyperledger/fabric/gossip/common"
-	gdisc "github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/msp"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	bccsp "github.com/ehousecy/fabric/bccsp/utils"
+	"github.com/ehousecy/fabric/common/cauthdsl"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/cclifecycle"
+	lifecyclemocks "github.com/ehousecy/fabric/core/cclifecycle/mocks"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/discovery"
+	disc "github.com/ehousecy/fabric/discovery/client"
+	"github.com/ehousecy/fabric/discovery/endorsement"
+	discsupport "github.com/ehousecy/fabric/discovery/support"
+	discacl "github.com/ehousecy/fabric/discovery/support/acl"
+	ccsupport "github.com/ehousecy/fabric/discovery/support/chaincode"
+	"github.com/ehousecy/fabric/discovery/support/config"
+	"github.com/ehousecy/fabric/discovery/support/mocks"
+	"github.com/ehousecy/fabric/gossip/api"
+	gcommon "github.com/ehousecy/fabric/gossip/common"
+	gdisc "github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )
 
@@ -147,84 +147,84 @@ func TestGreenPath(t *testing.T) {
 	req, err := req.AddPeersQuery().AddPeersQuery(col1).AddPeersQuery(nonExistentCollection).AddConfigQuery().AddEndorsersQuery(cc2cc, ccWithCollection)
 
 	t.Run("Local peer query", func(t *testing.T) {
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		res, err := admin.Send(context.Background(), req, admin.AuthInfo)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		returnedPeers, err := res.ForLocal().Peers()
-		require.NoError(t, err)
-		require.True(t, peersToTestPeers(returnedPeers).Equal(testPeers.withoutStateInfo()))
+		assert.NoError(t, err)
+		assert.True(t, peersToTestPeers(returnedPeers).Equal(testPeers.withoutStateInfo()))
 	})
 
 	t.Run("Channel peer queries", func(t *testing.T) {
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		res, err := client.Send(context.Background(), req, client.AuthInfo)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		returnedPeers, err := res.ForChannel("mychannel").Peers()
-		require.NoError(t, err)
-		require.True(t, peersToTestPeers(returnedPeers).Equal(testPeers))
+		assert.NoError(t, err)
+		assert.True(t, peersToTestPeers(returnedPeers).Equal(testPeers))
 
 		returnedPeers, err = res.ForChannel("mychannel").Peers(col1)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		// Ensure only peers from Org1 are returned
 		for _, p := range returnedPeers {
-			require.Equal(t, "Org1MSP", p.MSPID)
+			assert.Equal(t, "Org1MSP", p.MSPID)
 		}
 
 		// Ensure that the client handles correctly errors returned from the server
 		// in case of a bad request
 		_, err = res.ForChannel("mychannel").Peers(nonExistentCollection)
-		require.EqualError(t, err, "collection col3 doesn't exist in collection config for chaincode cc2")
+		assert.EqualError(t, err, "collection col3 doesn't exist in collection config for chaincode cc2")
 	})
 
 	t.Run("Endorser chaincode to chaincode", func(t *testing.T) {
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		res, err := client.Send(context.Background(), req, client.AuthInfo)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		endorsers, err := res.ForChannel("mychannel").Endorsers(cc2cc.Chaincodes, disc.NoFilter)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		endorsersByMSP := map[string][]string{}
 
 		for _, endorser := range endorsers {
 			endorsersByMSP[endorser.MSPID] = append(endorsersByMSP[endorser.MSPID], string(endorser.Identity))
 		}
 		// For cc2cc we expect 2 peers from Org1MSP and 1 from Org2MSP
-		require.Equal(t, 2, len(endorsersByMSP["Org1MSP"]))
-		require.Equal(t, 1, len(endorsersByMSP["Org2MSP"]))
+		assert.Equal(t, 2, len(endorsersByMSP["Org1MSP"]))
+		assert.Equal(t, 1, len(endorsersByMSP["Org2MSP"]))
 	})
 
 	t.Run("Endorser chaincode with collection", func(t *testing.T) {
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		res, err := client.Send(context.Background(), req, client.AuthInfo)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		endorsers, err := res.ForChannel("mychannel").Endorsers(ccWithCollection.Chaincodes, disc.NoFilter)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		endorsersByMSP := map[string][]string{}
 		for _, endorser := range endorsers {
 			endorsersByMSP[endorser.MSPID] = append(endorsersByMSP[endorser.MSPID], string(endorser.Identity))
 		}
-		require.Equal(t, 1, len(endorsersByMSP["Org1MSP"]))
-		require.Equal(t, 1, len(endorsersByMSP["Org2MSP"]))
+		assert.Equal(t, 1, len(endorsersByMSP["Org1MSP"]))
+		assert.Equal(t, 1, len(endorsersByMSP["Org2MSP"]))
 	})
 
 	t.Run("Config query", func(t *testing.T) {
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		res, err := client.Send(context.Background(), req, client.AuthInfo)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		conf, err := res.ForChannel("mychannel").Config()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		// Ensure MSP Configs are exactly as they appear in the config block
 		for mspID, mspConfig := range conf.Msps {
 			expectedConfig := service.sup.mspConfigs[mspID]
-			require.Equal(t, expectedConfig, mspConfig)
+			assert.Equal(t, expectedConfig, mspConfig)
 		}
 		// Ensure orderer endpoints are as they appear in the config block
 		for mspID, endpoints := range conf.Orderers {
-			require.Equal(t, "OrdererMSP", mspID)
+			assert.Equal(t, "OrdererMSP", mspID)
 			endpoints := endpoints.Endpoint
-			require.Len(t, endpoints, 1)
-			require.Equal(t, "orderer.example.com", endpoints[0].Host)
-			require.Equal(t, uint32(7050), endpoints[0].Port)
+			assert.Len(t, endpoints, 1)
+			assert.Equal(t, "orderer.example.com", endpoints[0].Host)
+			assert.Equal(t, uint32(7050), endpoints[0].Port)
 		}
 	})
 }
@@ -247,13 +247,13 @@ func TestEndorsementComputationFailure(t *testing.T) {
 		},
 	}
 	req, err := disc.NewRequest().OfChannel("mychannel").AddEndorsersQuery(ccWithCollection)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	res, err := client.Send(context.Background(), req, client.AuthInfo)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	endorsers, err := res.ForChannel("mychannel").Endorsers(ccWithCollection.Chaincodes, disc.NoFilter)
-	require.Empty(t, endorsers)
-	require.Contains(t, err.Error(), "failed constructing descriptor")
+	assert.Empty(t, endorsers)
+	assert.Contains(t, err.Error(), "failed constructing descriptor")
 }
 
 func TestLedgerFailure(t *testing.T) {
@@ -273,13 +273,13 @@ func TestLedgerFailure(t *testing.T) {
 		},
 	}
 	req, err := disc.NewRequest().OfChannel("mychannel").AddEndorsersQuery(ccWithCollection)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	res, err := client.Send(context.Background(), req, client.AuthInfo)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	endorsers, err := res.ForChannel("mychannel").Endorsers(ccWithCollection.Chaincodes, disc.NoFilter)
-	require.Empty(t, endorsers)
-	require.Contains(t, err.Error(), "failed constructing descriptor")
+	assert.Empty(t, endorsers)
+	assert.Contains(t, err.Error(), "failed constructing descriptor")
 }
 
 func TestRevocation(t *testing.T) {
@@ -290,21 +290,21 @@ func TestRevocation(t *testing.T) {
 
 	req := disc.NewRequest().OfChannel("mychannel").AddPeersQuery()
 	res, err := client.Send(context.Background(), req, client.AuthInfo)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	// Record number of times we deserialized the identity
 	firstCount := atomic.LoadUint32(&service.sup.deserializeIdentityCount)
 
 	// Do the same query again
 	peers, err := res.ForChannel("mychannel").Peers()
-	require.NotEmpty(t, peers)
-	require.NoError(t, err)
+	assert.NotEmpty(t, peers)
+	assert.NoError(t, err)
 
 	_, err = client.Send(context.Background(), req, client.AuthInfo)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	// The amount of times deserializeIdentity was called should not have changed
 	// because requests should have hit the cache
 	secondCount := atomic.LoadUint32(&service.sup.deserializeIdentityCount)
-	require.Equal(t, firstCount, secondCount)
+	assert.Equal(t, firstCount, secondCount)
 
 	// Now, increment the config sequence
 	oldSeq := service.sup.sequenceWrapper.Sequence()
@@ -317,16 +317,16 @@ func TestRevocation(t *testing.T) {
 
 	// Send the query for the third time
 	res, err = client.Send(context.Background(), req, client.AuthInfo)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	// The cache should have been purged, thus deserializeIdentity should have been
 	// called an additional time
 	thirdCount := atomic.LoadUint32(&service.sup.deserializeIdentityCount)
-	require.NotEqual(t, thirdCount, secondCount)
+	assert.NotEqual(t, thirdCount, secondCount)
 
 	// We should be denied access
 	peers, err = res.ForChannel("mychannel").Peers()
-	require.Empty(t, peers)
-	require.Contains(t, err.Error(), "access denied")
+	assert.Empty(t, peers)
+	assert.Contains(t, err.Error(), "access denied")
 }
 
 type client struct {
@@ -426,9 +426,9 @@ func createSupport(t *testing.T, dir string, lsccMetadataManager *lsccMetadataMa
 	channelVerifier := discacl.NewChannelVerifier(policies.ChannelApplicationWriters, polMgr)
 
 	org1Admin, err := policydsl.FromString("OR('Org1MSP.admin')")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	org1AdminPolicy, _, err := cauthdsl.NewPolicyProvider(org1MSP).NewPolicy(protoutil.MarshalOrPanic(org1Admin))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	acl := discacl.NewDiscoverySupport(channelVerifier, org1AdminPolicy, chConfig)
 
 	gSup := &mocks.GossipSupport{}
@@ -447,9 +447,9 @@ func createSupport(t *testing.T, dir string, lsccMetadataManager *lsccMetadataMa
 	ccSup := ccsupport.NewDiscoverySupport(lsccMetadataManager)
 	ea := endorsement.NewEndorsementAnalyzer(gSup, ccSup, pe, lsccMetadataManager)
 
-	fakeConfigGetter := &mocks.ConfigGetter{}
-	fakeConfigGetter.GetCurrConfigReturns(createChannelConfig(t, filepath.Join(dir, "crypto-config")))
-	confSup := config.NewDiscoverySupport(fakeConfigGetter)
+	fakeBlockGetter := &mocks.ConfigBlockGetter{}
+	fakeBlockGetter.GetCurrConfigBlockReturns(createGenesisBlock(filepath.Join(dir, "crypto-config")))
+	confSup := config.NewDiscoverySupport(fakeBlockGetter)
 	return &support{
 		Support:         discsupport.NewDiscoverySupport(acl, gSup, ea, confSup, acl),
 		mspWrapper:      mspManagerWrapper,
@@ -459,10 +459,10 @@ func createSupport(t *testing.T, dir string, lsccMetadataManager *lsccMetadataMa
 
 func createClientAndService(t *testing.T, testdir string) (*client, *client, *service) {
 	ca, err := tlsgen.NewCA()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	serverKeyPair, err := ca.NewServerCertKeyPair("127.0.0.1")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Create a server on an ephemeral port
 	gRPCServer, err := comm.NewGRPCServer("127.0.0.1:", comm.ServerConfig{
@@ -484,11 +484,11 @@ func createClientAndService(t *testing.T, testdir string) (*client, *client, *se
 
 	RegisterDiscoveryServer(gRPCServer.Server(), svc)
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	go gRPCServer.Start()
 
 	clientKeyPair, err := ca.NewClientCertKeyPair()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	dialer, err := comm.NewGRPCClient(comm.ClientConfig{
 		Timeout: time.Second * 3,
@@ -499,10 +499,10 @@ func createClientAndService(t *testing.T, testdir string) (*client, *client, *se
 			ServerRootCAs: [][]byte{ca.CertBytes()},
 		},
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	conn, err := dialer.NewConnection(gRPCServer.Address())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	userSigner := createUserSigner(t)
 	wrapperUserClient := &client{AuthInfo: &AuthInfo{
@@ -528,11 +528,11 @@ func createUserSigner(t *testing.T) *signer {
 	certPath := filepath.Join(identityDir, "signcerts", "User1@org1.example.com-cert.pem")
 	keyPath := filepath.Join(identityDir, "keystore")
 	keys, err := ioutil.ReadDir(keyPath)
-	require.NoError(t, err)
-	require.Len(t, keys, 1)
+	assert.NoError(t, err)
+	assert.Len(t, keys, 1)
 	keyPath = filepath.Join(keyPath, keys[0].Name())
 	signer, err := newSigner("Org1MSP", certPath, keyPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return signer
 }
 
@@ -541,25 +541,25 @@ func createAdminSigner(t *testing.T) *signer {
 	certPath := filepath.Join(identityDir, "signcerts", "Admin@org1.example.com-cert.pem")
 	keyPath := filepath.Join(identityDir, "keystore")
 	keys, err := ioutil.ReadDir(keyPath)
-	require.NoError(t, err)
-	require.Len(t, keys, 1)
+	assert.NoError(t, err)
+	assert.Len(t, keys, 1)
 	keyPath = filepath.Join(keyPath, keys[0].Name())
 	signer, err := newSigner("Org1MSP", certPath, keyPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return signer
 }
 
 func createMSP(t *testing.T, dir, mspID string) (msp.MSP, *msprotos.FabricMSPConfig) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	channelMSP, err := msp.New(
 		&msp.BCCSPNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: msp.MSPv1_4_3}},
 		cryptoProvider,
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mspConf, err := msp.GetVerifyingMspConfig(dir, mspID, "bccsp")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	fabConf := &msprotos.FabricMSPConfig{}
 	proto.Unmarshal(mspConf.Config, fabConf)
@@ -608,9 +608,9 @@ func createChannelConfigGetter(s *sequenceWrapper, mspMgr msp.MSPManager) discac
 
 func createPolicyManagerGetter(t *testing.T, mspMgr msp.MSPManager) *mocks.ChannelPolicyManagerGetter {
 	org1Org2Members, err := policydsl.FromString("OR('Org1MSP.client', 'Org2MSP.client')")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	org1Org2MembersPolicy, _, err := cauthdsl.NewPolicyProvider(mspMgr).NewPolicy(protoutil.MarshalOrPanic(org1Org2Members))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	polMgr := &mocks.ChannelPolicyManagerGetter{}
 	policyMgr := &mocks.PolicyManager{}
@@ -621,12 +621,12 @@ func createPolicyManagerGetter(t *testing.T, mspMgr msp.MSPManager) *mocks.Chann
 
 func buildBinaries() error {
 	var err error
-	cryptogen, err = gexec.Build("github.com/hyperledger/fabric/cmd/cryptogen")
+	cryptogen, err = gexec.Build("github.com/ehousecy/fabric/cmd/cryptogen")
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	idemixgen, err = gexec.Build("github.com/hyperledger/fabric/cmd/idemixgen")
+	idemixgen, err = gexec.Build("github.com/ehousecy/fabric/cmd/idemixgen")
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -657,7 +657,7 @@ func generateChannelArtifacts() (string, error) {
 	return dir, nil
 }
 
-func createChannelConfig(t *testing.T, cryptoConfigDir string) *common.Config {
+func createGenesisBlock(cryptoConfigDir string) *common.Block {
 	appConfig := genesisconfig.Load("TwoOrgsChannel", "testdata")
 	ordererConfig := genesisconfig.Load("TwoOrgsOrdererGenesis", "testdata")
 	// Glue the two parts together, without loss of generality - to the application parts
@@ -677,12 +677,8 @@ func createChannelConfig(t *testing.T, cryptoConfigDir string) *common.Config {
 		org.MSPDir = filepath.Join(cryptoConfigDir, "peerOrganizations", fmt.Sprintf("org%d.example.com", i+1), "msp")
 	}
 
-	channelGroup, err := encoder.NewChannelGroup(channelConfig)
-	require.NoError(t, err)
-
-	return &common.Config{
-		ChannelGroup: channelGroup,
-	}
+	channelGenerator := encoder.New(channelConfig)
+	return channelGenerator.GenesisBlockForChannel("mychannel")
 }
 
 type testPeer struct {

@@ -9,7 +9,7 @@ package sysccprovider
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestString(t *testing.T) {
@@ -19,6 +19,6 @@ func TestString(t *testing.T) {
 		ChaincodeVersion: "ChaincodeVersion",
 	}
 
-	require.NotNil(t, chaincodeInstance.String(), "str should not be nil")
-	require.Equal(t, chaincodeInstance.String(), "ChannelID.ChaincodeName#ChaincodeVersion", "str should be the correct value")
+	assert.NotNil(t, chaincodeInstance.String(), "str should not be nil")
+	assert.Equal(t, chaincodeInstance.String(), "ChannelID.ChaincodeName#ChaincodeVersion", "str should be the correct value")
 }

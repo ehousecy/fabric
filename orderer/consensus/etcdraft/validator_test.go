@@ -7,20 +7,19 @@
 package etcdraft_test
 
 import (
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/orderer/consensus/etcdraft/mocks"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/orderer/consensus/etcdraft/mocks"
 	"io/ioutil"
-	"os"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	etcdraftproto "github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
 	raftprotos "github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/orderer/consensus/etcdraft"
-	consensusmocks "github.com/hyperledger/fabric/orderer/consensus/mocks"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/orderer/consensus/etcdraft"
+	consensusmocks "github.com/ehousecy/fabric/orderer/consensus/mocks"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -82,14 +81,10 @@ var _ = Describe("Metadata Validation", func() {
 	})
 
 	JustBeforeEach(func() {
-		c := newChain(10*time.Second, channelID, dataDir, 1, meta, consenters, cryptoProvider, support, nil)
+		c := newChain(10*time.Second, channelID, dataDir, 1, meta, consenters, cryptoProvider, support)
 		c.init()
 		chain = c.Chain
 		chain.ActiveNodes.Store([]uint64{1, 2, 3})
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(dataDir)
 	})
 
 	When("determining parameter well-formedness", func() {

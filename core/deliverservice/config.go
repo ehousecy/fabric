@@ -7,13 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package deliverservice
 
 import (
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"time"
 
-	"github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/peer/orderers"
+	"github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/peer/orderers"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -47,9 +47,9 @@ type DeliverServiceConfig struct {
 }
 
 type AddressOverride struct {
-	From        string
-	To          string
-	CACertsFile string
+	From        string `mapstructure:"from"`
+	To          string `mapstructure:"to"`
+	CACertsFile string `mapstructure:"caCertsFile"`
 }
 
 // GlobalConfig obtains a set of configuration from viper, build and returns the config struct.
@@ -72,7 +72,7 @@ func LoadOverridesMap() (map[string]*orderers.Endpoint, error) {
 
 	overrideMap := map[string]*orderers.Endpoint{}
 	for _, override := range overrides {
-		certPool := x509.NewCertPool()
+		certPool := sm2.NewCertPool()
 		if override.CACertsFile != "" {
 			pem, err := ioutil.ReadFile(override.CACertsFile)
 			if err != nil {

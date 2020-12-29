@@ -7,13 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package support
 
 import (
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/discovery"
-	"github.com/hyperledger/fabric/discovery/support/acl"
-	"github.com/hyperledger/fabric/discovery/support/config"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/discovery"
+	"github.com/ehousecy/fabric/discovery/support/acl"
+	"github.com/ehousecy/fabric/discovery/support/config"
+	"github.com/ehousecy/fabric/msp"
 )
 
 //go:generate mockery -dir . -name GossipSupport -case underscore -output mocks/
@@ -41,9 +41,9 @@ type channelConfigGetter interface {
 	acl.ChannelConfigGetter
 }
 
-//go:generate counterfeiter -o mocks/config_getter.go --fake-name ConfigGetter . configGetter
-type configGetter interface {
-	config.CurrentConfigGetter
+//go:generate counterfeiter -o mocks/config_block_getter.go --fake-name ConfigBlockGetter . configBlockGetter
+type configBlockGetter interface {
+	config.CurrentConfigBlockGetter
 }
 
 //go:generate counterfeiter -o mocks/configtx_validator.go --fake-name ConfigtxValidator . configtxValidator

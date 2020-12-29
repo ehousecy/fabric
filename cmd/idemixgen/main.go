@@ -12,19 +12,18 @@ package main
 // the Identity Mixer MSP
 
 import (
-	"crypto/ecdsa"
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/ehousecy/fabric/common/tools/idemixgen/idemixca"
+	"github.com/ehousecy/fabric/common/tools/idemixgen/metadata"
+	"github.com/ehousecy/fabric/idemix"
+	"github.com/ehousecy/fabric/msp"
 	"github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric/common/tools/idemixgen/idemixca"
-	"github.com/hyperledger/fabric/common/tools/idemixgen/metadata"
-	"github.com/hyperledger/fabric/idemix"
-	"github.com/hyperledger/fabric/msp"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -63,11 +62,12 @@ func main() {
 
 		revocationKey, err := idemix.GenerateLongTermRevocationKey()
 		handleError(err)
-		encodedRevocationSK, err := x509.MarshalECPrivateKey(revocationKey)
+		//TODO
+		encodedRevocationSK, err := sm2.MarshalSm2UnecryptedPrivateKey(revocationKey)
 		handleError(err)
 		pemEncodedRevocationSK := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedRevocationSK})
 		handleError(err)
-		encodedRevocationPK, err := x509.MarshalPKIXPublicKey(revocationKey.Public())
+		encodedRevocationPK, err := sm2.MarshalPKIXPublicKey(revocationKey.Public())
 		handleError(err)
 		pemEncodedRevocationPK := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: encodedRevocationPK})
 
@@ -158,7 +158,7 @@ func readIssuerKey() (*idemix.IssuerKey, []byte) {
 	return key, ipkBytes
 }
 
-func readRevocationKey() *ecdsa.PrivateKey {
+func readRevocationKey() *sm2.PrivateKey {
 	path := filepath.Join(*genCAInput, IdemixDirIssuer, IdemixConfigRevocationKey)
 	keyBytes, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -169,7 +169,7 @@ func readRevocationKey() *ecdsa.PrivateKey {
 	if block == nil {
 		handleError(errors.Errorf("failed to decode ECDSA private key"))
 	}
-	key, err := x509.ParseECPrivateKey(block.Bytes)
+	key, err := sm2.ParseSm2PrivateKey(block.Bytes)
 	handleError(err)
 
 	return key

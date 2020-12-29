@@ -12,82 +12,82 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/orderer/common/channelparticipation"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/orderer/common/channelparticipation"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateJoinBlock(t *testing.T) {
 	tests := []struct {
 		testName             string
+		channelID            string
 		joinBlock            *cb.Block
-		expectedChannelID    string
 		expectedIsAppChannel bool
 		expectedErr          error
 	}{
 		{
-			testName: "Valid system channel join block",
+			testName:  "Valid system channel join block",
+			channelID: "my-channel",
 			joinBlock: blockWithGroups(
 				map[string]*cb.ConfigGroup{
 					"Consortiums": {},
 				},
 				"my-channel",
 			),
-			expectedChannelID:    "my-channel",
 			expectedIsAppChannel: false,
 			expectedErr:          nil,
 		},
 		{
-			testName: "Valid application channel join block",
+			testName:  "Valid application channel join block",
+			channelID: "my-channel",
 			joinBlock: blockWithGroups(
 				map[string]*cb.ConfigGroup{
 					"Application": {},
 				},
 				"my-channel",
 			),
-			expectedChannelID:    "my-channel",
 			expectedIsAppChannel: true,
 			expectedErr:          nil,
 		},
 		{
 			testName:             "Join block not a config block",
+			channelID:            "my-channel",
 			joinBlock:            nonConfigBlock(),
-			expectedChannelID:    "",
 			expectedIsAppChannel: false,
 			expectedErr:          errors.New("block is not a config block"),
 		},
 		{
-			testName: "block ChannelID not valid",
+			testName:  "ChannelID does not match join blocks",
+			channelID: "not-my-channel",
 			joinBlock: blockWithGroups(
 				map[string]*cb.ConfigGroup{
 					"Consortiums": {},
 				},
-				"My-Channel",
+				"my-channel",
 			),
-			expectedChannelID:    "",
 			expectedIsAppChannel: false,
-			expectedErr:          errors.New("initializing configtx manager failed: bad channel ID: 'My-Channel' contains illegal characters"),
+			expectedErr:          errors.New("config block channelID [my-channel] does not match passed channelID [not-my-channel]"),
 		},
 		{
-			testName: "Invalid bundle",
+			testName:  "Invalid bundle",
+			channelID: "my-channel",
 			joinBlock: blockWithGroups(
 				map[string]*cb.ConfigGroup{
 					"InvalidGroup": {},
 				},
 				"my-channel",
 			),
-			expectedChannelID:    "",
 			expectedIsAppChannel: false,
-			expectedErr:          errors.New("initializing channelconfig failed: Disallowed channel group: "),
+			expectedErr:          nil,
 		},
 		{
-			testName: "Join block has no application or consortiums group",
+			testName:  "Join block has no application or consortiums group",
+			channelID: "my-channel",
 			joinBlock: blockWithGroups(
 				map[string]*cb.ConfigGroup{},
 				"my-channel",
 			),
-			expectedChannelID:    "",
 			expectedIsAppChannel: false,
 			expectedErr:          errors.New("invalid config: must have at least one of application or consortiums"),
 		},
@@ -95,13 +95,10 @@ func TestValidateJoinBlock(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			channelID, isAppChannel, err := channelparticipation.ValidateJoinBlock(test.joinBlock)
-			require.Equal(t, test.expectedChannelID, channelID)
-			require.Equal(t, test.expectedIsAppChannel, isAppChannel)
+			isAppChannel, err := channelparticipation.ValidateJoinBlock(test.channelID, test.joinBlock)
+			assert.Equal(t, isAppChannel, test.expectedIsAppChannel)
 			if test.expectedErr != nil {
-				require.EqualError(t, err, test.expectedErr.Error())
-			} else {
-				require.NoError(t, err)
+				assert.EqualError(t, err, test.expectedErr.Error())
 			}
 		})
 	}

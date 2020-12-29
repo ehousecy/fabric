@@ -12,15 +12,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/election"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/election"
 
-	"github.com/hyperledger/fabric/gossip/comm"
-	"github.com/hyperledger/fabric/gossip/gossip/algo"
+	"github.com/ehousecy/fabric/gossip/comm"
+	"github.com/ehousecy/fabric/gossip/gossip/algo"
 
-	"github.com/hyperledger/fabric/gossip/gossip"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ehousecy/fabric/gossip/gossip"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGlobalConfig(t *testing.T) {
@@ -58,12 +59,12 @@ func TestGlobalConfig(t *testing.T) {
 	viper.Set("peer.gossip.msgExpirationFactor", "10")
 
 	coreConfig, err := gossip.GlobalConfig(endpoint, nil, bootstrap...)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	_, p, err := net.SplitHostPort(endpoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	port, err := strconv.ParseInt(p, 10, 64)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	expectedConfig := &gossip.Config{
 		BindPort:                     int(port),
@@ -100,7 +101,7 @@ func TestGlobalConfig(t *testing.T) {
 		MsgExpirationFactor:          10,
 	}
 
-	require.Equal(t, expectedConfig, coreConfig)
+	assert.Equal(t, expectedConfig, coreConfig)
 
 }
 
@@ -113,12 +114,12 @@ func TestGlobalConfigDefaults(t *testing.T) {
 	viper.Set("peer.gossip.externalEndpoint", externalEndpoint)
 
 	coreConfig, err := gossip.GlobalConfig(endpoint, nil, bootstrap...)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	_, p, err := net.SplitHostPort(endpoint)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	port, err := strconv.ParseInt(p, 10, 64)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	expectedConfig := &gossip.Config{
 		BindPort:                     int(port),
@@ -155,5 +156,5 @@ func TestGlobalConfigDefaults(t *testing.T) {
 		MsgExpirationFactor:          20,
 	}
 
-	require.Equal(t, expectedConfig, coreConfig)
+	assert.Equal(t, expectedConfig, coreConfig)
 }

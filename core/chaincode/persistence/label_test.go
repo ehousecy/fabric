@@ -9,6 +9,7 @@ package persistence
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,10 +49,10 @@ func TestLabels(t *testing.T) {
 		t.Run(tt.label, func(t *testing.T) {
 			err := ValidateLabel(tt.label)
 			if tt.success {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.label)
+				assert.Contains(t, err.Error(), tt.label)
 			}
 		})
 	}

@@ -7,12 +7,12 @@ SPDX-License-Identifier: Apache-2.0
 package chaincode
 
 import (
-	"crypto/tls"
+	tls "github.com/tjfoc/gmtls"
 
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -39,7 +39,6 @@ type ClientConnectionsInput struct {
 	PeerAddresses         []string
 	TLSRootCertFiles      []string
 	ConnectionProfilePath string
-	TargetPeer            string
 	TLSEnabled            bool
 }
 
@@ -115,9 +114,23 @@ func (c *ClientConnections) setPeerClients(input *ClientConnectionsInput) error 
 
 func (c *ClientConnections) validatePeerConnectionParameters(input *ClientConnectionsInput) error {
 	if input.ConnectionProfilePath != "" {
-		err := input.parseConnectionProfile()
+		networkConfig, err := common.GetConfig(input.ConnectionProfilePath)
 		if err != nil {
 			return err
+		}
+		if len(networkConfig.Channels[input.ChannelID].Peers) != 0 {
+			input.PeerAddresses = []string{}
+			input.TLSRootCertFiles = []string{}
+			for peer, peerChannelConfig := range networkConfig.Channels[input.ChannelID].Peers {
+				if peerChannelConfig.EndorsingPeer {
+					peerConfig, ok := networkConfig.Peers[peer]
+					if !ok {
+						return errors.Errorf("peer '%s' is defined in the channel config but doesn't have associated peer config", peer)
+					}
+					input.PeerAddresses = append(input.PeerAddresses, peerConfig.URL)
+					input.TLSRootCertFiles = append(input.TLSRootCertFiles, peerConfig.TLSCACerts.Path)
+				}
+			}
 		}
 	}
 
@@ -142,51 +155,8 @@ func (c *ClientConnections) validatePeerConnectionParameters(input *ClientConnec
 	return nil
 }
 
-func (c *ClientConnectionsInput) parseConnectionProfile() error {
-	networkConfig, err := common.GetConfig(c.ConnectionProfilePath)
-	if err != nil {
-		return err
-	}
-
-	c.PeerAddresses = []string{}
-	c.TLSRootCertFiles = []string{}
-
-	if c.ChannelID == "" {
-		if c.TargetPeer == "" {
-			return errors.New("--targetPeer must be specified for channel-less operation using connection profile")
-		}
-		return c.appendPeerConfig(networkConfig, c.TargetPeer)
-	}
-
-	if len(networkConfig.Channels[c.ChannelID].Peers) == 0 {
-		return nil
-	}
-
-	for peer, peerChannelConfig := range networkConfig.Channels[c.ChannelID].Peers {
-		if peerChannelConfig.EndorsingPeer {
-			err := c.appendPeerConfig(networkConfig, peer)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (c *ClientConnectionsInput) appendPeerConfig(n *common.NetworkConfig, peer string) error {
-	peerConfig, ok := n.Peers[peer]
-	if !ok {
-		return errors.Errorf("peer '%s' doesn't have associated peer config", peer)
-	}
-	c.PeerAddresses = append(c.PeerAddresses, peerConfig.URL)
-	c.TLSRootCertFiles = append(c.TLSRootCertFiles, peerConfig.TLSCACerts.Path)
-
-	return nil
-}
-
 func (c *ClientConnections) setCertificate() error {
-	certificate, err := common.GetClientCertificate()
+	certificate, err := common.GetCertificate()
 	if err != nil {
 		return errors.WithMessage(err, "failed to retrieve client cerificate")
 	}

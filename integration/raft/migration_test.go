@@ -22,16 +22,16 @@ import (
 	protosorderer "github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
 	protosraft "github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/ordererclient"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
+	"github.com/tedsuo/ifrit/grouper"
 )
 
 var _ = Describe("Kafka2RaftMigration", func() {
@@ -691,14 +691,14 @@ var _ = Describe("Kafka2RaftMigration", func() {
 
 			By("Launching the fourth orderer")
 			o4Runner := network.OrdererRunner(o4)
-			o4Process := ifrit.Invoke(o4Runner)
+			o4Process := ifrit.Invoke(grouper.Member{Name: o4.ID(), Runner: o4Runner})
 
 			defer func() {
 				o4Process.Signal(syscall.SIGTERM)
 				Eventually(o4Process.Wait(), network.EventuallyTimeout).Should(Receive())
 			}()
 
-			Eventually(o4Process.Ready(), network.EventuallyTimeout).Should(BeClosed())
+			Eventually(o4Process.Ready()).Should(BeClosed())
 
 			By("Waiting for the orderer to figure out it was migrated")
 			Eventually(o4Runner.Err(), time.Minute, time.Second).Should(gbytes.Say("This node was migrated from Kafka to Raft, skipping activation of Kafka chain"))
@@ -1150,19 +1150,19 @@ func assertBlockCreation(network *nwo.Network, orderer *nwo.Orderer, peer *nwo.P
 		signer = peer
 	}
 	env := CreateBroadcastEnvelope(network, signer, channelID, []byte("hola"))
-	resp, err := ordererclient.Broadcast(network, orderer, env)
+	resp, err := nwo.Broadcast(network, orderer, env)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
 	denv := CreateDeliverEnvelope(network, orderer, blkNum, channelID)
-	blk, err := ordererclient.Deliver(network, orderer, denv)
+	blk, err := nwo.Deliver(network, orderer, denv)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(blk).ToNot(BeNil())
 }
 
 func assertTxFailed(network *nwo.Network, orderer *nwo.Orderer, channelID string) {
 	env := CreateBroadcastEnvelope(network, orderer, channelID, []byte("hola"))
-	resp, err := ordererclient.Broadcast(network, orderer, env)
+	resp, err := nwo.Broadcast(network, orderer, env)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(resp.Status).To(Equal(common.Status_SERVICE_UNAVAILABLE))
 	Expect(resp.Info).To(Equal("normal transactions are rejected: maintenance mode"))

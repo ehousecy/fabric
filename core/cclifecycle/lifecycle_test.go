@@ -16,19 +16,19 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/flogging/floggingtest"
-	"github.com/hyperledger/fabric/core/cclifecycle"
-	"github.com/hyperledger/fabric/core/cclifecycle/mocks"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	"github.com/hyperledger/fabric/core/ledger/cceventmgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/flogging/floggingtest"
+	"github.com/ehousecy/fabric/core/cclifecycle"
+	"github.com/ehousecy/fabric/core/cclifecycle/mocks"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/core/ledger/cceventmgmt"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewQuery(t *testing.T) {
@@ -45,8 +45,8 @@ func TestNewQuery(t *testing.T) {
 
 func TestHandleMetadataUpdate(t *testing.T) {
 	f := func(channel string, chaincodes chaincode.MetadataSet) {
-		require.Len(t, chaincodes, 2)
-		require.Equal(t, "mychannel", channel)
+		assert.Len(t, chaincodes, 2)
+		assert.Equal(t, "mychannel", channel)
 	}
 	cclifecycle.HandleMetadataUpdateFunc(f).HandleMetadataUpdate("mychannel", chaincode.MetadataSet{{}, {}})
 }
@@ -56,16 +56,16 @@ func TestEnumerate(t *testing.T) {
 		return []chaincode.InstalledChaincode{{}, {}}, nil
 	}
 	ccs, err := cclifecycle.EnumerateFunc(f).Enumerate()
-	require.NoError(t, err)
-	require.Len(t, ccs, 2)
+	assert.NoError(t, err)
+	assert.Len(t, ccs, 2)
 }
 
 func TestLifecycleInitFailure(t *testing.T) {
 	listCCs := &mocks.Enumerator{}
 	listCCs.On("Enumerate").Return(nil, errors.New("failed accessing DB"))
 	m, err := cclifecycle.NewMetadataManager(listCCs)
-	require.Nil(t, m)
-	require.Contains(t, err.Error(), "failed accessing DB")
+	assert.Nil(t, m)
+	assert.Contains(t, err.Error(), "failed accessing DB")
 }
 
 func TestHandleChaincodeDeployGreenPath(t *testing.T) {
@@ -121,15 +121,15 @@ func TestHandleChaincodeDeployGreenPath(t *testing.T) {
 	}, nil)
 
 	m, err := cclifecycle.NewMetadataManager(enum)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	lsnr := &mocks.MetadataChangeListener{}
 	lsnr.On("HandleMetadataUpdate", mock.Anything, mock.Anything)
 	m.AddListener(lsnr)
 
 	sub, err := m.NewChannelSubscription("mychannel", queryCreator)
-	require.NoError(t, err)
-	require.NotNil(t, sub)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
 
 	// Ensure that the listener was updated
 	assertLogged(t, recorder, "Listeners for channel mychannel invoked")
@@ -151,9 +151,9 @@ func TestHandleChaincodeDeployGreenPath(t *testing.T) {
 	sub.ChaincodeDeployDone(true)
 	// Ensure that the listener is called with the new chaincode and the old chaincode metadata
 	assertLogged(t, recorder, "Listeners for channel mychannel invoked")
-	require.Len(t, lsnr.Calls, 2)
+	assert.Len(t, lsnr.Calls, 2)
 	sortedMetadata := sortedMetadataSet(lsnr.Calls[1].Arguments.Get(1).(chaincode.MetadataSet)).sort()
-	require.Equal(t, sortedMetadata, chaincode.MetadataSet{{
+	assert.Equal(t, sortedMetadata, chaincode.MetadataSet{{
 		Name:    "cc1",
 		Version: "1.0",
 		Id:      []byte{42},
@@ -176,9 +176,9 @@ func TestHandleChaincodeDeployGreenPath(t *testing.T) {
 	sub.ChaincodeDeployDone(true)
 	// Ensure that the listener is called with the new chaincode and the old chaincode metadata
 	assertLogged(t, recorder, "Listeners for channel mychannel invoked")
-	require.Len(t, lsnr.Calls, 3)
+	assert.Len(t, lsnr.Calls, 3)
 	sortedMetadata = sortedMetadataSet(lsnr.Calls[2].Arguments.Get(1).(chaincode.MetadataSet)).sort()
-	require.Equal(t, sortedMetadata, chaincode.MetadataSet{{
+	assert.Equal(t, sortedMetadata, chaincode.MetadataSet{{
 		Name:    "cc1",
 		Version: "1.0",
 		Id:      []byte{42},
@@ -214,7 +214,7 @@ func TestHandleChaincodeDeployFailures(t *testing.T) {
 	}, nil)
 
 	m, err := cclifecycle.NewMetadataManager(enum)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	lsnr := &mocks.MetadataChangeListener{}
 	lsnr.On("HandleMetadataUpdate", mock.Anything, mock.Anything)
@@ -223,8 +223,8 @@ func TestHandleChaincodeDeployFailures(t *testing.T) {
 	// Scenario I: A channel subscription is made but obtaining a new query is not possible.
 	queryCreator.On("NewQuery").Return(nil, errors.New("failed accessing DB")).Once()
 	sub, err := m.NewChannelSubscription("mychannel", queryCreator)
-	require.Nil(t, sub)
-	require.Contains(t, err.Error(), "failed accessing DB")
+	assert.Nil(t, sub)
+	assert.Contains(t, err.Error(), "failed accessing DB")
 	lsnr.AssertNumberOfCalls(t, "HandleMetadataUpdate", 0)
 
 	// Scenario II: A channel subscription is made and obtaining a new query succeeds, however - obtaining it once
@@ -233,8 +233,8 @@ func TestHandleChaincodeDeployFailures(t *testing.T) {
 	queryCreator.On("NewQuery").Return(nil, errors.New("failed accessing DB")).Once()
 	query.On("GetState", "lscc", "cc1").Return(cc1Bytes, nil).Once()
 	sub, err = m.NewChannelSubscription("mychannel", queryCreator)
-	require.NoError(t, err)
-	require.NotNil(t, sub)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
 	lsnr.AssertNumberOfCalls(t, "HandleMetadataUpdate", 1)
 	sub.HandleChaincodeDeploy(&cceventmgmt.ChaincodeDefinition{Name: "cc1", Version: "1.0", Hash: []byte{42}}, nil)
 	sub.ChaincodeDeployDone(true)
@@ -247,8 +247,8 @@ func TestHandleChaincodeDeployFailures(t *testing.T) {
 	queryCreator.On("NewQuery").Return(query, nil).Once()
 	query.On("GetState", "lscc", "cc1").Return(nil, errors.New("failed accessing DB")).Once()
 	sub, err = m.NewChannelSubscription("mychannel", queryCreator)
-	require.NoError(t, err)
-	require.NotNil(t, sub)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
 	lsnr.AssertNumberOfCalls(t, "HandleMetadataUpdate", 2)
 	sub.HandleChaincodeDeploy(&cceventmgmt.ChaincodeDefinition{Name: "cc1", Version: "1.0", Hash: []byte{42}}, nil)
 	sub.ChaincodeDeployDone(true)
@@ -260,8 +260,8 @@ func TestHandleChaincodeDeployFailures(t *testing.T) {
 	// Thus, the lifecycle change listener should not be called.
 	sub, err = m.NewChannelSubscription("mychannel", queryCreator)
 	lsnr.AssertNumberOfCalls(t, "HandleMetadataUpdate", 3)
-	require.NoError(t, err)
-	require.NotNil(t, sub)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
 	sub.HandleChaincodeDeploy(&cceventmgmt.ChaincodeDefinition{Name: "cc1", Version: "1.1", Hash: []byte{42}}, nil)
 	sub.ChaincodeDeployDone(false)
 	lsnr.AssertNumberOfCalls(t, "HandleMetadataUpdate", 3)
@@ -307,7 +307,7 @@ func TestMultipleUpdates(t *testing.T) {
 	}, nil)
 
 	m, err := cclifecycle.NewMetadataManager(enum)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	var lsnrCalled sync.WaitGroup
 	lsnrCalled.Add(3)
@@ -318,7 +318,7 @@ func TestMultipleUpdates(t *testing.T) {
 	m.AddListener(lsnr)
 
 	sub, err := m.NewChannelSubscription("mychannel", queryCreator)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	sub.HandleChaincodeDeploy(&cceventmgmt.ChaincodeDefinition{Name: "cc1", Version: "1.1", Hash: []byte{42}}, nil)
 	sub.HandleChaincodeDeploy(&cceventmgmt.ChaincodeDefinition{Name: "cc2", Version: "1.0", Hash: []byte{50}}, nil)
@@ -342,7 +342,7 @@ func TestMultipleUpdates(t *testing.T) {
 	// We need to sort the metadata passed to the call because map iteration is involved in building the
 	// metadata set.
 	expectedMetadata := sortedMetadataSet(lsnr.Calls[2].Arguments.Get(1).(chaincode.MetadataSet)).sort()
-	require.Equal(t, metadataSetWithBothChaincodes, expectedMetadata)
+	assert.Equal(t, metadataSetWithBothChaincodes, expectedMetadata)
 
 	// Wait for all listeners to fire
 	g := NewGomegaWithT(t)
@@ -383,11 +383,11 @@ func TestMetadata(t *testing.T) {
 	}, nil)
 
 	m, err := cclifecycle.NewMetadataManager(enum)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Scenario I: No subscription was invoked on the lifecycle
 	md := m.Metadata("mychannel", "cc1")
-	require.Nil(t, md)
+	assert.Nil(t, md)
 	assertLogged(t, recorder, "Requested Metadata for non-existent channel mychannel")
 
 	// Scenario II: A subscription was made on the lifecycle, and the metadata for the chaincode exists
@@ -396,10 +396,10 @@ func TestMetadata(t *testing.T) {
 	queryCreator.On("NewQuery").Return(query, nil).Once()
 	sub, err := m.NewChannelSubscription("mychannel", queryCreator)
 	defer sub.ChaincodeDeployDone(true)
-	require.NoError(t, err)
-	require.NotNil(t, sub)
+	assert.NoError(t, err)
+	assert.NotNil(t, sub)
 	md = m.Metadata("mychannel", "cc1")
-	require.Equal(t, &chaincode.Metadata{
+	assert.Equal(t, &chaincode.Metadata{
 		Name:    "cc1",
 		Version: "1.0",
 		Id:      []byte{42},
@@ -411,7 +411,7 @@ func TestMetadata(t *testing.T) {
 	// and when the query is attempted to be made - it fails.
 	queryCreator.On("NewQuery").Return(nil, errors.New("failed obtaining query executor")).Once()
 	md = m.Metadata("mychannel", "cc2")
-	require.Nil(t, md)
+	assert.Nil(t, md)
 	assertLogged(t, recorder, "Failed obtaining new query for channel mychannel : failed obtaining query executor")
 
 	// Scenario IV:  A metadata retrieval is made and the chaincode is not in memory yet,
@@ -419,7 +419,7 @@ func TestMetadata(t *testing.T) {
 	queryCreator.On("NewQuery").Return(query, nil).Once()
 	query.On("GetState", "lscc", "cc2").Return(nil, errors.New("GetState failed")).Once()
 	md = m.Metadata("mychannel", "cc2")
-	require.Nil(t, md)
+	assert.Nil(t, md)
 	assertLogged(t, recorder, "Failed querying LSCC for channel mychannel : GetState failed")
 
 	// Scenario V: A metadata retrieval is made and the chaincode is not in memory yet,
@@ -427,7 +427,7 @@ func TestMetadata(t *testing.T) {
 	queryCreator.On("NewQuery").Return(query, nil).Once()
 	query.On("GetState", "lscc", "cc2").Return(nil, nil).Once()
 	md = m.Metadata("mychannel", "cc2")
-	require.Nil(t, md)
+	assert.Nil(t, md)
 	assertLogged(t, recorder, "Chaincode cc2 isn't defined in channel mychannel")
 
 	// Scenario VI: A metadata retrieval is made and the chaincode is not in memory yet,
@@ -435,7 +435,7 @@ func TestMetadata(t *testing.T) {
 	queryCreator.On("NewQuery").Return(query, nil).Once()
 	query.On("GetState", "lscc", "cc2").Return(cc2Bytes, nil).Once()
 	md = m.Metadata("mychannel", "cc2")
-	require.Equal(t, &chaincode.Metadata{
+	assert.Equal(t, &chaincode.Metadata{
 		Name:    "cc2",
 		Version: "1.0",
 		Id:      []byte{42},
@@ -448,7 +448,7 @@ func TestMetadata(t *testing.T) {
 	query.On("GetState", "lscc", "cc1").Return(cc1Bytes, nil).Once()
 	query.On("GetState", "lscc", privdata.BuildCollectionKVSKey("cc1")).Return(protoutil.MarshalOrPanic(&peer.CollectionConfigPackage{}), nil).Once()
 	md = m.Metadata("mychannel", "cc1", "col1")
-	require.Equal(t, &chaincode.Metadata{
+	assert.Equal(t, &chaincode.Metadata{
 		Name:              "cc1",
 		Version:           "1.0",
 		Id:                []byte{42},
@@ -464,7 +464,7 @@ func TestMetadata(t *testing.T) {
 	query.On("GetState", "lscc", "cc1").Return(cc1Bytes, nil).Once()
 	query.On("GetState", "lscc", privdata.BuildCollectionKVSKey("cc1")).Return(nil, errors.New("foo")).Once()
 	md = m.Metadata("mychannel", "cc1", "col1")
-	require.Nil(t, md)
+	assert.Nil(t, md)
 	assertLogged(t, recorder, "Failed querying lscc namespace for cc1~collection: foo")
 }
 

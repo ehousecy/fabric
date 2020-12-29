@@ -17,10 +17,10 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
@@ -40,12 +40,6 @@ type BlockPuller struct {
 	Dialer              Dialer
 	VerifyBlockSequence BlockSequenceVerifier
 	Endpoints           []EndpointCriteria
-
-	// A 'stopper' goroutine may signal the go-routine servicing PullBlock & HeightsByEndpoints to stop by closing this
-	// channel. Note: all methods of the BlockPuller must be serviced by a single goroutine, it is not thread safe.
-	// It is the responsibility of the 'stopper' not to close the channel more then once.
-	StopChannel chan struct{}
-
 	// Internal state
 	stream       *ImpatientStream
 	blockBuff    []*common.Block
@@ -73,11 +67,6 @@ func (p *BlockPuller) Clone() *BlockPuller {
 // Close makes the BlockPuller close the connection and stream
 // with the remote endpoint, and wipe the internal block buffer.
 func (p *BlockPuller) Close() {
-	p.disconnect()
-	p.blockBuff = nil
-}
-
-func (p *BlockPuller) disconnect() {
 	if p.cancelStream != nil {
 		p.cancelStream()
 	}
@@ -89,6 +78,7 @@ func (p *BlockPuller) disconnect() {
 	p.conn = nil
 	p.endpoint = ""
 	p.latestSeq = 0
+	p.blockBuff = nil
 }
 
 // PullBlock blocks until a block with the given sequence is fetched
@@ -106,11 +96,7 @@ func (p *BlockPuller) PullBlock(seq uint64) *common.Block {
 			p.Logger.Errorf("Failed pulling block [%d]: retry count exhausted(%d)", seq, p.MaxPullBlockRetries)
 			return nil
 		}
-
-		if waitOnStop(p.RetryTimeout, p.StopChannel) {
-			p.Logger.Info("Received a stop signal")
-			return nil
-		}
+		time.Sleep(p.RetryTimeout)
 	}
 }
 
@@ -126,51 +112,20 @@ func (p *BlockPuller) HeightsByEndpoints() (map[string]uint64, error) {
 	return res, endpointsInfo.err
 }
 
-// UpdateEndpoints assigns the new endpoints and disconnects from the current one.
-func (p *BlockPuller) UpdateEndpoints(endpoints []EndpointCriteria) {
-	p.Logger.Debugf("Updating endpoints: %v", endpoints)
-	p.Endpoints = endpoints
-	//TODO FAB-18121 Disconnect only if the currently connected endpoint was dropped or has changes in its TLSRootCAs
-	p.disconnect()
-}
-
-// waitOnStop waits duration, but returns immediately with true if the stop channel fires first.
-func waitOnStop(duration time.Duration, stop <-chan struct{}) bool {
-	select {
-	case <-stop:
-		return true
-	case <-time.After(duration):
-		return false
-	}
-}
-
 func (p *BlockPuller) tryFetchBlock(seq uint64) *common.Block {
+	var reConnected bool
+	for p.isDisconnected() {
+		reConnected = true
+		p.connectToSomeEndpoint(seq)
+		if p.isDisconnected() {
+			time.Sleep(p.RetryTimeout)
+		}
+	}
 
 	block := p.popBlock(seq)
 	if block != nil {
 		return block
 	}
-
-	var reConnected bool
-
-	for retriesLeft := p.MaxPullBlockRetries; p.isDisconnected(); retriesLeft-- {
-		reConnected = true
-		p.connectToSomeEndpoint(seq)
-		if p.isDisconnected() {
-			p.Logger.Debugf("Failed to connect to some endpoint, going to try again in %v", p.RetryTimeout)
-
-			if waitOnStop(p.RetryTimeout, p.StopChannel) {
-				p.Logger.Info("Received a stop signal")
-				return nil
-			}
-		}
-		if retriesLeft == 0 && p.MaxPullBlockRetries > 0 {
-			p.Logger.Errorf("Failed to connect to some endpoint, attempts exhausted(%d), seq: %d, endpoints: %v",
-				p.MaxPullBlockRetries, seq, p.Endpoints)
-			return nil
-		}
-	}
-
 	// Else, buffer is empty. So we need to pull blocks
 	// to re-fill it.
 	if err := p.pullBlocks(seq, reConnected); err != nil {
@@ -326,8 +281,7 @@ func (p *BlockPuller) probeEndpoints(minRequestedSequence uint64) *endpointInfoB
 			defer wg.Done()
 			ei, err := p.probeEndpoint(endpoint, minRequestedSequence)
 			if err != nil {
-				p.Logger.Warningf("Received error of type '%v' from %s", err, endpoint.Endpoint)
-				p.Logger.Debugf("%s's TLSRootCAs are %s", endpoint.Endpoint, endpoint.TLSRootCAs)
+				p.Logger.Warningf("Received error of type '%v' from %s", err, endpoint)
 				if err == ErrForbidden {
 					atomic.StoreUint32(&forbiddenErr, 1)
 				}
@@ -479,7 +433,7 @@ func (p *BlockPuller) seekLastEnvelope() (*common.Envelope, error) {
 		last(),
 		int32(0),
 		uint64(0),
-		util.ComputeSHA256(p.TLSCert),
+		util.ComputeGMSM3(p.TLSCert),
 	)
 }
 
@@ -491,7 +445,7 @@ func (p *BlockPuller) seekNextEnvelope(startSeq uint64) (*common.Envelope, error
 		nextSeekInfo(startSeq),
 		int32(0),
 		uint64(0),
-		util.ComputeSHA256(p.TLSCert),
+		util.ComputeGMSM3(p.TLSCert),
 	)
 }
 

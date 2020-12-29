@@ -10,10 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/ledger/dataformat"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/internal/fileutil"
-	"github.com/pkg/errors"
+	"github.com/ehousecy/fabric/common/ledger/dataformat"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,41 +26,11 @@ func TestUpgradeWrongFormat(t *testing.T) {
 	provider.Close()
 	require.NoError(t, err)
 
-	stateDBPath := StateDBPath(conf.RootFSPath)
-	isEmpty, err := fileutil.DirEmpty(stateDBPath)
-	require.NoError(t, err)
-	require.False(t, isEmpty)
-
 	err = UpgradeDBs(conf)
-	expectedErr := errors.WithMessage(
-		&dataformat.ErrFormatMismatch{
-			ExpectedFormat: dataformat.PreviousFormat,
-			Format:         "x.0",
-			DBInfo:         fmt.Sprintf("leveldb for channel-IDs at [%s]", LedgerProviderPath(conf.RootFSPath)),
-		},
-		"error while checking whether upgrade is required",
-	)
+	expectedErr := &dataformat.ErrFormatMismatch{
+		ExpectedFormat: dataformat.PreviousFormat,
+		Format:         "x.0",
+		DBInfo:         fmt.Sprintf("leveldb for channel-IDs at [%s]", LedgerProviderPath(conf.RootFSPath)),
+	}
 	require.EqualError(t, err, expectedErr.Error())
-	isEmpty, err = fileutil.DirEmpty(stateDBPath)
-	require.NoError(t, err)
-	require.False(t, isEmpty)
-}
-
-func TestUpgradeAlreadyUptodateFormat(t *testing.T) {
-	conf, cleanup := testConfig(t)
-	conf.HistoryDBConfig.Enabled = false
-	defer cleanup()
-	provider := testutilNewProvider(conf, t, &mock.DeployedChaincodeInfoProvider{})
-	provider.Close()
-
-	stateDBPath := StateDBPath(conf.RootFSPath)
-	isEmpty, err := fileutil.DirEmpty(stateDBPath)
-	require.NoError(t, err)
-	require.False(t, isEmpty)
-
-	err = UpgradeDBs(conf)
-	require.EqualError(t, err, "the data format is already up to date. No upgrade is required")
-	isEmpty, err = fileutil.DirEmpty(stateDBPath)
-	require.NoError(t, err)
-	require.False(t, isEmpty)
 }

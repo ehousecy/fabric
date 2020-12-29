@@ -11,9 +11,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/ledger/dataformat"
+	"github.com/ehousecy/fabric/common/ledger/dataformat"
 
-	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -187,18 +188,18 @@ func TestBatchedUpdates(t *testing.T) {
 
 	for _, db := range dbs {
 		val1, _ := db.Get([]byte("key1"))
-		require.Equal(t, "value1", string(val1))
+		assert.Equal(t, "value1", string(val1))
 
 		val2, err2 := db.Get([]byte("key2"))
-		require.NoError(t, err2, "")
-		require.Nil(t, val2)
+		assert.NoError(t, err2, "")
+		assert.Nil(t, val2)
 
 		val3, _ := db.Get([]byte("key3"))
-		require.Equal(t, "value3", string(val3))
+		assert.Equal(t, "value3", string(val3))
 	}
 }
 
-func TestDrop(t *testing.T) {
+func TestDeleteAll(t *testing.T) {
 	env := newTestProviderEnv(t, testDBPath)
 	defer env.cleanup()
 	p := env.provider
@@ -206,18 +207,15 @@ func TestDrop(t *testing.T) {
 	db1 := p.GetDBHandle("db1")
 	db2 := p.GetDBHandle("db2")
 	db3 := p.GetDBHandle("db3")
-
-	require.Contains(t, p.dbHandles, "db1")
-	require.Contains(t, p.dbHandles, "db2")
-	require.Contains(t, p.dbHandles, "db3")
-
+	db4 := p.GetDBHandle("db4")
 	for i := 0; i < 20; i++ {
 		db1.Put([]byte(createTestKey(i)), []byte(createTestValue("db1", i)), false)
 		db2.Put([]byte(createTestKey(i)), []byte(createTestValue("db2", i)), false)
+		db3.Put([]byte(createTestKey(i)), []byte(createTestValue("db3", i)), false)
 	}
-	// db3 is used to test remove when multiple batches are needed (each long key has 125 bytes)
+	// db4 is used to test remove when multiple batches are needed (each long key has 125 bytes)
 	for i := 0; i < 10000; i++ {
-		db3.Put([]byte(createTestLongKey(i)), []byte(createTestValue("db3", i)), false)
+		db4.Put([]byte(createTestLongKey(i)), []byte(createTestValue("db4", i)), false)
 	}
 
 	expectedSetup := []struct {
@@ -237,8 +235,13 @@ func TestDrop(t *testing.T) {
 		},
 		{
 			db:             db3,
+			expectedKeys:   createTestKeys(0, 19),
+			expectedValues: createTestValues("db3", 0, 19),
+		},
+		{
+			db:             db4,
 			expectedKeys:   createTestLongKeys(0, 9999),
-			expectedValues: createTestValues("db3", 0, 9999),
+			expectedValues: createTestValues("db4", 0, 9999),
 		},
 	}
 
@@ -249,12 +252,8 @@ func TestDrop(t *testing.T) {
 		itr.Release()
 	}
 
-	require.NoError(t, p.Drop("db1"))
-	require.NoError(t, p.Drop("db3"))
-
-	require.NotContains(t, p.dbHandles, "db1")
-	require.NotContains(t, p.dbHandles, "db3")
-	require.Contains(t, p.dbHandles, "db2")
+	require.NoError(t, db1.DeleteAll())
+	require.NoError(t, db4.DeleteAll())
 
 	expectedResults := []struct {
 		db             *DBHandle
@@ -273,6 +272,11 @@ func TestDrop(t *testing.T) {
 		},
 		{
 			db:             db3,
+			expectedKeys:   createTestKeys(0, 19),
+			expectedValues: createTestValues("db3", 0, 19),
+		},
+		{
+			db:             db4,
 			expectedKeys:   nil,
 			expectedValues: nil,
 		},
@@ -287,7 +291,7 @@ func TestDrop(t *testing.T) {
 
 	// negative test
 	p.Close()
-	require.EqualError(t, db2.deleteAll(), "internal leveldb error while obtaining db iterator: leveldb: closed")
+	require.EqualError(t, db2.DeleteAll(), "internal leveldb error while obtaining db iterator: leveldb: closed")
 }
 
 func TestFormatCheck(t *testing.T) {
@@ -368,93 +372,20 @@ func TestClose(t *testing.T) {
 	require.Equal(t, map[string]*DBHandle{}, p.dbHandles)
 }
 
-func TestIsEmpty(t *testing.T) {
-	var env *testDBProviderEnv
-	var db1, db2 *DBHandle
-
-	setup := func() {
-		env = newTestProviderEnv(t, testDBPath)
-		p := env.provider
-		db1 = p.GetDBHandle("db1")
-		db2 = p.GetDBHandle("db2")
-	}
-
-	cleanup := func() {
-		env.cleanup()
-	}
-
-	t.Run("both the dbs are empty", func(t *testing.T) {
-		setup()
-		defer cleanup()
-
-		empty, err := db1.IsEmpty()
-		require.NoError(t, err)
-		require.True(t, empty)
-
-		empty, err = db2.IsEmpty()
-		require.NoError(t, err)
-		require.True(t, empty)
-	})
-
-	t.Run("only one db is empty", func(t *testing.T) {
-		setup()
-		defer cleanup()
-
-		db1.Put([]byte("key"), []byte("value"), false)
-		empty, err := db1.IsEmpty()
-		require.NoError(t, err)
-		require.False(t, empty)
-
-		empty, err = db2.IsEmpty()
-		require.NoError(t, err)
-		require.True(t, empty)
-	})
-
-	t.Run("both the dbs contain data", func(t *testing.T) {
-		setup()
-		defer cleanup()
-
-		db1.Put([]byte("key"), []byte("value"), false)
-		db2.Put([]byte("key"), []byte("value"), false)
-
-		empty, err := db1.IsEmpty()
-		require.NoError(t, err)
-		require.False(t, empty)
-
-		empty, err = db2.IsEmpty()
-		require.NoError(t, err)
-		require.False(t, empty)
-	})
-
-	t.Run("iter error", func(t *testing.T) {
-		setup()
-		defer cleanup()
-
-		env.provider.Close()
-		empty, err := db1.IsEmpty()
-		require.EqualError(t, err, "internal leveldb error while obtaining db iterator: leveldb: closed")
-		require.False(t, empty)
-
-		empty, err = db2.IsEmpty()
-		require.EqualError(t, err, "internal leveldb error while obtaining db iterator: leveldb: closed")
-		require.False(t, empty)
-	})
-}
-
 func testFormatCheck(t *testing.T, dataFormat, expectedFormat string, dataExists bool, expectedErr *dataformat.ErrFormatMismatch) {
-	require.NoError(t, os.RemoveAll(testDBPath))
+	assert.NoError(t, os.RemoveAll(testDBPath))
 	defer func() {
-		require.NoError(t, os.RemoveAll(testDBPath))
+		assert.NoError(t, os.RemoveAll(testDBPath))
 	}()
 
 	// setup test pre-conditions (create a db with dbformat)
 	p, err := NewProvider(&Conf{DBPath: testDBPath, ExpectedFormat: dataFormat})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	f, err := p.GetDataFormat()
-	require.NoError(t, err)
-	require.Equal(t, dataFormat, f)
+	assert.NoError(t, err)
+	assert.Equal(t, dataFormat, f)
 	if dataExists {
-		require.NoError(t, p.GetDBHandle("testdb").Put([]byte("key"), []byte("value"), true))
+		assert.NoError(t, p.GetDBHandle("testdb").Put([]byte("key"), []byte("value"), true))
 	}
 
 	// close and reopen with new conf
@@ -462,13 +393,13 @@ func testFormatCheck(t *testing.T, dataFormat, expectedFormat string, dataExists
 	p, err = NewProvider(&Conf{DBPath: testDBPath, ExpectedFormat: expectedFormat})
 	if expectedErr != nil {
 		expectedErr.DBInfo = fmt.Sprintf("leveldb at [%s]", testDBPath)
-		require.Equal(t, err, expectedErr)
+		assert.Equal(t, err, expectedErr)
 		return
 	}
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	f, err = p.GetDataFormat()
-	require.NoError(t, err)
-	require.Equal(t, expectedFormat, f)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedFormat, f)
 }
 
 func testDBBasicWriteAndReads(t *testing.T, dbNames ...string) {
@@ -486,34 +417,34 @@ func testDBBasicWriteAndReads(t *testing.T, dbNames ...string) {
 	for _, dbName := range dbNames {
 		db := p.GetDBHandle(dbName)
 		val, err := db.Get([]byte("key1"))
-		require.NoError(t, err, "")
-		require.Equal(t, []byte("value1_"+dbName), val)
+		assert.NoError(t, err, "")
+		assert.Equal(t, []byte("value1_"+dbName), val)
 
 		val, err = db.Get([]byte("key2"))
-		require.NoError(t, err, "")
-		require.Equal(t, []byte("value2_"+dbName), val)
+		assert.NoError(t, err, "")
+		assert.Equal(t, []byte("value2_"+dbName), val)
 
 		val, err = db.Get([]byte("key3"))
-		require.NoError(t, err, "")
-		require.Equal(t, []byte("value3_"+dbName), val)
+		assert.NoError(t, err, "")
+		assert.Equal(t, []byte("value3_"+dbName), val)
 	}
 
 	for _, dbName := range dbNames {
 		db := p.GetDBHandle(dbName)
-		require.NoError(t, db.Delete([]byte("key1"), false), "")
+		assert.NoError(t, db.Delete([]byte("key1"), false), "")
 		val, err := db.Get([]byte("key1"))
-		require.NoError(t, err, "")
-		require.Nil(t, val)
+		assert.NoError(t, err, "")
+		assert.Nil(t, val)
 
-		require.NoError(t, db.Delete([]byte("key2"), false), "")
+		assert.NoError(t, db.Delete([]byte("key2"), false), "")
 		val, err = db.Get([]byte("key2"))
-		require.NoError(t, err, "")
-		require.Nil(t, val)
+		assert.NoError(t, err, "")
+		assert.Nil(t, val)
 
-		require.NoError(t, db.Delete([]byte("key3"), false), "")
+		assert.NoError(t, db.Delete([]byte("key3"), false), "")
 		val, err = db.Get([]byte("key3"))
-		require.NoError(t, err, "")
-		require.Nil(t, val)
+		assert.NoError(t, err, "")
+		assert.Nil(t, val)
 	}
 }
 
@@ -524,9 +455,9 @@ func checkItrResults(t *testing.T, itr *Iterator, expectedKeys []string, expecte
 		actualKeys = append(actualKeys, string(itr.Key()))
 		actualValues = append(actualValues, string(itr.Value()))
 	}
-	require.Equal(t, expectedKeys, actualKeys)
-	require.Equal(t, expectedValues, actualValues)
-	require.Equal(t, false, itr.Next())
+	assert.Equal(t, expectedKeys, actualKeys)
+	assert.Equal(t, expectedValues, actualValues)
+	assert.Equal(t, false, itr.Next())
 }
 
 func createTestKey(i int) string {

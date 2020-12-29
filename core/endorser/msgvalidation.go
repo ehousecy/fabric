@@ -7,15 +7,15 @@ SPDX-License-Identifier: Apache-2.0
 package endorser
 
 import (
-	"crypto/sha256"
+	"github.com/tjfoc/gmsm/sm3"
 
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/msp"
-	"github.com/hyperledger/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -105,7 +105,7 @@ func UnpackProposal(signedProp *pb.SignedProposal) (*UnpackedProposal, error) {
 	// 2) The serialized Signature Header object
 	// 3) The hash of the part of the chaincode proposal payload that will go to the tx
 	// (ie, the parts without the transient data)
-	propHash := sha256.New()
+	propHash := sm3.New()
 	propHash.Write(hdr.ChannelHeader)
 	propHash.Write(hdr.SignatureHeader)
 	propHash.Write(ppBytes)
@@ -191,7 +191,6 @@ func (up *UnpackedProposal) Validate(idDeserializer msp.IdentityDeserializer) er
 	logger = logger.With("mspID", creator.GetMSPIdentifier())
 
 	logger.Debug("creator is valid")
-
 	// validate the signature
 	err = creator.Verify(up.SignedProposal.ProposalBytes, up.SignedProposal.Signature)
 	if err != nil {

@@ -7,12 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package stateleveldb
 
 import (
-	"errors"
 	"testing"
 
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/commontests"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb/commontests"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,14 +66,14 @@ func TestQueryOnLevelDB(t *testing.T) {
 	defer env.Cleanup()
 	db, err := env.DBProvider.GetDBHandle("testquery", nil)
 	require.NoError(t, err)
-	require.NoError(t, db.Open())
+	db.Open()
 	defer db.Close()
 	batch := statedb.NewUpdateBatch()
 	jsonValue1 := `{"asset_name": "marble1","color": "blue","size": 1,"owner": "tom"}`
 	batch.Put("ns1", "key1", []byte(jsonValue1), version.NewHeight(1, 1))
 
 	savePoint := version.NewHeight(2, 22)
-	require.NoError(t, db.ApplyUpdates(batch, savePoint))
+	db.ApplyUpdates(batch, savePoint)
 
 	// query for owner=jerry, use namespace "ns1"
 	// As queries are not supported in levelDB, call to ExecuteQuery()
@@ -103,8 +102,9 @@ func TestUtilityFunctions(t *testing.T) {
 	db, err := env.DBProvider.GetDBHandle("testutilityfunctions", nil)
 	require.NoError(t, err)
 
-	require.True(t, env.DBProvider.BytesKeySupported())
-	require.True(t, db.BytesKeySupported())
+	// BytesKeySupported should be true for goleveldb
+	byteKeySupported := db.BytesKeySupported()
+	require.True(t, byteKeySupported)
 
 	// ValidateKeyValue should return nil for a valid key and value
 	require.NoError(t, db.ValidateKeyValue("testKey", []byte("testValue")), "leveldb should accept all key-values")
@@ -134,14 +134,16 @@ func TestApplyUpdatesWithNilHeight(t *testing.T) {
 	commontests.TestApplyUpdatesWithNilHeight(t, env.DBProvider)
 }
 
-func TestDataExportImport(t *testing.T) {
-	// smaller batch size for testing to cover the boundary case of writing the final batch
-	maxDataImportBatchSize = 10
+func TestFullScanIterator(t *testing.T) {
 	env := NewTestVDBEnv(t)
 	defer env.Cleanup()
-	commontests.TestDataExportImport(
+	commontests.TestFullScanIterator(
 		t,
 		env.DBProvider,
+		byte(1),
+		func(dbVal []byte) (*statedb.VersionedValue, error) {
+			return decodeValue(dbVal)
+		},
 	)
 }
 
@@ -172,7 +174,7 @@ func TestFullScanIteratorErrorPropagation(t *testing.T) {
 
 	// error from function GetFullScanIterator
 	vdbProvider.Close()
-	_, err := vdb.GetFullScanIterator(
+	_, _, err := vdb.GetFullScanIterator(
 		func(string) bool {
 			return false
 		},
@@ -181,100 +183,13 @@ func TestFullScanIteratorErrorPropagation(t *testing.T) {
 
 	// error from function Next
 	reInitEnv()
-	itr, err := vdb.GetFullScanIterator(
+	itr, _, err := vdb.GetFullScanIterator(
 		func(string) bool {
 			return false
 		},
 	)
 	require.NoError(t, err)
 	itr.Close()
-	_, err = itr.Next()
+	_, _, err = itr.Next()
 	require.Contains(t, err.Error(), "internal leveldb error while retrieving data from db iterator:")
-}
-
-func TestImportStateErrorPropagation(t *testing.T) {
-	var env *TestVDBEnv
-	var cleanup func()
-	var vdbProvider *VersionedDBProvider
-
-	initEnv := func() {
-		env = NewTestVDBEnv(t)
-		vdbProvider = env.DBProvider
-		cleanup = func() {
-			env.Cleanup()
-		}
-	}
-
-	t.Run("error-reading-from-source", func(t *testing.T) {
-		initEnv()
-		defer cleanup()
-
-		err := vdbProvider.ImportFromSnapshot(
-			"test-db",
-			version.NewHeight(2, 2),
-			&dummyFullScanIter{
-				err: errors.New("error while reading from source"),
-			},
-		)
-
-		require.EqualError(t, err, "error while reading from source")
-	})
-
-	t.Run("error-writing-to-db", func(t *testing.T) {
-		initEnv()
-		defer cleanup()
-
-		vdbProvider.Close()
-		err := vdbProvider.ImportFromSnapshot("test-db", version.NewHeight(2, 2),
-			&dummyFullScanIter{
-				kv: &statedb.VersionedKV{
-					CompositeKey: &statedb.CompositeKey{
-						Namespace: "ns",
-						Key:       "key",
-					},
-					VersionedValue: &statedb.VersionedValue{
-						Value:   []byte("value"),
-						Version: version.NewHeight(1, 1),
-					},
-				},
-			},
-		)
-		require.Contains(t, err.Error(), "error writing batch to leveldb")
-	})
-}
-
-func TestDrop(t *testing.T) {
-	env := NewTestVDBEnv(t)
-	defer env.Cleanup()
-
-	checkDBsAfterDropFunc := func(channelName string) {
-		empty, err := env.DBProvider.dbProvider.GetDBHandle(channelName).IsEmpty()
-		require.NoError(t, err)
-		require.True(t, empty)
-	}
-
-	commontests.TestDrop(t, env.DBProvider, checkDBsAfterDropFunc)
-}
-
-func TestDropErrorPath(t *testing.T) {
-	env := NewTestVDBEnv(t)
-	defer env.Cleanup()
-
-	_, err := env.DBProvider.GetDBHandle("testdroperror", nil)
-	require.NoError(t, err)
-
-	env.DBProvider.Close()
-	require.EqualError(t, env.DBProvider.Drop("testdroperror"), "internal leveldb error while obtaining db iterator: leveldb: closed")
-}
-
-type dummyFullScanIter struct {
-	err error
-	kv  *statedb.VersionedKV
-}
-
-func (d *dummyFullScanIter) Next() (*statedb.VersionedKV, error) {
-	return d.kv, d.err
-}
-
-func (d *dummyFullScanIter) Close() {
 }

@@ -9,15 +9,15 @@ package chaincode
 import (
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInstantiateCmd(t *testing.T) {
 	mockCF, err := getMockChaincodeCmdFactory()
-	require.NoError(t, err, "Error getting mock chaincode command factory")
+	assert.NoError(t, err, "Error getting mock chaincode command factory")
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// basic function tests
 	var tests = []struct {
@@ -83,8 +83,8 @@ func TestInstantiateCmd(t *testing.T) {
 
 func checkError(t *testing.T, err error, expectedError bool, msg string) {
 	if expectedError {
-		require.Error(t, err, msg)
+		assert.Error(t, err, msg)
 	} else {
-		require.NoError(t, err, msg)
+		assert.NoError(t, err, msg)
 	}
 }

@@ -14,15 +14,15 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/gossip"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/cmd/common"
-	. "github.com/hyperledger/fabric/discovery/client"
-	discovery "github.com/hyperledger/fabric/discovery/cmd"
-	"github.com/hyperledger/fabric/discovery/cmd/mocks"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/cmd/common"
+	. "github.com/ehousecy/fabric/discovery/client"
+	discovery "github.com/ehousecy/fabric/discovery/cmd"
+	"github.com/ehousecy/fabric/discovery/cmd/mocks"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPeerCmd(t *testing.T) {
@@ -34,14 +34,14 @@ func TestPeerCmd(t *testing.T) {
 	t.Run("no server supplied", func(t *testing.T) {
 		cmd.SetServer(nil)
 		err := cmd.Execute(common.Config{})
-		require.Equal(t, err.Error(), "no server specified")
+		assert.Equal(t, err.Error(), "no server specified")
 	})
 
 	t.Run("Server return error", func(t *testing.T) {
 		cmd.SetServer(&server)
 		stub.On("Send", server, mock.Anything, mock.Anything).Return(nil, errors.New("deadline exceeded")).Once()
 		err := cmd.Execute(common.Config{})
-		require.Contains(t, err.Error(), "deadline exceeded")
+		assert.Contains(t, err.Error(), "deadline exceeded")
 	})
 
 	t.Run("Channel(less) peer query", func(t *testing.T) {
@@ -52,13 +52,13 @@ func TestPeerCmd(t *testing.T) {
 		var emptyChannel string
 		parser.On("ParseResponse", emptyChannel, mock.Anything).Return(nil)
 		err := cmd.Execute(common.Config{})
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		channel := "mychannel"
 		cmd.SetChannel(&channel)
 		parser.On("ParseResponse", channel, mock.Anything).Return(nil)
 		err = cmd.Execute(common.Config{})
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	})
 }
 
@@ -100,8 +100,8 @@ func TestParsePeers(t *testing.T) {
 	for channel, expected := range channel2expected {
 		buff.Reset()
 		err := parser.ParseResponse(channel, res)
-		require.NoError(t, err)
-		require.Equal(t, fmt.Sprintf("%s\n", expected), buff.String())
+		assert.NoError(t, err)
+		assert.Equal(t, fmt.Sprintf("%s\n", expected), buff.String())
 	}
 }
 

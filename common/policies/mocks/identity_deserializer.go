@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	mspa "github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/msp"
 )
 
 type IdentityDeserializer struct {

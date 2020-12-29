@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package chaincode
 
 import (
-	"github.com/hyperledger/fabric/core/container/ccintf"
+	"github.com/ehousecy/fabric/core/container/ccintf"
 )
 
 // Helpers to access unexported state.

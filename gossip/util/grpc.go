@@ -7,19 +7,19 @@ SPDX-License-Identifier: Apache-2.0
 package util
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
+	tls "github.com/tjfoc/gmtls"
+	credentials "github.com/tjfoc/gmtls/gmcredentials"
 	"net"
 	"strconv"
 	"time"
 
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // CA that generates TLS key-pairs
@@ -58,7 +58,7 @@ func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLS
 	tlsConf := &tls.Config{
 		Certificates: []tls.Certificate{tlsClientCert},
 		ClientAuth:   tls.RequestClientCert,
-		RootCAs:      x509.NewCertPool(),
+		RootCAs:      sm2.NewCertPool(),
 	}
 
 	tlsConf.RootCAs.AppendCertsFromPEM(ca.CertBytes())
@@ -79,7 +79,8 @@ func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLS
 		SecOpts: comm.SecureOptions{
 			Key:         serverKeyPair.Key,
 			Certificate: serverKeyPair.Cert,
-			UseTLS:      true,
+			//TODO useTLS
+			UseTLS: false,
 		},
 	}
 	gRPCServer, err = comm.NewGRPCServer("127.0.0.1:", srvConfig)

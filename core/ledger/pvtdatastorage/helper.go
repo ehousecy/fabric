@@ -10,13 +10,13 @@ import (
 	"math"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy"
 	"github.com/willf/bitset"
 )
 
 func prepareStoreEntries(blockNum uint64, pvtData []*ledger.TxPvtData, btlPolicy pvtdatapolicy.BTLPolicy,
-	missingPvtData ledger.TxMissingPvtData) (*storeEntries, error) {
+	missingPvtData ledger.TxMissingPvtDataMap) (*storeEntries, error) {
 	dataEntries := prepareDataEntries(blockNum, pvtData)
 
 	elgMissingDataEntries, inelgMissingDataEntries := prepareMissingDataEntries(blockNum, missingPvtData)
@@ -52,7 +52,7 @@ func prepareDataEntries(blockNum uint64, pvtData []*ledger.TxPvtData) []*dataEnt
 
 func prepareMissingDataEntries(
 	committingBlk uint64,
-	missingPvtData ledger.TxMissingPvtData,
+	missingPvtData ledger.TxMissingPvtDataMap,
 ) (map[missingDataKey]*bitset.BitSet, map[missingDataKey]*bitset.BitSet) {
 	elgMissingDataEntries := make(map[missingDataKey]*bitset.BitSet)
 	inelgMissingDataEntries := make(map[missingDataKey]*bitset.BitSet)
@@ -159,13 +159,13 @@ func getOrCreateExpiryData(mapByExpiringBlk map[uint64]*ExpiryData, expiringBlk 
 	return expiryData
 }
 
-func deriveKeys(expiryEntry *expiryEntry) ([]*dataKey, []*missingDataKey, []*bootKVHashesKey) {
+// deriveKeys constructs dataKeys and missingDataKey from an expiryEntry
+func deriveKeys(expiryEntry *expiryEntry) ([]*dataKey, []*missingDataKey) {
 	var dataKeys []*dataKey
 	var missingDataKeys []*missingDataKey
-	var bootKVHashesKeys []*bootKVHashesKey
 
 	for ns, colls := range expiryEntry.value.Map {
-		for coll, txNums := range colls.PresentData {
+		for coll, txNums := range colls.Map {
 			for _, txNum := range txNums.List {
 				dataKeys = append(dataKeys,
 					&dataKey{
@@ -179,7 +179,7 @@ func deriveKeys(expiryEntry *expiryEntry) ([]*dataKey, []*missingDataKey, []*boo
 			}
 		}
 
-		for coll := range colls.MissingData {
+		for coll := range colls.MissingDataMap {
 			missingDataKeys = append(missingDataKeys,
 				&missingDataKey{
 					nsCollBlk: nsCollBlk{
@@ -189,22 +189,9 @@ func deriveKeys(expiryEntry *expiryEntry) ([]*dataKey, []*missingDataKey, []*boo
 					},
 				})
 		}
-
-		for coll, txNums := range colls.BootKVHashes {
-			for _, txNum := range txNums.List {
-				bootKVHashesKeys = append(bootKVHashesKeys,
-					&bootKVHashesKey{
-						blkNum: expiryEntry.key.committingBlk,
-						txNum:  txNum,
-						ns:     ns,
-						coll:   coll,
-					},
-				)
-			}
-		}
 	}
 
-	return dataKeys, missingDataKeys, bootKVHashesKeys
+	return dataKeys, missingDataKeys
 }
 
 func passesFilter(dataKey *dataKey, filter ledger.PvtNsCollFilter) bool {

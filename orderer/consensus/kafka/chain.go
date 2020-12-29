@@ -17,10 +17,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 

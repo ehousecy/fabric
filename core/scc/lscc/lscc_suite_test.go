@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/core/common/sysccprovider"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/scc/lscc"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/core/common/sysccprovider"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/scc/lscc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

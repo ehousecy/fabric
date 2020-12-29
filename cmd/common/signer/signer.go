@@ -7,20 +7,18 @@ SPDX-License-Identifier: Apache-2.0
 package signer
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
+	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"math/big"
-	"strings"
 
+	"github.com/ehousecy/fabric/bccsp/utils"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/bccsp/utils"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +35,7 @@ type Config struct {
 // initialize an MSP without a CA cert that signs the signing identity,
 // this will do for now.
 type Signer struct {
-	key     *ecdsa.PrivateKey
+	key     *sm2.PrivateKey
 	Creator []byte
 }
 
@@ -66,9 +64,6 @@ func serializeIdentity(clientCert string, mspID string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if err := validateEnrollmentCertificate(b); err != nil {
-		return nil, err
-	}
 	sId := &msp.SerializedIdentity{
 		Mspid:   mspID,
 		IdBytes: b,
@@ -76,28 +71,12 @@ func serializeIdentity(clientCert string, mspID string) ([]byte, error) {
 	return protoutil.MarshalOrPanic(sId), nil
 }
 
-func validateEnrollmentCertificate(b []byte) error {
-	bl, _ := pem.Decode(b)
-	if bl == nil {
-		return errors.Errorf("enrollment certificate isn't a valid PEM block")
-	}
-
-	if bl.Type != "CERTIFICATE" {
-		return errors.Errorf("enrollment certificate should be a certificate, got a %s instead", strings.ToLower(bl.Type))
-	}
-
-	if _, err := x509.ParseCertificate(bl.Bytes); err != nil {
-		return errors.Errorf("enrollment certificate is not a valid x509 certificate: %v", err)
-	}
-	return nil
-}
-
 func (si *Signer) Sign(msg []byte) ([]byte, error) {
-	digest := util.ComputeSHA256(msg)
-	return signECDSA(si.key, digest)
+	digest := util.ComputeGMSM3(msg)
+	return signGMSM2(si.key, digest)
 }
 
-func loadPrivateKey(file string) (*ecdsa.PrivateKey, error) {
+func loadPrivateKey(file string) (*sm2.PrivateKey, error) {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -106,33 +85,46 @@ func loadPrivateKey(file string) (*ecdsa.PrivateKey, error) {
 	if bl == nil {
 		return nil, errors.Errorf("failed to decode PEM block from %s", file)
 	}
-	key, err := parsePrivateKey(bl.Bytes)
+	key, err := sm2.ParsePKCS8UnecryptedPrivateKey(bl.Bytes)
 	if err != nil {
 		return nil, err
 	}
-	return key.(*ecdsa.PrivateKey), nil
+	return key, nil
 }
 
+/*
 // Based on crypto/tls/tls.go but modified for Fabric:
 func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 	// OpenSSL 1.0.0 generates PKCS#8 keys.
-	if key, err := x509.ParsePKCS8PrivateKey(der); err == nil {
-		switch key := key.(type) {
-		// Fabric only supports ECDSA at the moment.
-		case *ecdsa.PrivateKey:
+	if key, err := sm2.ParsePKCS8UnecryptedPrivateKey(der); err == nil {
+			switch key := key.(type) {
+			// Fabric only supports ECDSA at the moment.
+			case *ecdsa.PrivateKey:
+				return key, nil
+			default:
+		return nil, errors.Errorf("found unknown private key type (%T) in PKCS#8 wrapping", key)
+			}
+			}
+
+			// OpenSSL ecparam generates SEC1 EC private keys for ECDSA.
+			key, err := sm2.P(der)
+			if err != nil {
+				return nil, errors.Errorf("failed to parse private key: %v", err)
+			}
 			return key, nil
-		default:
-			return nil, errors.Errorf("found unknown private key type (%T) in PKCS#8 wrapping", key)
-		}
-	}
+}*/
 
-	// OpenSSL ecparam generates SEC1 EC private keys for ECDSA.
-	key, err := x509.ParseECPrivateKey(der)
+func signGMSM2(k *sm2.PrivateKey, digest []byte) (signature []byte, err error) {
+	r, s, err := sm2.Sign(k, digest)
 	if err != nil {
-		return nil, errors.Errorf("failed to parse private key: %v", err)
+		return nil, err
+	}
+	//s, err = utils.ToLowS(&k.PublicKey, s)
+	if err != nil {
+		return nil, err
 	}
 
-	return key, nil
+	return marshalGMSM2Signature(r, s)
 }
 
 func signECDSA(k *ecdsa.PrivateKey, digest []byte) (signature []byte, err error) {
@@ -150,6 +142,10 @@ func signECDSA(k *ecdsa.PrivateKey, digest []byte) (signature []byte, err error)
 }
 
 func marshalECDSASignature(r, s *big.Int) ([]byte, error) {
+	return asn1.Marshal(ECDSASignature{r, s})
+}
+
+func marshalGMSM2Signature(r, s *big.Int) ([]byte, error) {
 	return asn1.Marshal(ECDSASignature{r, s})
 }
 

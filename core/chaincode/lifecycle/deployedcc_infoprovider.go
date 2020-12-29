@@ -9,18 +9,18 @@ package lifecycle
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/chaincode/implicitcollection"
-	validationState "github.com/hyperledger/fabric/core/handlers/validation/api/state"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/peer"
-	"github.com/hyperledger/fabric/gossip/privdata"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/common/util"
+	validationState "github.com/ehousecy/fabric/core/handlers/validation/api/state"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/peer"
+	"github.com/ehousecy/fabric/gossip/privdata"
+	"github.com/ehousecy/fabric/protoutil"
 
 	"github.com/pkg/errors"
 )
@@ -141,6 +141,8 @@ func (vc *ValidatorCommitter) AllChaincodesInfo(channelName string, sqe ledger.S
 	return result, nil
 }
 
+var ImplicitCollectionMatcher = regexp.MustCompile("^" + ImplicitCollectionNameForOrg("(.+)") + "$")
+
 // AllCollectionsConfigPkg implements function in interface ledger.DeployedChaincodeInfoProvider
 // this implementation returns a combined collection config pkg that contains both explicit and implicit collections
 func (vc *ValidatorCommitter) AllCollectionsConfigPkg(channelName, chaincodeName string, qe ledger.SimpleQueryExecutor) (*pb.CollectionConfigPackage, error) {
@@ -188,9 +190,9 @@ func (vc *ValidatorCommitter) CollectionInfo(channelName, chaincodeName, collect
 		return vc.LegacyDeployedCCInfoProvider.CollectionInfo(channelName, chaincodeName, collectionName, qe)
 	}
 
-	isImplicitCollection, mspID := implicitcollection.MspIDIfImplicitCollection(collectionName)
-	if isImplicitCollection {
-		return vc.GenerateImplicitCollectionForOrg(mspID), nil
+	matches := ImplicitCollectionMatcher.FindStringSubmatch(collectionName)
+	if len(matches) == 2 {
+		return vc.GenerateImplicitCollectionForOrg(matches[1]), nil
 	}
 
 	if definedChaincode.Collections != nil {
@@ -254,7 +256,7 @@ func (vc *ValidatorCommitter) GenerateImplicitCollectionForOrg(mspid string) *pb
 		maxPeerCount = vc.PrivdataConfig.ImplicitCollDisseminationPolicy.MaxPeerCount
 	}
 	return &pb.StaticCollectionConfig{
-		Name: implicitcollection.NameForOrg(mspid),
+		Name: ImplicitCollectionNameForOrg(mspid),
 		MemberOrgsPolicy: &pb.CollectionPolicyConfig{
 			Payload: &pb.CollectionPolicyConfig_SignaturePolicy{
 				SignaturePolicy: policydsl.SignedByMspMember(mspid),
@@ -263,6 +265,14 @@ func (vc *ValidatorCommitter) GenerateImplicitCollectionForOrg(mspid string) *pb
 		RequiredPeerCount: int32(requiredPeerCount),
 		MaximumPeerCount:  int32(maxPeerCount),
 	}
+}
+
+func ImplicitCollectionNameForOrg(mspid string) string {
+	return fmt.Sprintf("_implicit_org_%s", mspid)
+}
+
+func OrgFromImplicitCollectionName(name string) string {
+	return strings.TrimPrefix(name, "_implicit_org_")
 }
 
 func (vc *ValidatorCommitter) ImplicitCollectionEndorsementPolicyAsBytes(channelID, orgMSPID string) (policy []byte, unexpectedErr, validationErr error) {
@@ -358,9 +368,9 @@ func (vc *ValidatorCommitter) CollectionValidationInfo(channelID, chaincodeName,
 		return nil, nil, nil
 	}
 
-	isImplicitCollection, mspID := implicitcollection.MspIDIfImplicitCollection(collectionName)
-	if isImplicitCollection {
-		return vc.ImplicitCollectionEndorsementPolicyAsBytes(channelID, mspID)
+	matches := ImplicitCollectionMatcher.FindStringSubmatch(collectionName)
+	if len(matches) == 2 {
+		return vc.ImplicitCollectionEndorsementPolicyAsBytes(channelID, matches[1])
 	}
 
 	if definedChaincode.Collections != nil {

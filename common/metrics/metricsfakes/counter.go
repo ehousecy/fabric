@@ -4,7 +4,7 @@ package metricsfakes
 import (
 	"sync"
 
-	"github.com/hyperledger/fabric/common/metrics"
+	"github.com/ehousecy/fabric/common/metrics"
 )
 
 type Counter struct {

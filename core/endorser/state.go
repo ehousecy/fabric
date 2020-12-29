@@ -8,9 +8,9 @@ package endorser
 
 import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
-	endorsement "github.com/hyperledger/fabric/core/handlers/endorsement/api/state"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/transientstore"
+	endorsement "github.com/ehousecy/fabric/core/handlers/endorsement/api/state"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/transientstore"
 	"github.com/pkg/errors"
 )
 

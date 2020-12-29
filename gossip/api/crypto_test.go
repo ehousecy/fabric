@@ -12,14 +12,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPeerIdentityTypeString(t *testing.T) {
 	certBytes, err := ioutil.ReadFile(filepath.Join("testdata", "peer.pem"))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	for _, testCase := range []struct {
 		description string
@@ -60,7 +60,7 @@ func TestPeerIdentityTypeString(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.description, func(t *testing.T) {
-			require.Equal(t, testCase.identity.String(), testCase.expectedOut)
+			assert.Equal(t, testCase.identity.String(), testCase.expectedOut)
 		})
 	}
 

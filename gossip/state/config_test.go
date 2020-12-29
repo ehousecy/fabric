@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/gossip/state"
+	"github.com/ehousecy/fabric/gossip/state"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGlobalConfig(t *testing.T) {
@@ -37,7 +38,7 @@ func TestGlobalConfig(t *testing.T) {
 		StateEnabled:         true,
 	}
 
-	require.Equal(t, expectedConfig, coreConfig)
+	assert.Equal(t, expectedConfig, coreConfig)
 }
 
 func TestGlobalConfigDefaults(t *testing.T) {
@@ -55,5 +56,5 @@ func TestGlobalConfigDefaults(t *testing.T) {
 		StateEnabled:         false,
 	}
 
-	require.Equal(t, expectedConfig, coreConfig)
+	assert.Equal(t, expectedConfig, coreConfig)
 }

@@ -17,8 +17,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/protoutil"
 	"go.etcd.io/etcd/raft"
 	"go.etcd.io/etcd/raft/raftpb"
 )

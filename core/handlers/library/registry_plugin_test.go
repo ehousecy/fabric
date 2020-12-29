@@ -16,16 +16,16 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	endorsement "github.com/hyperledger/fabric/core/handlers/endorsement/api"
-	validation "github.com/hyperledger/fabric/core/handlers/validation/api"
-	"github.com/stretchr/testify/require"
+	endorsement "github.com/ehousecy/fabric/core/handlers/endorsement/api"
+	validation "github.com/ehousecy/fabric/core/handlers/validation/api"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
-	authPluginPackage      = "github.com/hyperledger/fabric/core/handlers/auth/plugin"
-	decoratorPluginPackage = "github.com/hyperledger/fabric/core/handlers/decoration/plugin"
-	endorsementTestPlugin  = "github.com/hyperledger/fabric/core/handlers/endorsement/testdata/"
-	validationTestPlugin   = "github.com/hyperledger/fabric/core/handlers/validation/testdata/"
+	authPluginPackage      = "github.com/ehousecy/fabric/core/handlers/auth/plugin"
+	decoratorPluginPackage = "github.com/ehousecy/fabric/core/handlers/decoration/plugin"
+	endorsementTestPlugin  = "github.com/ehousecy/fabric/core/handlers/endorsement/testdata/"
+	validationTestPlugin   = "github.com/ehousecy/fabric/core/handlers/validation/testdata/"
 )
 
 // raceEnabled is set to true when the race build tag is enabled.
@@ -39,14 +39,14 @@ func buildPlugin(t *testing.T, dest, pkg string) {
 	}
 	cmd.Args = append(cmd.Args, pkg)
 	output, err := cmd.CombinedOutput()
-	require.NoError(t, err, "Could not build plugin: "+string(output))
+	assert.NoError(t, err, "Could not build plugin: "+string(output))
 }
 
 func TestLoadAuthPlugin(t *testing.T) {
 	endorser := &mockEndorserServer{}
 
 	testDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err, "Could not create temp directory for plugins")
+	assert.NoError(t, err, "Could not create temp directory for plugins")
 	defer os.Remove(testDir)
 
 	pluginPath := filepath.Join(testDir, "authplugin.so")
@@ -54,11 +54,11 @@ func TestLoadAuthPlugin(t *testing.T) {
 
 	testReg := registry{}
 	testReg.loadPlugin(pluginPath, Auth)
-	require.Len(t, testReg.filters, 1, "Expected filter to be registered")
+	assert.Len(t, testReg.filters, 1, "Expected filter to be registered")
 
 	testReg.filters[0].Init(endorser)
 	testReg.filters[0].ProcessProposal(context.TODO(), nil)
-	require.True(t, endorser.invoked, "Expected filter to invoke endorser on invoke")
+	assert.True(t, endorser.invoked, "Expected filter to invoke endorser on invoke")
 }
 
 func TestLoadDecoratorPlugin(t *testing.T) {
@@ -66,7 +66,7 @@ func TestLoadDecoratorPlugin(t *testing.T) {
 	testInput := &peer.ChaincodeInput{Args: [][]byte{[]byte("test")}}
 
 	testDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err, "Could not create temp directory for plugins")
+	assert.NoError(t, err, "Could not create temp directory for plugins")
 	defer os.Remove(testDir)
 
 	pluginPath := filepath.Join(testDir, "decoratorplugin.so")
@@ -74,15 +74,15 @@ func TestLoadDecoratorPlugin(t *testing.T) {
 
 	testReg := registry{}
 	testReg.loadPlugin(pluginPath, Decoration)
-	require.Len(t, testReg.decorators, 1, "Expected decorator to be registered")
+	assert.Len(t, testReg.decorators, 1, "Expected decorator to be registered")
 
 	decoratedInput := testReg.decorators[0].Decorate(testProposal, testInput)
-	require.True(t, proto.Equal(decoratedInput, testInput), "Expected chaincode input to remain unchanged")
+	assert.True(t, proto.Equal(decoratedInput, testInput), "Expected chaincode input to remain unchanged")
 }
 
 func TestEndorsementPlugin(t *testing.T) {
 	testDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err, "Could not create temp directory for plugins")
+	assert.NoError(t, err, "Could not create temp directory for plugins")
 	defer os.Remove(testDir)
 
 	pluginPath := filepath.Join(testDir, "endorsementplugin.so")
@@ -92,18 +92,18 @@ func TestEndorsementPlugin(t *testing.T) {
 	testReg.loadPlugin(pluginPath, Endorsement, "escc")
 	mapping := testReg.Lookup(Endorsement).(map[string]endorsement.PluginFactory)
 	factory := mapping["escc"]
-	require.NotNil(t, factory)
+	assert.NotNil(t, factory)
 	instance := factory.New()
-	require.NotNil(t, instance)
-	require.NoError(t, instance.Init())
+	assert.NotNil(t, instance)
+	assert.NoError(t, instance.Init())
 	_, output, err := instance.Endorse([]byte{1, 2, 3}, nil)
-	require.NoError(t, err)
-	require.Equal(t, []byte{1, 2, 3}, output)
+	assert.NoError(t, err)
+	assert.Equal(t, []byte{1, 2, 3}, output)
 }
 
 func TestValidationPlugin(t *testing.T) {
 	testDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err, "Could not create temp directory for plugins")
+	assert.NoError(t, err, "Could not create temp directory for plugins")
 	defer os.Remove(testDir)
 
 	pluginPath := filepath.Join(testDir, "validationplugin.so")
@@ -113,12 +113,12 @@ func TestValidationPlugin(t *testing.T) {
 	testReg.loadPlugin(pluginPath, Validation, "vscc")
 	mapping := testReg.Lookup(Validation).(map[string]validation.PluginFactory)
 	factory := mapping["vscc"]
-	require.NotNil(t, factory)
+	assert.NotNil(t, factory)
 	instance := factory.New()
-	require.NotNil(t, instance)
-	require.NoError(t, instance.Init())
+	assert.NotNil(t, instance)
+	assert.NoError(t, instance.Init())
 	err = instance.Validate(nil, "", 0, 0)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestLoadPluginInvalidPath(t *testing.T) {

@@ -9,11 +9,11 @@ package history
 import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	protoutil "github.com/hyperledger/fabric/protoutil"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	protoutil "github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
@@ -94,7 +94,7 @@ func (scanner *historyScanner) Close() {
 
 // getTxIDandKeyWriteValueFromTran inspects a transaction for writes to a given key
 func getKeyModificationFromTran(tranEnvelope *common.Envelope, namespace string, key string) (commonledger.QueryResult, error) {
-	logger.Debugf("Entering getKeyModificationFromTran %s:%s", namespace, key)
+	logger.Debugf("Entering getKeyModificationFromTran()\n", namespace, key)
 
 	// extract action from the envelope
 	payload, err := protoutil.UnmarshalPayload(tranEnvelope.Payload)

@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package node
 
 import (
-	"github.com/hyperledger/fabric/core/ledger/kvledger"
-	"github.com/hyperledger/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/core/ledger/kvledger"
+	"github.com/ehousecy/fabric/internal/peer/common"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -30,10 +30,7 @@ func rollbackCmd() *cobra.Command {
 var nodeRollbackCmd = &cobra.Command{
 	Use:   "rollback",
 	Short: "Rolls back a channel.",
-	Long: "Rolls back a channel to a specified block number. When the command is executed, the peer must be offline." +
-		" When the peer starts after the rollback, it will receive blocks, which got removed during the rollback," +
-		" from an orderer or another peer to rebuild the block store and state database." +
-		" The command is not supported if the peer contains any channel that was bootstrapped from a snapshot.",
+	Long:  `Rolls back a channel to a specified block number. When the command is executed, the peer must be offline. When the peer starts after the rollback, it will receive blocks, which got removed during the rollback, from an orderer or another peer to rebuild the block store and state database.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if channelID == common.UndefinedParamValue {
 			return errors.New("Must supply channel ID")

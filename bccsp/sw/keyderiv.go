@@ -23,8 +23,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/hyperledger/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp"
 )
+
+type smPublicKeyKeyDeriver struct{}
+
+func (kd *smPublicKeyKeyDeriver) KeyDeriv(key bccsp.Key, opts bccsp.KeyDerivOpts) (bccsp.Key, error) {
+	return nil, errors.New("Not implemented")
+}
 
 type ecdsaPublicKeyKeyDeriver struct{}
 

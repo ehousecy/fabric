@@ -8,16 +8,16 @@ package multichannel
 
 import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/ledger/blockledger"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/orderer/common/blockcutter"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor"
-	"github.com/hyperledger/fabric/orderer/common/types"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/orderer/consensus/inactive"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/ledger/blockledger"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/orderer/common/blockcutter"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor"
+	"github.com/ehousecy/fabric/orderer/common/types"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -56,7 +56,7 @@ func newChainSupport(
 	// Assuming a block created with cb.NewBlock(), this should not
 	// error even if the orderer metadata is an empty byte slice
 	if err != nil {
-		return nil, errors.WithMessagef(err, "error extracting orderer metadata for channel: %s", ledgerResources.ConfigtxValidator().ChannelID())
+		return nil, errors.Wrapf(err, "error extracting orderer metadata for channel: %s", ledgerResources.ConfigtxValidator().ChannelID())
 	}
 
 	// Construct limited support needed as a parameter for additional support
@@ -86,7 +86,7 @@ func newChainSupport(
 
 	cs.Chain, err = consenter.HandleChain(cs, metadata)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "error creating consenter for channel: %s", cs.ChannelID())
+		return nil, errors.Wrapf(err, "error creating consenter for channel: %s", cs.ChannelID())
 	}
 
 	cs.MetadataValidator, ok = cs.Chain.(consensus.MetadataValidator)
@@ -96,15 +96,84 @@ func newChainSupport(
 
 	cs.StatusReporter, ok = cs.Chain.(consensus.StatusReporter)
 	if !ok { // Non-cluster types: solo, kafka
-		cs.StatusReporter = consensus.StaticStatusReporter{ConsensusRelation: types.ConsensusRelationOther, Status: types.StatusActive}
+		cs.StatusReporter = consensus.StaticStatusReporter{ClusterRelation: types.ClusterRelationNone, Status: types.StatusActive}
 	}
-
-	clusterRelation, status := cs.StatusReporter.StatusReport()
-	registrar.ReportConsensusRelationAndStatusMetrics(cs.ChannelID(), clusterRelation, status)
 
 	logger.Debugf("[channel: %s] Done creating channel support resources", cs.ChannelID())
 
 	return cs, nil
+}
+
+func newChainSupportForJoin(
+	joinBlock *cb.Block,
+	registrar *Registrar,
+	ledgerResources *ledgerResources,
+	consenters map[string]consensus.Consenter,
+	signer identity.SignerSerializer,
+	blockcutterMetrics *blockcutter.Metrics,
+	bccsp bccsp.BCCSP,
+) (*ChainSupport, error) {
+
+	if joinBlock.Header.Number == 0 {
+		err := ledgerResources.Append(joinBlock)
+		if err != nil {
+			return nil, errors.Wrap(err, "error appending join block to the ledger")
+		}
+		return newChainSupport(registrar, ledgerResources, consenters, signer, blockcutterMetrics, bccsp)
+	}
+
+	// Construct limited support needed as a parameter for additional support
+	cs := &ChainSupport{
+		ledgerResources:  ledgerResources,
+		SignerSerializer: signer,
+		cutter: blockcutter.NewReceiverImpl(
+			ledgerResources.ConfigtxValidator().ChannelID(),
+			ledgerResources,
+			blockcutterMetrics,
+		),
+		BCCSP: bccsp,
+	}
+
+	// Set up the msgprocessor
+	cs.Processor = msgprocessor.NewStandardChannel(cs, msgprocessor.CreateStandardChannelFilters(cs, registrar.config), bccsp)
+	// No BlockWriter, this will be created when the chain gets converted from follower.Chain to etcdraft.Chain
+	cs.BlockWriter = nil //TODO change embedding of BlockWriter struct to interface, and put here a NoOp implementation or one that panics if used
+
+	// Get the consenter
+	consenterType := ledgerResources.SharedConfig().ConsensusType()
+	consenter, ok := consenters[consenterType]
+	if !ok {
+		return nil, errors.Errorf("error retrieving consenter of type: %s", consenterType)
+	}
+
+	var err error
+	cs.Chain, err = consenter.JoinChain(cs, joinBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	cs.MetadataValidator, ok = cs.Chain.(consensus.MetadataValidator)
+	if !ok {
+		cs.MetadataValidator = consensus.NoOpMetadataValidator{}
+	}
+
+	cs.StatusReporter, ok = cs.Chain.(consensus.StatusReporter)
+	if !ok { // Non-cluster types: solo, kafka
+		cs.StatusReporter = consensus.StaticStatusReporter{ClusterRelation: types.ClusterRelationNone, Status: types.StatusActive}
+	}
+
+	logger.Debugf("[channel: %s] Done creating channel support resources for join", cs.ChannelID())
+
+	return cs, nil
+}
+
+// Block returns a block with the following number,
+// or nil if such a block doesn't exist.
+func (cs *ChainSupport) Block(number uint64) *cb.Block {
+	if cs.Height() <= number {
+		return nil
+	}
+	return blockledger.GetBlock(cs.Reader(), number)
 }
 
 func (cs *ChainSupport) Reader() blockledger.Reader {
@@ -144,7 +213,7 @@ func (cs *ChainSupport) ProposeConfigUpdate(configtx *cb.Envelope) (*cb.ConfigEn
 	}
 
 	if err = checkResources(bundle); err != nil {
-		return nil, errors.WithMessage(err, "config update is not compatible")
+		return nil, errors.Wrap(err, "config update is not compatible")
 	}
 
 	if err = cs.ValidateNew(bundle); err != nil {
@@ -163,9 +232,14 @@ func (cs *ChainSupport) ProposeConfigUpdate(configtx *cb.Envelope) (*cb.ConfigEn
 	}
 
 	if err = cs.ValidateConsensusMetadata(oldOrdererConfig, newOrdererConfig, false); err != nil {
-		return nil, errors.WithMessage(err, "consensus metadata update for channel config update is invalid")
+		return nil, errors.Wrap(err, "consensus metadata update for channel config update is invalid")
 	}
 	return env, nil
+}
+
+// ChannelID passes through to the underlying configtx.Validator
+func (cs *ChainSupport) ChannelID() string {
+	return cs.ConfigtxValidator().ChannelID()
 }
 
 // ConfigProto passes through to the underlying configtx.Validator
@@ -184,17 +258,29 @@ func (cs *ChainSupport) Append(block *cb.Block) error {
 	return cs.ledgerResources.ReadWriter.Append(block)
 }
 
-func newOnBoardingChainSupport(
-	ledgerResources *ledgerResources,
-	config localconfig.TopLevel,
-	bccsp bccsp.BCCSP,
-) (*ChainSupport, error) {
-	cs := &ChainSupport{ledgerResources: ledgerResources}
-	cs.Processor = msgprocessor.NewStandardChannel(cs, msgprocessor.CreateStandardChannelFilters(cs, config), bccsp)
-	cs.Chain = &inactive.Chain{Err: errors.New("system channel creation pending: server requires restart")}
-	cs.StatusReporter = consensus.StaticStatusReporter{ConsensusRelation: types.ConsensusRelationConsenter, Status: types.StatusInactive}
-
-	logger.Debugf("[channel: %s] Done creating onboarding channel support resources", cs.ChannelID())
-
-	return cs, nil
+// VerifyBlockSignature verifies a signature of a block.
+// It has an optional argument of a configuration envelope
+// which would make the block verification to use validation rules
+// based on the given configuration in the ConfigEnvelope.
+// If the config envelope passed is nil, then the validation rules used
+// are the ones that were applied at commit of previous blocks.
+func (cs *ChainSupport) VerifyBlockSignature(sd []*protoutil.SignedData, envelope *cb.ConfigEnvelope) error {
+	policyMgr := cs.PolicyManager()
+	// If the envelope passed isn't nil, we should use a different policy manager.
+	if envelope != nil {
+		bundle, err := channelconfig.NewBundle(cs.ChannelID(), envelope.Config, cs.BCCSP)
+		if err != nil {
+			return err
+		}
+		policyMgr = bundle.PolicyManager()
+	}
+	policy, exists := policyMgr.GetPolicy(policies.BlockValidation)
+	if !exists {
+		return errors.Errorf("policy %s wasn't found", policies.BlockValidation)
+	}
+	err := policy.EvaluateSignedData(sd)
+	if err != nil {
+		return errors.Wrap(err, "block verification failed")
+	}
+	return nil
 }

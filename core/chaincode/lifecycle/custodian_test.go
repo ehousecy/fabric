@@ -12,9 +12,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle/mock"
-	"github.com/hyperledger/fabric/core/container"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle/mock"
+	"github.com/ehousecy/fabric/core/container"
 )
 
 var _ = Describe("Custodian", func() {

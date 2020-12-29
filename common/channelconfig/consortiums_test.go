@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConsortiums(t *testing.T) {
 	_, err := NewConsortiumsConfig(&cb.ConfigGroup{}, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }

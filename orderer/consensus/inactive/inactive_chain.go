@@ -8,7 +8,7 @@ package inactive
 
 import (
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/orderer/common/types"
+	"github.com/ehousecy/fabric/orderer/common/types"
 )
 
 // Chain implements an inactive consenter.Chain
@@ -44,7 +44,7 @@ func (c *Chain) Halt() {
 
 }
 
-// StatusReport returns the ConsensusRelation & Status
-func (c *Chain) StatusReport() (types.ConsensusRelation, types.Status) {
-	return types.ConsensusRelationConfigTracker, types.StatusInactive
+// StatusReport returns the ClusterRelation & Status
+func (c *Chain) StatusReport() (types.ClusterRelation, types.Status) {
+	return types.ClusterRelationConfigTracker, types.StatusInactive
 }

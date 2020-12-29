@@ -18,10 +18,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/aclmgmt/resources"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/core/aclmgmt/resources"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -72,7 +72,7 @@ var _ = Describe("EndToEndACL", func() {
 		chaincode = nwo.Chaincode{
 			Name:    "mycc",
 			Version: "0.0",
-			Path:    "github.com/hyperledger/fabric/integration/chaincode/simple/cmd",
+			Path:    "github.com/ehousecy/fabric/integration/chaincode/simple/cmd",
 			Ctor:    `{"Args":["init","a","100","b","200"]}`,
 			Policy:  `OR ('Org1MSP.member','Org2MSP.member')`,
 		}
@@ -234,7 +234,6 @@ var _ = Describe("EndToEndACL", func() {
 		// cscc
 		//
 		ItEnforcesPolicy("cscc", "GetConfigBlock", "testchannel")
-		ItEnforcesPolicy("cscc", "GetChannelConfig", "testchannel")
 
 		//
 		// _lifecycle ACL policies
@@ -243,7 +242,7 @@ var _ = Describe("EndToEndACL", func() {
 		chaincode = nwo.Chaincode{
 			Name:                "mycc",
 			Version:             "0.0",
-			Path:                components.Build("github.com/hyperledger/fabric/integration/chaincode/simple/cmd"),
+			Path:                components.Build("github.com/ehousecy/fabric/integration/chaincode/simple/cmd"),
 			Lang:                "binary",
 			PackageFile:         filepath.Join(testDir, "simplecc.tar.gz"),
 			Ctor:                `{"Args":["init","a","100","b","200"]}`,
@@ -456,54 +455,6 @@ var _ = Describe("EndToEndACL", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit())
 		Expect(sess.Err).To(gbytes.Say(`\QError: query failed with status: 500 - Failed to authorize invocation due to failed ACL check: failed evaluating policy on signed data during check policy [/Channel/Application/Org1/Admins]: [signature set did not satisfy policy]\E`))
-
-		//
-		// when the ACL policy for snapshot related commands is not satisfied (e.g., non-admin user or admin in another org)
-		//
-		By("calling snapshot submitrequest as a non-permitted identity")
-		expectedMsgNonAdmin := `\Qfailed verifying that the signed data identity satisfies local MSP principal during channelless check policy with policy [Admins]: [The identity is not an admin under this MSP [Org1MSP]: The identity does not contain OU [ADMIN], MSP: [Org1MSP]]\E`
-		expectedMsgAdminWrongOrg := `\Qfailed deserializing signed data identity during channelless check policy with policy [Admins]: [expected MSP ID Org1MSP, received Org2MSP]\E`
-		submitrequestCmd := &commands.SnapshotSubmitRequest{
-			ChannelID:   "testchannel",
-			BlockNumber: "100",
-			ClientAuth:  network.ClientAuthRequired,
-			PeerAddress: network.PeerAddress(org1Peer0, nwo.ListenPort),
-		}
-		verifyCommandErr(network, org1Peer0, "User1", submitrequestCmd, expectedMsgNonAdmin)
-		verifyCommandErr(network, org2Peer0, "Admin", submitrequestCmd, expectedMsgAdminWrongOrg)
-
-		By("calling snapshot cancelrequest as a non-permitted identity")
-		cancelrequestCmd := &commands.SnapshotCancelRequest{
-			ChannelID:   "testchannel",
-			BlockNumber: "100",
-			ClientAuth:  network.ClientAuthRequired,
-			PeerAddress: network.PeerAddress(org1Peer0, nwo.ListenPort),
-		}
-		verifyCommandErr(network, org1Peer0, "User1", cancelrequestCmd, expectedMsgNonAdmin)
-		verifyCommandErr(network, org2Peer0, "Admin", cancelrequestCmd, expectedMsgAdminWrongOrg)
-
-		By("calling snapshot listpending as a non-permitted identity")
-		listpendingCmd := &commands.SnapshotListPending{
-			ChannelID:   "testchannel",
-			ClientAuth:  network.ClientAuthRequired,
-			PeerAddress: network.PeerAddress(org1Peer0, nwo.ListenPort),
-		}
-		verifyCommandErr(network, org1Peer0, "User1", listpendingCmd, expectedMsgNonAdmin)
-		verifyCommandErr(network, org2Peer0, "Admin", listpendingCmd, expectedMsgAdminWrongOrg)
-
-		By("calling joinbysnapshot as a non-permitted identity")
-		expectedMsgNonAdmin = `\QFailed verifying that proposal's creator satisfies local MSP principal during channelless check policy with policy [Admins]: [The identity is not an admin under this MSP [Org1MSP]: The identity does not contain OU [ADMIN], MSP: [Org1MSP]]\E`
-		joinbysnapshotCmd := commands.ChannelJoinBySnapshot{
-			SnapshotPath: "/tmp/dummy_dir",
-			ClientAuth:   network.ClientAuthRequired,
-		}
-		verifyCommandErr(network, org1Peer0, "User1", joinbysnapshotCmd, expectedMsgNonAdmin)
-
-		By("calling joinbysnapshotstatus as a non-permitted identity")
-		joinbysnapshotstatusCmd := commands.ChannelJoinBySnapshotStatus{
-			ClientAuth: network.ClientAuthRequired,
-		}
-		verifyCommandErr(network, org1Peer0, "User1", joinbysnapshotstatusCmd, expectedMsgNonAdmin)
 	})
 })
 
@@ -553,11 +504,4 @@ func ToCLIChaincodeArgs(args ...string) string {
 	cArgsJSON, err := json.Marshal(cArgs)
 	Expect(err).NotTo(HaveOccurred())
 	return string(cArgsJSON)
-}
-
-func verifyCommandErr(network *nwo.Network, peer *nwo.Peer, user string, cmd nwo.Command, expectedMsg string) {
-	sess, err := network.PeerUserSession(peer, user, cmd)
-	Expect(err).NotTo(HaveOccurred())
-	Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit())
-	Expect(sess.Err).To(gbytes.Say(expectedMsg))
 }

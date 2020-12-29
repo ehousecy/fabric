@@ -4,9 +4,9 @@ package mock
 import (
 	"sync"
 
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/msp"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 type CollectionPolicyChecker struct {

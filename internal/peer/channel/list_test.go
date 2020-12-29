@@ -12,9 +12,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/msp"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestListChannels(t *testing.T) {
@@ -27,7 +27,7 @@ func TestListChannels(t *testing.T) {
 	}
 
 	mockPayload, err := proto.Marshal(mockChannelResponse)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockResponse := &pb.ProposalResponse{
 		Response: &pb.Response{
@@ -38,7 +38,7 @@ func TestListChannels(t *testing.T) {
 	}
 
 	signer, err := common.GetDefaultSigner()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockCF := &ChannelCmdFactory{
 		EndorserClient:   common.GetMockEndorserClient(mockResponse, nil),
@@ -81,18 +81,18 @@ func testListChannelsEmptyCF(t *testing.T, mockCF *ChannelCmdFactory) {
 	}
 
 	err := cmd.Execute()
-	require.Error(t, err, "Error expected because GetDefaultSignerFnc returns an error")
+	assert.Error(t, err, "Error expected because GetDefaultSignerFnc returns an error")
 
 	common.GetDefaultSignerFnc = getDefaultSigner
 	common.GetEndorserClientFnc = func(string, string) (pb.EndorserClient, error) {
 		return nil, errors.New("error")
 	}
 	err = cmd.Execute()
-	require.Error(t, err, "Error expected because GetEndorserClientFnc returns an error")
+	assert.Error(t, err, "Error expected because GetEndorserClientFnc returns an error")
 
 	common.GetEndorserClientFnc = func(string, string) (pb.EndorserClient, error) {
 		return mockCF.EndorserClient, nil
 	}
 	err = cmd.Execute()
-	require.NoError(t, err, "Error occurred while executing list command")
+	assert.NoError(t, err, "Error occurred while executing list command")
 }

@@ -11,12 +11,12 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 // client helps in a transction simulation. The client keeps accumlating the results of each simulated transaction
@@ -26,12 +26,12 @@ type client struct {
 	lgr            ledger.PeerLedger
 	lgrID          string
 	simulatedTrans []*txAndPvtdata // accumulates the results of transactions simulations
-	missingPvtData ledger.TxMissingPvtData
-	assert         *require.Assertions
+	missingPvtData ledger.TxMissingPvtDataMap
+	assert         *assert.Assertions
 }
 
 func newClient(lgr ledger.PeerLedger, lgrID string, t *testing.T) *client {
-	return &client{lgr, lgrID, nil, make(ledger.TxMissingPvtData), require.New(t)}
+	return &client{lgr, lgrID, nil, make(ledger.TxMissingPvtDataMap), assert.New(t)}
 }
 
 // simulateDataTx takes a simulation logic and wraps it between
@@ -105,10 +105,6 @@ func (c *client) causeMissingPvtData(txIndex uint64) {
 	c.simulatedTrans[txIndex].Pvtws = nil
 }
 
-func (c *client) discardSimulation() {
-	c.simulatedTrans = nil
-}
-
 func (c *client) retrieveCommittedBlocksAndPvtdata(startNum, endNum uint64) []*ledger.BlockAndPvtData {
 	data := []*ledger.BlockAndPvtData{}
 	for i := startNum; i <= endNum; i++ {
@@ -141,7 +137,7 @@ func (c *client) currentCommitHash() []byte {
 type simulator struct {
 	ledger.TxSimulator
 	txid   string
-	assert *require.Assertions
+	assert *assert.Assertions
 }
 
 func (s *simulator) getState(ns, key string) string {

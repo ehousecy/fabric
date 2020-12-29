@@ -4,11 +4,11 @@ package mocks
 import (
 	"sync"
 
-	"github.com/hyperledger/fabric/discovery/support/gossip"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/discovery/support/gossip"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/protoext"
 )
 
 type Gossip struct {

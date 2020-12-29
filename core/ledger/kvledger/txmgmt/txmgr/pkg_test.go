@@ -16,17 +16,17 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
-	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
-	"github.com/hyperledger/fabric/core/ledger/util"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/bookkeeping"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy"
+	btltestutil "github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/ehousecy/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
 	"github.com/stretchr/testify/require"
 )
 
@@ -216,7 +216,7 @@ func testutilPopulateDB(
 	for _, p := range pvtdataHashes {
 		updates.HashUpdates.Put(ns, p.coll, util.ComputeStringHash(p.key), util.ComputeHash(p.value), version)
 	}
-	require.NoError(t, txMgr.db.ApplyPrivacyAwareUpdates(updates, version))
+	txMgr.db.ApplyPrivacyAwareUpdates(updates, version)
 }
 
 type testutilPvtdata struct {

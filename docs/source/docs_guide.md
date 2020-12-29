@@ -34,8 +34,8 @@ different languages and different versions of the Fabric documentation.
 
 For example:
 
-  * [Latest version of US English](https://hyperledger-fabric.readthedocs.io/en/{BRANCH_DOC}/)
-  * [Latest version of Chinese](https://hyperledger-fabric.readthedocs.io/zh_CN/{BRANCH_DOC}/)
+  * [Latest version of US English](https://hyperledger-fabric.readthedocs.io/en/latest/)
+  * [Latest version of Chinese](https://hyperledger-fabric.readthedocs.io/zh_CN/latest/)
   * [Version 2.2 of US English](https://hyperledger-fabric.readthedocs.io/en/release-2.2/)
   * [Version 1.4 of US English](https://hyperledger-fabric.readthedocs.io/en/release-1.4/)
 
@@ -193,20 +193,27 @@ your GitHub account.
 2. Install the following prerequisites; you may need to adjust depending on your
    OS:
 
-   * [Docker](https://docs.docker.com/get-docker/)
+   * [Python 3.7](https://wiki.python.org/moin/BeginnersGuide/Download)
+   * [Pipenv](https://docs.pipenv.org/en/latest/#install-pipenv-today)
 
 3. For US English:
    ```bash
+   cd $HOME/git
    git clone git@github.com:hyperledger/fabric.git
-   cd fabric
-   make docs
+   cd fabric/docs
+   pipenv install
+   pipenv shell
+   make html
    ```
 
-   For International Languages (Malayalam as an example):
+   For Malayalam (for example):
    ```bash
+   cd $HOME/git
    git clone git@github.com:hyperledger/fabric-docs-i18n.git
-   cd fabric
-   make docs-lang-ml_IN
+   cd fabric-docs-18n/docs/locale/ml_IN
+   pipenv install
+   pipenv shell
+   make -e SPHINXOPTS="-D language='ml'" html
    ```
 
    The `make` command generates documentation html files in the `build/html/`
@@ -215,7 +222,7 @@ your GitHub account.
 
 4. Now make a small change to a file, and rebuild the documentation to verify
    that your change was as expected. Every time you make a change to the
-   documentation you will of course need to rerun `make docs`.
+   documentation you will of course need to rerun `make html`.
 
 5. If you'd like, you may also run a local web server with the following
    commands (or equivalent depending on your OS):
@@ -244,7 +251,7 @@ do this.
 2. Create a project. Your username will preface the URL and you may want to
    append `-fabric` to ensure that you can distinguish between this and other
    docs that you need to create for other projects. So for example:
-   `YOURGITHUBID-fabric.readthedocs.io/en/{BRANCH_DOC}`.
+   `YOURGITHUBID-fabric.readthedocs.io/en/latest`.
 3. Click `Admin`, click `Integrations`, click `Add integration`, choose `GitHub
    incoming webhook`, then click `Add integration`.
 4. Fork the [`fabric`](https://github.com/hyperledger/fabric) repository.
@@ -292,15 +299,12 @@ can find the maintainers listed in the following `CODEOWNERS` files:
 
 Both language repositories have a GitHub webhook defined so that, once approved,
 your newly merged content in the `docs/` folder will trigger an automatic build
-and publication of the updated documentation.  
-
-**Note:** Documentation maintainers are not able to to merge documentation PRs by clicking the `Merge pull request` button. Instead, if you are a documentation maintainer and have approved the PR, simply add the label `doc-merge` to the PR and a `Mergify` bot that runs every minute will merge the PR.
-
+and publication of the updated documentation.
 
 ## Commands Reference updates
 
 Updating content in the [Commands
-Reference](https://hyperledger-fabric.readthedocs.io/en/{BRANCH_DOC}/command_ref.html)
+Reference](https://hyperledger-fabric.readthedocs.io/en/latest/command_ref.html)
 topic requires additional steps. Because the information in the Commands
 Reference topic is generated content, you cannot simply update the associated
 markdown files.

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckGossipMessageTypes(t *testing.T) {
@@ -25,7 +25,7 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsStateInfoPullRequestMsg(msg))
+	assert.True(t, protoext.IsStateInfoPullRequestMsg(msg))
 
 	// Create alive message
 	msg = &gossip.GossipMessage{
@@ -44,13 +44,13 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsAliveMsg(msg))
+	assert.True(t, protoext.IsAliveMsg(msg))
 
 	// Create gossip data message
 	msg = &gossip.GossipMessage{
 		Content: dataMessage(1, []byte{1, 2, 3, 4, 5}),
 	}
-	require.True(t, protoext.IsDataMsg(msg))
+	assert.True(t, protoext.IsDataMsg(msg))
 
 	// Create data request message
 	msg = &gossip.GossipMessage{
@@ -62,8 +62,8 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsDataReq(msg))
-	require.True(t, protoext.IsPullMsg(msg))
+	assert.True(t, protoext.IsDataReq(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
 
 	// Create data request message
 	msg = &gossip.GossipMessage{
@@ -75,8 +75,8 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsDigestMsg(msg))
-	require.True(t, protoext.IsPullMsg(msg))
+	assert.True(t, protoext.IsDigestMsg(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
 
 	// Create data update message
 	msg = &gossip.GossipMessage{
@@ -88,8 +88,8 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsDataUpdate(msg))
-	require.True(t, protoext.IsPullMsg(msg))
+	assert.True(t, protoext.IsDataUpdate(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
 
 	// Create gossip hello message
 	msg = &gossip.GossipMessage{
@@ -100,8 +100,8 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsHelloMsg(msg))
-	require.True(t, protoext.IsPullMsg(msg))
+	assert.True(t, protoext.IsHelloMsg(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
 
 	// Create state request message
 	msg = &gossip.GossipMessage{
@@ -112,7 +112,7 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsRemoteStateMessage(msg))
+	assert.True(t, protoext.IsRemoteStateMessage(msg))
 
 	// Create state response message
 	msg = &gossip.GossipMessage{
@@ -125,7 +125,7 @@ func TestCheckGossipMessageTypes(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsRemoteStateMessage(msg))
+	assert.True(t, protoext.IsRemoteStateMessage(msg))
 }
 
 func TestGossipPullMessageType(t *testing.T) {
@@ -140,9 +140,9 @@ func TestGossipPullMessageType(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsHelloMsg(msg))
-	require.True(t, protoext.IsPullMsg(msg))
-	require.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_BLOCK_MSG)
+	assert.True(t, protoext.IsHelloMsg(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
+	assert.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_BLOCK_MSG)
 
 	// Create data request message
 	msg = &gossip.GossipMessage{
@@ -154,9 +154,9 @@ func TestGossipPullMessageType(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsDigestMsg(msg))
-	require.True(t, protoext.IsPullMsg(msg))
-	require.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_IDENTITY_MSG)
+	assert.True(t, protoext.IsDigestMsg(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
+	assert.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_IDENTITY_MSG)
 
 	// Create data request message
 	msg = &gossip.GossipMessage{
@@ -168,9 +168,9 @@ func TestGossipPullMessageType(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsDataReq(msg))
-	require.True(t, protoext.IsPullMsg(msg))
-	require.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_BLOCK_MSG)
+	assert.True(t, protoext.IsDataReq(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
+	assert.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_BLOCK_MSG)
 
 	// Create data update message
 	msg = &gossip.GossipMessage{
@@ -182,16 +182,16 @@ func TestGossipPullMessageType(t *testing.T) {
 			},
 		},
 	}
-	require.True(t, protoext.IsDataUpdate(msg))
-	require.True(t, protoext.IsPullMsg(msg))
-	require.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_IDENTITY_MSG)
+	assert.True(t, protoext.IsDataUpdate(msg))
+	assert.True(t, protoext.IsPullMsg(msg))
+	assert.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_IDENTITY_MSG)
 
 	// Create gossip data message
 	msg = &gossip.GossipMessage{
 		Content: dataMessage(1, []byte{1, 2, 3, 4, 5}),
 	}
-	require.True(t, protoext.IsDataMsg(msg))
-	require.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_UNDEFINED)
+	assert.True(t, protoext.IsDataMsg(msg))
+	assert.Equal(t, protoext.GetPullMsgType(msg), gossip.PullMsgType_UNDEFINED)
 }
 
 func TestGossipMessageDataMessageTagType(t *testing.T) {
@@ -201,49 +201,49 @@ func TestGossipMessageDataMessageTagType(t *testing.T) {
 		Tag:     gossip.GossipMessage_CHAN_AND_ORG,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.True(t, protoext.IsChannelRestricted(msg))
-	require.True(t, protoext.IsOrgRestricted(msg))
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.True(t, protoext.IsChannelRestricted(msg))
+	assert.True(t, protoext.IsOrgRestricted(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_EMPTY,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_UNDEFINED,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_ORG_ONLY,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.False(t, protoext.IsChannelRestricted(msg))
-	require.True(t, protoext.IsOrgRestricted(msg))
+	assert.False(t, protoext.IsChannelRestricted(msg))
+	assert.True(t, protoext.IsOrgRestricted(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_CHAN_OR_ORG,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.True(t, protoext.IsChannelRestricted(msg))
-	require.False(t, protoext.IsOrgRestricted(msg))
+	assert.True(t, protoext.IsChannelRestricted(msg))
+	assert.False(t, protoext.IsOrgRestricted(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_EMPTY,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.False(t, protoext.IsChannelRestricted(msg))
-	require.False(t, protoext.IsOrgRestricted(msg))
+	assert.False(t, protoext.IsChannelRestricted(msg))
+	assert.False(t, protoext.IsOrgRestricted(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_UNDEFINED,
 		Content: dataMessage(1, []byte{1}),
 	}
-	require.False(t, protoext.IsChannelRestricted(msg))
-	require.False(t, protoext.IsOrgRestricted(msg))
+	assert.False(t, protoext.IsChannelRestricted(msg))
+	assert.False(t, protoext.IsOrgRestricted(msg))
 }
 
 func TestGossipMessageAliveMessageTagType(t *testing.T) {
@@ -255,7 +255,7 @@ func TestGossipMessageAliveMessageTagType(t *testing.T) {
 			AliveMsg: &gossip.AliveMessage{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_ORG_ONLY,
@@ -263,7 +263,7 @@ func TestGossipMessageAliveMessageTagType(t *testing.T) {
 			AliveMsg: &gossip.AliveMessage{},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 }
 
 func TestGossipMessageMembershipMessageTagType(t *testing.T) {
@@ -275,7 +275,7 @@ func TestGossipMessageMembershipMessageTagType(t *testing.T) {
 			MemReq: &gossip.MembershipRequest{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_EMPTY,
@@ -283,7 +283,7 @@ func TestGossipMessageMembershipMessageTagType(t *testing.T) {
 			MemRes: &gossip.MembershipResponse{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 }
 
 func TestGossipMessageIdentityMessageTagType(t *testing.T) {
@@ -295,7 +295,7 @@ func TestGossipMessageIdentityMessageTagType(t *testing.T) {
 			PeerIdentity: &gossip.PeerIdentity{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_EMPTY,
@@ -303,7 +303,7 @@ func TestGossipMessageIdentityMessageTagType(t *testing.T) {
 			PeerIdentity: &gossip.PeerIdentity{},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 }
 
 func TestGossipMessagePullMessageTagType(t *testing.T) {
@@ -317,7 +317,7 @@ func TestGossipMessagePullMessageTagType(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_EMPTY,
@@ -327,7 +327,7 @@ func TestGossipMessagePullMessageTagType(t *testing.T) {
 			},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_EMPTY,
@@ -337,7 +337,7 @@ func TestGossipMessagePullMessageTagType(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_ORG_ONLY,
@@ -347,7 +347,7 @@ func TestGossipMessagePullMessageTagType(t *testing.T) {
 			},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_ORG_ONLY,
@@ -357,7 +357,7 @@ func TestGossipMessagePullMessageTagType(t *testing.T) {
 			},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 }
 
 func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
@@ -369,7 +369,7 @@ func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
 			StateInfo: &gossip.StateInfo{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_CHAN_OR_ORG,
@@ -377,7 +377,7 @@ func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
 			StateInfoPullReq: &gossip.StateInfoPullRequest{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_CHAN_OR_ORG,
@@ -385,7 +385,7 @@ func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
 			StateResponse: &gossip.RemoteStateResponse{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_CHAN_OR_ORG,
@@ -393,7 +393,7 @@ func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
 			StateRequest: &gossip.RemoteStateRequest{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_CHAN_OR_ORG,
@@ -401,7 +401,7 @@ func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
 			StateSnapshot: &gossip.StateInfoSnapshot{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_EMPTY,
@@ -409,7 +409,7 @@ func TestGossipMessageStateInfoMessageTagType(t *testing.T) {
 			StateInfo: &gossip.StateInfo{},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 }
 
 func TestGossipMessageLeadershipMessageTagType(t *testing.T) {
@@ -421,18 +421,18 @@ func TestGossipMessageLeadershipMessageTagType(t *testing.T) {
 			LeadershipMsg: &gossip.LeadershipMessage{},
 		},
 	}
-	require.NoError(t, protoext.IsTagLegal(msg))
+	assert.NoError(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag: gossip.GossipMessage_CHAN_OR_ORG, Content: &gossip.GossipMessage_LeadershipMsg{
 			LeadershipMsg: &gossip.LeadershipMessage{},
 		},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 
 	msg = &gossip.GossipMessage{
 		Tag:     gossip.GossipMessage_CHAN_OR_ORG,
 		Content: &gossip.GossipMessage_Empty{},
 	}
-	require.Error(t, protoext.IsTagLegal(msg))
+	assert.Error(t, protoext.IsTagLegal(msg))
 }

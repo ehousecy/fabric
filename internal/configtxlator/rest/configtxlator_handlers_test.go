@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProtolatorComputeConfigUpdate(t *testing.T) {
@@ -35,27 +35,27 @@ func TestProtolatorComputeConfigUpdate(t *testing.T) {
 	mpw := multipart.NewWriter(buffer)
 
 	ffw, err := mpw.CreateFormFile("original", "foo")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = bytes.NewReader(originalConfig).WriteTo(ffw)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	ffw, err = mpw.CreateFormFile("updated", "bar")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = bytes.NewReader(updatedConfig).WriteTo(ffw)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = mpw.Close()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest("POST", "/configtxlator/compute/update-from-configs", buffer)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req.Header.Set("Content-Type", mpw.FormDataContentType())
 	rec := httptest.NewRecorder()
 	r := NewRouter()
 	r.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 }
 
 func TestProtolatorMissingOriginal(t *testing.T) {
@@ -69,22 +69,22 @@ func TestProtolatorMissingOriginal(t *testing.T) {
 	mpw := multipart.NewWriter(buffer)
 
 	ffw, err := mpw.CreateFormFile("updated", "bar")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = bytes.NewReader(updatedConfig).WriteTo(ffw)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = mpw.Close()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest("POST", "/configtxlator/compute/update-from-configs", buffer)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req.Header.Set("Content-Type", mpw.FormDataContentType())
 	rec := httptest.NewRecorder()
 	r := NewRouter()
 	r.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestProtolatorMissingUpdated(t *testing.T) {
@@ -98,22 +98,22 @@ func TestProtolatorMissingUpdated(t *testing.T) {
 	mpw := multipart.NewWriter(buffer)
 
 	ffw, err := mpw.CreateFormFile("original", "bar")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = bytes.NewReader(originalConfig).WriteTo(ffw)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = mpw.Close()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest("POST", "/configtxlator/compute/update-from-configs", buffer)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req.Header.Set("Content-Type", mpw.FormDataContentType())
 	rec := httptest.NewRecorder()
 	r := NewRouter()
 	r.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestProtolatorCorruptProtos(t *testing.T) {
@@ -124,25 +124,25 @@ func TestProtolatorCorruptProtos(t *testing.T) {
 	mpw := multipart.NewWriter(buffer)
 
 	ffw, err := mpw.CreateFormFile("original", "bar")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = bytes.NewReader(originalConfig).WriteTo(ffw)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	ffw, err = mpw.CreateFormFile("updated", "bar")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = bytes.NewReader(updatedConfig).WriteTo(ffw)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = mpw.Close()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest("POST", "/configtxlator/compute/update-from-configs", buffer)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req.Header.Set("Content-Type", mpw.FormDataContentType())
 	rec := httptest.NewRecorder()
 	r := NewRouter()
 	r.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }

@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/gossip/util"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/gossip/util"
 )
 
 const testChannelID = "foo"

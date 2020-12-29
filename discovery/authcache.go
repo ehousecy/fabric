@@ -11,8 +11,8 @@ import (
 	"encoding/hex"
 	"sync"
 
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 

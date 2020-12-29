@@ -21,21 +21,22 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/capabilities"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/cluster/mocks"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/capabilities"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/cluster/mocks"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -78,17 +79,17 @@ func TestParallelStubActivation(t *testing.T) {
 	// Ensure the instance is the reference we stored
 	// and not any other reference, i.e - it wasn't
 	// copied by value.
-	require.True(t, activatedStub == instance)
+	assert.True(t, activatedStub == instance)
 	// Ensure the method was invoked only once.
-	require.Equal(t, activationCount, 1)
+	assert.Equal(t, activationCount, 1)
 }
 
 func TestDialerCustomKeepAliveOptions(t *testing.T) {
 	ca, err := tlsgen.NewCA()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	clientKeyPair, err := ca.NewClientCertKeyPair()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	clientConfig := comm.ClientConfig{
 		KaOpts: comm.KeepaliveOptions{
 			ClientTimeout: time.Second * 12345,
@@ -106,7 +107,7 @@ func TestDialerCustomKeepAliveOptions(t *testing.T) {
 
 	dialer := &cluster.PredicateDialer{Config: clientConfig}
 	timeout := dialer.Config.KaOpts.ClientTimeout
-	require.Equal(t, time.Second*12345, timeout)
+	assert.Equal(t, time.Second*12345, timeout)
 }
 
 func TestPredicateDialerUpdateRootCAs(t *testing.T) {
@@ -114,7 +115,7 @@ func TestPredicateDialerUpdateRootCAs(t *testing.T) {
 	defer node1.stop()
 
 	anotherTLSCA, err := tlsgen.NewCA()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	dialer := &cluster.PredicateDialer{
 		Config: node1.clientConfig.Clone(),
@@ -124,7 +125,7 @@ func TestPredicateDialerUpdateRootCAs(t *testing.T) {
 	dialer.Config.AsyncConnect = false
 
 	_, err = dialer.Dial(node1.srv.Address(), nil)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	// Update root TLS CAs asynchronously to make sure we don't have a data race.
 	go func() {
@@ -140,7 +141,7 @@ func TestPredicateDialerUpdateRootCAs(t *testing.T) {
 		}
 	}
 
-	require.Fail(t, "could not connect after 10 attempts despite changing TLS CAs")
+	assert.Fail(t, "could not connect after 10 attempts despite changing TLS CAs")
 }
 
 func TestDialerBadConfig(t *testing.T) {
@@ -156,15 +157,15 @@ func TestDialerBadConfig(t *testing.T) {
 	_, err := dialer.Dial("127.0.0.1:8080", func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		return nil
 	})
-	require.EqualError(t, err, "error adding root certificate: asn1: syntax error: sequence truncated")
+	assert.EqualError(t, err, "error adding root certificate: asn1: syntax error: sequence truncated")
 }
 
 func TestDERtoPEM(t *testing.T) {
 	ca, err := tlsgen.NewCA()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	keyPair, err := ca.NewServerCertKeyPair("localhost")
-	require.NoError(t, err)
-	require.Equal(t, cluster.DERtoPEM(keyPair.TLSCert.Raw), string(keyPair.Cert))
+	assert.NoError(t, err)
+	assert.Equal(t, cluster.DERtoPEM(keyPair.TLSCert.Raw), string(keyPair.Cert))
 }
 
 func TestStandardDialer(t *testing.T) {
@@ -175,7 +176,7 @@ func TestStandardDialer(t *testing.T) {
 		Config: config,
 	}
 	_, err := standardDialer.Dial(cluster.EndpointCriteria{Endpoint: "127.0.0.1:8080", TLSRootCAs: certPool})
-	require.EqualError(t,
+	assert.EqualError(t,
 		err,
 		"failed creating gRPC client: error adding root certificate: asn1: syntax error: sequence truncated",
 	)
@@ -190,7 +191,7 @@ func TestVerifyBlockSignature(t *testing.T) {
 
 	// The block should have a valid structure
 	err := cluster.VerifyBlockSignature(block, verifier, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	for _, testCase := range []struct {
 		name          string
@@ -237,11 +238,11 @@ func TestVerifyBlockSignature(t *testing.T) {
 			// Create a copy of the block
 			blockCopy := &common.Block{}
 			err := proto.Unmarshal(protoutil.MarshalOrPanic(block), blockCopy)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			// Mutate the block to sabotage it
 			blockCopy = testCase.mutateBlock(blockCopy)
 			err = cluster.VerifyBlockSignature(blockCopy, verifier, nil)
-			require.Contains(t, err.Error(), testCase.errorContains)
+			assert.Contains(t, err.Error(), testCase.errorContains)
 		})
 	}
 }
@@ -261,16 +262,16 @@ func TestVerifyBlockHash(t *testing.T) {
 	}
 
 	// Verify that createBlockChain() creates a valid blockchain
-	require.NoError(t, verify(createBlockChain(start, end)))
+	assert.NoError(t, verify(createBlockChain(start, end)))
 
 	twoBlocks := createBlockChain(2, 3)
 	twoBlocks[0].Header = nil
-	require.EqualError(t, cluster.VerifyBlockHash(1, twoBlocks), "previous block header is nil")
+	assert.EqualError(t, cluster.VerifyBlockHash(1, twoBlocks), "previous block header is nil")
 
 	// Index out of bounds
 	blockchain := createBlockChain(start, end)
 	err := cluster.VerifyBlockHash(100, blockchain)
-	require.EqualError(t, err, "index 100 out of bounds (total 21 blocks)")
+	assert.EqualError(t, err, "index 100 out of bounds (total 21 blocks)")
 
 	for _, testCase := range []struct {
 		name                string
@@ -319,7 +320,7 @@ func TestVerifyBlockHash(t *testing.T) {
 			blockchain := createBlockChain(start, end)
 			blockchain = testCase.mutateBlockSequence(blockchain)
 			err := verify(blockchain)
-			require.EqualError(t, err, testCase.errorContains)
+			assert.EqualError(t, err, testCase.errorContains)
 		})
 	}
 }
@@ -418,9 +419,9 @@ func TestVerifyBlocks(t *testing.T) {
 				assignHashes(blockSequence)
 
 				sigSet1, err = cluster.SignatureSetFromBlock(blockSequence[len(blockSequence)/4])
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				sigSet2, err = cluster.SignatureSetFromBlock(blockSequence[len(blockSequence)/2])
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				return blockSequence
 			},
@@ -449,10 +450,10 @@ func TestVerifyBlocks(t *testing.T) {
 				assignHashes(blockSequence)
 
 				sigSet1, err = cluster.SignatureSetFromBlock(blockSequence[len(blockSequence)/4])
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				sigSet2, err = cluster.SignatureSetFromBlock(blockSequence[len(blockSequence)-1])
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				return blockSequence
 			},
@@ -485,10 +486,10 @@ func TestVerifyBlocks(t *testing.T) {
 				assignHashes(blockSequence)
 
 				sigSet1, err = cluster.SignatureSetFromBlock(blockSequence[len(blockSequence)-2])
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				sigSet2, err = cluster.SignatureSetFromBlock(blockSequence[len(blockSequence)-1])
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				return blockSequence
 			},
@@ -517,9 +518,9 @@ func TestVerifyBlocks(t *testing.T) {
 			}
 			err := cluster.VerifyBlocks(blockchain, verifier)
 			if testCase.expectedError != "" {
-				require.EqualError(t, err, testCase.expectedError)
+				assert.EqualError(t, err, testCase.expectedError)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -570,28 +571,28 @@ func createBlockChain(start, end uint64) []*common.Block {
 func TestEndpointconfigFromConfigBlockGreenPath(t *testing.T) {
 	t.Run("global endpoints", func(t *testing.T) {
 		block, err := test.MakeGenesisBlock("mychannel")
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		// For a block that doesn't have per org endpoints,
 		// we take the global endpoints
 		injectGlobalOrdererEndpoint(t, block, "globalEndpoint")
 		endpointConfig, err := cluster.EndpointconfigFromConfigBlock(block, cryptoProvider)
-		require.NoError(t, err)
-		require.Len(t, endpointConfig, 1)
-		require.Equal(t, "globalEndpoint", endpointConfig[0].Endpoint)
+		assert.NoError(t, err)
+		assert.Len(t, endpointConfig, 1)
+		assert.Equal(t, "globalEndpoint", endpointConfig[0].Endpoint)
 
 		bl, _ := pem.Decode(endpointConfig[0].TLSRootCAs[0])
 		cert, err := x509.ParseCertificate(bl.Bytes)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
-		require.True(t, cert.IsCA)
+		assert.True(t, cert.IsCA)
 	})
 
 	t.Run("per org endpoints", func(t *testing.T) {
 		block, err := test.MakeGenesisBlock("mychannel")
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		// Make a second config.
 		gConf := genesisconfig.Load(genesisconfig.SampleSingleMSPSoloProfile, configtest.GetDevConfigDir())
@@ -599,65 +600,65 @@ func TestEndpointconfigFromConfigBlockGreenPath(t *testing.T) {
 			capabilities.OrdererV2_0: true,
 		}
 		channelGroup, err := encoder.NewChannelGroup(gConf)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		bundle, err := channelconfig.NewBundle("mychannel", &common.Config{ChannelGroup: channelGroup}, cryptoProvider)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		msps, err := bundle.MSPManager().GetMSPs()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		caBytes := msps["SampleOrg"].GetTLSRootCerts()[0]
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		injectAdditionalTLSCAEndpointPair(t, block, "anotherEndpoint", caBytes, "fooOrg")
 		endpointConfig, err := cluster.EndpointconfigFromConfigBlock(block, cryptoProvider)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		// And ensure that the endpoints that are taken, are the per org ones.
-		require.Len(t, endpointConfig, 2)
+		assert.Len(t, endpointConfig, 2)
 		for _, endpoint := range endpointConfig {
 			// If this is the original organization (and not the clone),
 			// the TLS CA is 'caBytes' read from the second block.
 			if endpoint.Endpoint == "anotherEndpoint" {
-				require.Len(t, endpoint.TLSRootCAs, 1)
-				require.Equal(t, caBytes, endpoint.TLSRootCAs[0])
+				assert.Len(t, endpoint.TLSRootCAs, 1)
+				assert.Equal(t, caBytes, endpoint.TLSRootCAs[0])
 				continue
 			}
 			// Else, our endpoints are from the original org, and the TLS CA is something else.
-			require.NotEqual(t, caBytes, endpoint.TLSRootCAs[0])
+			assert.NotEqual(t, caBytes, endpoint.TLSRootCAs[0])
 			// The endpoints we expect to see are something else.
-			require.Equal(t, 0, strings.Index(endpoint.Endpoint, "127.0.0.1:"))
+			assert.Equal(t, 0, strings.Index(endpoint.Endpoint, "127.0.0.1:"))
 			bl, _ := pem.Decode(endpoint.TLSRootCAs[0])
 			cert, err := x509.ParseCertificate(bl.Bytes)
-			require.NoError(t, err)
-			require.True(t, cert.IsCA)
+			assert.NoError(t, err)
+			assert.True(t, cert.IsCA)
 		}
 	})
 }
 
 func TestEndpointconfigFromConfigBlockFailures(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	t.Run("nil block", func(t *testing.T) {
 		certs, err := cluster.EndpointconfigFromConfigBlock(nil, cryptoProvider)
-		require.Nil(t, certs)
-		require.EqualError(t, err, "nil block")
+		assert.Nil(t, certs)
+		assert.EqualError(t, err, "nil block")
 	})
 
 	t.Run("nil block data", func(t *testing.T) {
 		certs, err := cluster.EndpointconfigFromConfigBlock(&common.Block{}, cryptoProvider)
-		require.Nil(t, certs)
-		require.EqualError(t, err, "block data is nil")
+		assert.Nil(t, certs)
+		assert.EqualError(t, err, "block data is nil")
 	})
 
 	t.Run("no envelope", func(t *testing.T) {
 		certs, err := cluster.EndpointconfigFromConfigBlock(&common.Block{
 			Data: &common.BlockData{},
 		}, cryptoProvider)
-		require.Nil(t, certs)
-		require.EqualError(t, err, "envelope index out of bounds")
+		assert.Nil(t, certs)
+		assert.EqualError(t, err, "envelope index out of bounds")
 	})
 
 	t.Run("bad envelope", func(t *testing.T) {
@@ -666,8 +667,8 @@ func TestEndpointconfigFromConfigBlockFailures(t *testing.T) {
 				Data: [][]byte{{}},
 			},
 		}, cryptoProvider)
-		require.Nil(t, certs)
-		require.EqualError(t, err, "failed extracting bundle from envelope: envelope header cannot be nil")
+		assert.Nil(t, certs)
+		assert.EqualError(t, err, "failed extracting bundle from envelope: envelope header cannot be nil")
 	})
 }
 
@@ -751,8 +752,8 @@ func TestConfigFromBlockBadInput(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			conf, err := cluster.ConfigFromBlock(testCase.block)
-			require.Nil(t, conf)
-			require.EqualError(t, err, testCase.expectedError)
+			assert.Nil(t, conf)
+			assert.EqualError(t, err, testCase.expectedError)
 		})
 	}
 }
@@ -760,10 +761,10 @@ func TestConfigFromBlockBadInput(t *testing.T) {
 func TestBlockValidationPolicyVerifier(t *testing.T) {
 	config := genesisconfig.Load(genesisconfig.SampleInsecureSoloProfile, configtest.GetDevConfigDir())
 	group, err := encoder.NewChannelGroup(config)
-	require.NoError(t, err)
-	require.NotNil(t, group)
+	assert.NoError(t, err)
+	assert.NotNil(t, group)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	validConfigEnvelope := &common.ConfigEnvelope{
 		Config: &common.Config{
@@ -826,9 +827,9 @@ func TestBlockValidationPolicyVerifier(t *testing.T) {
 
 			err := verifier.VerifyBlockSignature(nil, testCase.envelope)
 			if testCase.expectedError != "" {
-				require.EqualError(t, err, testCase.expectedError)
+				assert.EqualError(t, err, testCase.expectedError)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -837,10 +838,10 @@ func TestBlockValidationPolicyVerifier(t *testing.T) {
 func TestBlockVerifierAssembler(t *testing.T) {
 	config := genesisconfig.Load(genesisconfig.SampleInsecureSoloProfile, configtest.GetDevConfigDir())
 	group, err := encoder.NewChannelGroup(config)
-	require.NoError(t, err)
-	require.NotNil(t, group)
+	assert.NoError(t, err)
+	assert.NotNil(t, group)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	t.Run("Good config envelope", func(t *testing.T) {
 		bva := &cluster.BlockVerifierAssembler{BCCSP: cryptoProvider}
@@ -849,15 +850,15 @@ func TestBlockVerifierAssembler(t *testing.T) {
 				ChannelGroup: group,
 			},
 		}, "mychannel")
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
-		require.NoError(t, verifier.VerifyBlockSignature(nil, nil))
+		assert.NoError(t, verifier.VerifyBlockSignature(nil, nil))
 	})
 
 	t.Run("Bad config envelope", func(t *testing.T) {
 		bva := &cluster.BlockVerifierAssembler{BCCSP: cryptoProvider}
 		_, err := bva.VerifierFromConfig(&common.ConfigEnvelope{}, "mychannel")
-		require.EqualError(t, err, "failed extracting bundle from envelope: channelconfig Config cannot be nil")
+		assert.EqualError(t, err, "failed extracting bundle from envelope: channelconfig Config cannot be nil")
 	})
 }
 
@@ -916,22 +917,22 @@ func TestLastConfigBlock(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			block, err := cluster.LastConfigBlock(testCase.block, testCase.blockRetriever)
 			if testCase.expectedError == "" {
-				require.NoError(t, err)
-				require.NotNil(t, block)
+				assert.NoError(t, err)
+				assert.NotNil(t, block)
 				return
 			}
-			require.EqualError(t, err, testCase.expectedError)
-			require.Nil(t, block)
+			assert.EqualError(t, err, testCase.expectedError)
+			assert.Nil(t, block)
 		})
 	}
 }
 
 func TestVerificationRegistryRegisterVerifier(t *testing.T) {
 	blockBytes, err := ioutil.ReadFile("testdata/mychannel.block")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	block := &common.Block{}
-	require.NoError(t, proto.Unmarshal(blockBytes, block))
+	assert.NoError(t, proto.Unmarshal(blockBytes, block))
 
 	verifier := &mocks.BlockVerifier{}
 
@@ -947,30 +948,30 @@ func TestVerificationRegistryRegisterVerifier(t *testing.T) {
 
 	var loadCount int
 	registry.LoadVerifier = func(chain string) cluster.BlockVerifier {
-		require.Equal(t, "mychannel", chain)
+		assert.Equal(t, "mychannel", chain)
 		loadCount++
 		return verifier
 	}
 
 	v := registry.RetrieveVerifier("mychannel")
-	require.Nil(t, v)
+	assert.Nil(t, v)
 
 	registry.RegisterVerifier("mychannel")
 	v = registry.RetrieveVerifier("mychannel")
-	require.Equal(t, verifier, v)
-	require.Equal(t, 1, loadCount)
+	assert.Equal(t, verifier, v)
+	assert.Equal(t, 1, loadCount)
 
 	// If the verifier exists, this is a no-op
 	registry.RegisterVerifier("mychannel")
-	require.Equal(t, 1, loadCount)
+	assert.Equal(t, 1, loadCount)
 }
 
 func TestVerificationRegistry(t *testing.T) {
 	blockBytes, err := ioutil.ReadFile("testdata/mychannel.block")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	block := &common.Block{}
-	require.NoError(t, proto.Unmarshal(blockBytes, block))
+	assert.NoError(t, proto.Unmarshal(blockBytes, block))
 
 	flogging.ActivateSpec("test=DEBUG")
 	defer flogging.Reset()
@@ -1072,8 +1073,8 @@ func TestVerificationRegistry(t *testing.T) {
 			registry.BlockCommitted(testCase.blockCommitted, testCase.channelCommitted)
 			verifier := registry.RetrieveVerifier(testCase.channelRetrieved)
 
-			require.Equal(t, testCase.loggedMessages, loggedEntriesByMethods)
-			require.Equal(t, testCase.expectedVerifier, verifier)
+			assert.Equal(t, testCase.loggedMessages, loggedEntriesByMethods)
+			assert.Equal(t, testCase.expectedVerifier, verifier)
 		})
 	}
 }
@@ -1090,26 +1091,26 @@ func TestLedgerInterceptor(t *testing.T) {
 		Channel:      "mychannel",
 		LedgerWriter: ledger,
 		InterceptBlockCommit: func(b *common.Block, channel string) {
-			require.Equal(t, block, b)
-			require.Equal(t, "mychannel", channel)
+			assert.Equal(t, block, b)
+			assert.Equal(t, "mychannel", channel)
 			intercepted = true
 		},
 	}
 
 	err := interceptedLedger.Append(block)
-	require.NoError(t, err)
-	require.True(t, intercepted)
+	assert.NoError(t, err)
+	assert.True(t, intercepted)
 	ledger.AssertCalled(t, "Append", block)
 }
 
 func injectAdditionalTLSCAEndpointPair(t *testing.T, block *common.Block, endpoint string, tlsCA []byte, orgName string) {
 	// Unwrap the layers until we reach the orderer addresses
 	env, err := protoutil.ExtractEnvelope(block, 0)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	payload, err := protoutil.UnmarshalPayload(env.Payload)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	confEnv, err := configtx.UnmarshalConfigEnvelope(payload.Data)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	ordererGrp := confEnv.Config.ChannelGroup.Groups[channelconfig.OrdererGroupKey].Groups
 	// Get the first orderer org config
 	var firstOrdererConfig *common.ConfigGroup
@@ -1123,11 +1124,11 @@ func injectAdditionalTLSCAEndpointPair(t *testing.T, block *common.Block, endpoi
 	// Reach the FabricMSPConfig buried in it.
 	mspConfig := &msp.MSPConfig{}
 	err = proto.Unmarshal(secondOrdererConfig.Values[channelconfig.MSPKey].Value, mspConfig)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	fabricConfig := &msp.FabricMSPConfig{}
 	err = proto.Unmarshal(mspConfig.Config, fabricConfig)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Plant the given TLS CA in it.
 	fabricConfig.TlsRootCerts = [][]byte{tlsCA}
@@ -1186,7 +1187,7 @@ qz8bY+s6AiBvO0aOfE8M4ibjmRE4vSXo0+gkOIJKqZcmiRdnJSr8Xw==
 
 	actual := fmt.Sprint(epc)
 	expected := `{"CAs":[{"Expired":false,"Issuer":"self","Subject":"SERIALNUMBER=65764076798709079104397911007043976879"},{"Expired":true,"Issuer":"SERIALNUMBER=65764076798709079104397911007043976879","Subject":"SERIALNUMBER=187004237184026939685179573732217690720"}],"Endpoint":"orderer.example.com:7050"}`
-	require.Equal(t, expected, actual)
+	assert.Equal(t, expected, actual)
 }
 
 func TestComparisonMemoizer(t *testing.T) {

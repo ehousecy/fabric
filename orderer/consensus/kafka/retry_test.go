@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRetry(t *testing.T) {
@@ -29,13 +29,13 @@ func TestRetry(t *testing.T) {
 	t.Run("Proper", func(t *testing.T) {
 		exitChan := make(chan struct{})
 		rp = newRetryProcess(mockRetryOptions, exitChan, mockChannel, "foo", noErrorFn)
-		require.NoError(t, rp.retry(), "Expected retry to return no errors")
-		require.Equal(t, true, flag, "Expected flag to be set to true")
+		assert.NoError(t, rp.retry(), "Expected retry to return no errors")
+		assert.Equal(t, true, flag, "Expected flag to be set to true")
 	})
 
 	t.Run("WithError", func(t *testing.T) {
 		exitChan := make(chan struct{})
 		rp = newRetryProcess(mockRetryOptions, exitChan, mockChannel, "foo", errorFn)
-		require.Error(t, rp.retry(), "Expected retry to return an error")
+		assert.Error(t, rp.retry(), "Expected retry to return an error")
 	})
 }

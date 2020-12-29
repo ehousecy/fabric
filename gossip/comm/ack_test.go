@@ -12,10 +12,10 @@ import (
 	"time"
 
 	proto "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterceptAcks(t *testing.T) {
@@ -37,10 +37,10 @@ func TestInterceptAcks(t *testing.T) {
 	sub := pubsub.Subscribe(topicForAck(1, pkiID), time.Second)
 	wrappedHandler(ack)
 	// Ensure ack was consumed and not passed onwards to the wrapped hander
-	require.Len(t, msgs, 0)
+	assert.Len(t, msgs, 0)
 	_, err := sub.Listen()
 	// Ensure ack was published
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Test none acks are just forwarded
 	notAck := &protoext.SignedGossipMessage{
@@ -54,10 +54,10 @@ func TestInterceptAcks(t *testing.T) {
 	sub = pubsub.Subscribe(topicForAck(2, pkiID), time.Second)
 	wrappedHandler(notAck)
 	// Ensure message was passed to the wrapped handler
-	require.Len(t, msgs, 1)
+	assert.Len(t, msgs, 1)
 	_, err = sub.Listen()
 	// Ensure ack was not published
-	require.Error(t, err)
+	assert.Error(t, err)
 }
 
 func TestAck(t *testing.T) {
@@ -92,9 +92,9 @@ func TestAck(t *testing.T) {
 	go ack(inc2)
 	go ack(inc3)
 	res := comm1.SendWithAck(createGossipMsg(), time.Second*3, 2, remotePeer(port2), remotePeer(port3))
-	require.Len(t, res, 2)
-	require.Empty(t, res[0].Error())
-	require.Empty(t, res[1].Error())
+	assert.Len(t, res, 2)
+	assert.Empty(t, res[0].Error())
+	assert.Empty(t, res[1].Error())
 
 	// Collect 2 out of 3 acks - should succeed
 	t1 := time.Now()
@@ -102,25 +102,25 @@ func TestAck(t *testing.T) {
 	go ack(inc3)
 	res = comm1.SendWithAck(createGossipMsg(), time.Second*10, 2, remotePeer(port2), remotePeer(port3), remotePeer(port4))
 	elapsed := time.Since(t1)
-	require.Len(t, res, 2)
-	require.Empty(t, res[0].Error())
-	require.Empty(t, res[1].Error())
+	assert.Len(t, res, 2)
+	assert.Empty(t, res[0].Error())
+	assert.Empty(t, res[1].Error())
 	// Collection of 2 out of 3 acks should have taken much less than the timeout (10 seconds)
-	require.True(t, elapsed < time.Second*5)
+	assert.True(t, elapsed < time.Second*5)
 
 	// Collect 2 out of 3 acks - should fail, because peer3 now have sent an error along with the ack
 	go ack(inc2)
 	go nack(inc3)
 	res = comm1.SendWithAck(createGossipMsg(), time.Second*10, 2, remotePeer(port2), remotePeer(port3), remotePeer(port4))
-	require.Len(t, res, 3)
-	require.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "Failed processing message because reasons")
-	require.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "timed out")
+	assert.Len(t, res, 3)
+	assert.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "Failed processing message because reasons")
+	assert.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "timed out")
 
 	// Collect 2 out of 2 acks - should fail because comm2 and comm3 now don't acknowledge messages
 	res = comm1.SendWithAck(createGossipMsg(), time.Second*3, 2, remotePeer(port2), remotePeer(port3))
-	require.Len(t, res, 2)
-	require.Contains(t, res[0].Error(), "timed out")
-	require.Contains(t, res[1].Error(), "timed out")
+	assert.Len(t, res, 2)
+	assert.Contains(t, res[0].Error(), "timed out")
+	assert.Contains(t, res[1].Error(), "timed out")
 	// Drain ack messages to prepare for next salvo
 	<-inc2
 	<-inc3
@@ -129,25 +129,25 @@ func TestAck(t *testing.T) {
 	go ack(inc2)
 	go nack(inc3)
 	res = comm1.SendWithAck(createGossipMsg(), time.Second*3, 2, remotePeer(port2), remotePeer(port3), remotePeer(port4))
-	require.Len(t, res, 3)
-	require.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "") // This is the "successful ack"
-	require.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "Failed processing message because reasons")
-	require.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "timed out")
-	require.Contains(t, res.String(), "\"Failed processing message because reasons\":1")
-	require.Contains(t, res.String(), "\"timed out\":1")
-	require.Contains(t, res.String(), "\"successes\":1")
-	require.Equal(t, 2, res.NackCount())
-	require.Equal(t, 1, res.AckCount())
+	assert.Len(t, res, 3)
+	assert.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "") // This is the "successful ack"
+	assert.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "Failed processing message because reasons")
+	assert.Contains(t, []string{res[0].Error(), res[1].Error(), res[2].Error()}, "timed out")
+	assert.Contains(t, res.String(), "\"Failed processing message because reasons\":1")
+	assert.Contains(t, res.String(), "\"timed out\":1")
+	assert.Contains(t, res.String(), "\"successes\":1")
+	assert.Equal(t, 2, res.NackCount())
+	assert.Equal(t, 1, res.AckCount())
 
 	// Send a message to no one
 	res = comm1.SendWithAck(createGossipMsg(), time.Second*3, 1)
-	require.Len(t, res, 0)
+	assert.Len(t, res, 0)
 
 	// Send a message while stopping
 	comm1.Stop()
 	res = comm1.SendWithAck(createGossipMsg(), time.Second*3, 1, remotePeer(port2), remotePeer(port3), remotePeer(port4))
-	require.Len(t, res, 3)
-	require.Contains(t, res[0].Error(), "comm is stopping")
-	require.Contains(t, res[1].Error(), "comm is stopping")
-	require.Contains(t, res[2].Error(), "comm is stopping")
+	assert.Len(t, res, 3)
+	assert.Contains(t, res[0].Error(), "comm is stopping")
+	assert.Contains(t, res[1].Error(), "comm is stopping")
+	assert.Contains(t, res[2].Error(), "comm is stopping")
 }

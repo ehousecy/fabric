@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hyperledger/fabric/common/ledger/dataformat"
+	"github.com/ehousecy/fabric/common/ledger/dataformat"
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -142,13 +142,6 @@ func (p *Provider) Close() {
 	p.db.Close()
 }
 
-// Drop drops all the data for the given dbName
-func (p *Provider) Drop(dbName string) error {
-	dbHandle := p.GetDBHandle(dbName)
-	defer dbHandle.Close()
-	return dbHandle.deleteAll()
-}
-
 // DBHandle is an handle to a named db
 type DBHandle struct {
 	dbName    string
@@ -172,7 +165,7 @@ func (h *DBHandle) Delete(key []byte, sync bool) error {
 }
 
 // DeleteAll deletes all the keys that belong to the channel (dbName).
-func (h *DBHandle) deleteAll() error {
+func (h *DBHandle) DeleteAll() error {
 	iter, err := h.GetIterator(nil, nil)
 	if err != nil {
 		return err
@@ -202,28 +195,13 @@ func (h *DBHandle) deleteAll() error {
 			}
 			logger.Infof("Have removed %d entries for channel %s in leveldb %s", numKeys, h.dbName, h.db.conf.DBPath)
 			batchSize = 0
-			batch.Reset()
+			batch = &leveldb.Batch{}
 		}
 	}
 	if batch.Len() > 0 {
 		return h.db.WriteBatch(batch, true)
 	}
 	return nil
-}
-
-// IsEmpty returns true if no data exists for the DBHandle
-func (h *DBHandle) IsEmpty() (bool, error) {
-	itr, err := h.GetIterator(nil, nil)
-	if err != nil {
-		return false, err
-	}
-	defer itr.Release()
-
-	if err := itr.Error(); err != nil {
-		return false, errors.WithMessagef(itr.Error(), "internal leveldb error while obtaining next entry from iterator")
-	}
-
-	return !itr.Next(), nil
 }
 
 // NewUpdateBatch returns a new UpdateBatch that can be used to update the db

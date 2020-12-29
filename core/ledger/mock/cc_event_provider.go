@@ -4,45 +4,31 @@ package mock
 import (
 	"sync"
 
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger"
 )
 
 type ChaincodeLifecycleEventProvider struct {
-	RegisterListenerStub        func(string, ledger.ChaincodeLifecycleEventListener, bool) error
+	RegisterListenerStub        func(string, ledger.ChaincodeLifecycleEventListener)
 	registerListenerMutex       sync.RWMutex
 	registerListenerArgsForCall []struct {
 		arg1 string
 		arg2 ledger.ChaincodeLifecycleEventListener
-		arg3 bool
-	}
-	registerListenerReturns struct {
-		result1 error
-	}
-	registerListenerReturnsOnCall map[int]struct {
-		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *ChaincodeLifecycleEventProvider) RegisterListener(arg1 string, arg2 ledger.ChaincodeLifecycleEventListener, arg3 bool) error {
+func (fake *ChaincodeLifecycleEventProvider) RegisterListener(arg1 string, arg2 ledger.ChaincodeLifecycleEventListener) {
 	fake.registerListenerMutex.Lock()
-	ret, specificReturn := fake.registerListenerReturnsOnCall[len(fake.registerListenerArgsForCall)]
 	fake.registerListenerArgsForCall = append(fake.registerListenerArgsForCall, struct {
 		arg1 string
 		arg2 ledger.ChaincodeLifecycleEventListener
-		arg3 bool
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("RegisterListener", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("RegisterListener", []interface{}{arg1, arg2})
 	fake.registerListenerMutex.Unlock()
 	if fake.RegisterListenerStub != nil {
-		return fake.RegisterListenerStub(arg1, arg2, arg3)
+		fake.RegisterListenerStub(arg1, arg2)
 	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.registerListenerReturns
-	return fakeReturns.result1
 }
 
 func (fake *ChaincodeLifecycleEventProvider) RegisterListenerCallCount() int {
@@ -51,40 +37,17 @@ func (fake *ChaincodeLifecycleEventProvider) RegisterListenerCallCount() int {
 	return len(fake.registerListenerArgsForCall)
 }
 
-func (fake *ChaincodeLifecycleEventProvider) RegisterListenerCalls(stub func(string, ledger.ChaincodeLifecycleEventListener, bool) error) {
+func (fake *ChaincodeLifecycleEventProvider) RegisterListenerCalls(stub func(string, ledger.ChaincodeLifecycleEventListener)) {
 	fake.registerListenerMutex.Lock()
 	defer fake.registerListenerMutex.Unlock()
 	fake.RegisterListenerStub = stub
 }
 
-func (fake *ChaincodeLifecycleEventProvider) RegisterListenerArgsForCall(i int) (string, ledger.ChaincodeLifecycleEventListener, bool) {
+func (fake *ChaincodeLifecycleEventProvider) RegisterListenerArgsForCall(i int) (string, ledger.ChaincodeLifecycleEventListener) {
 	fake.registerListenerMutex.RLock()
 	defer fake.registerListenerMutex.RUnlock()
 	argsForCall := fake.registerListenerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *ChaincodeLifecycleEventProvider) RegisterListenerReturns(result1 error) {
-	fake.registerListenerMutex.Lock()
-	defer fake.registerListenerMutex.Unlock()
-	fake.RegisterListenerStub = nil
-	fake.registerListenerReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *ChaincodeLifecycleEventProvider) RegisterListenerReturnsOnCall(i int, result1 error) {
-	fake.registerListenerMutex.Lock()
-	defer fake.registerListenerMutex.Unlock()
-	fake.RegisterListenerStub = nil
-	if fake.registerListenerReturnsOnCall == nil {
-		fake.registerListenerReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.registerListenerReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *ChaincodeLifecycleEventProvider) Invocations() map[string][][]interface{} {

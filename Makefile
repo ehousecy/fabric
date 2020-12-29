@@ -22,7 +22,6 @@
 #   - docker-tag-latest - re-tags the images made by 'make docker' with the :latest tag
 #   - docker-tag-stable - re-tags the images made by 'make docker' with the :stable tag
 #   - docker-thirdparty - pulls thirdparty images (kafka,zookeeper,couchdb)
-#   - docs - builds the documentation in html format
 #   - gotools - installs go tools like golint
 #   - help-docs - generate the command reference docs
 #   - idemixgen - builds a native idemixgen binary
@@ -46,11 +45,11 @@
 #   - verify - runs unit tests for only the changed package tree
 
 ALPINE_VER ?= 3.12
-BASE_VERSION = 2.3.0
+BASE_VERSION = 2.2.0
 
 # 3rd party image version
 # These versions are also set in the runners in ./integration/runners/
-COUCHDB_VER ?= 3.1.1
+COUCHDB_VER ?= 3.1
 KAFKA_VER ?= 5.3.1
 ZOOKEEPER_VER ?= 5.3.1
 
@@ -67,7 +66,7 @@ PROJECT_VERSION=$(BASE_VERSION)-snapshot-$(EXTRA_VERSION)
 # for two digit references to most recent baseos and ccenv patch releases
 TWO_DIGIT_VERSION = $(shell echo $(BASE_VERSION) | cut -d '.' -f 1,2)
 
-PKGNAME = github.com/hyperledger/fabric
+PKGNAME = github.com/ehousecy/fabric
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
 
@@ -83,7 +82,7 @@ GO_TAGS ?=
 RELEASE_EXES = orderer $(TOOLS_EXES)
 RELEASE_IMAGES = baseos ccenv orderer peer tools
 RELEASE_PLATFORMS = darwin-amd64 linux-amd64 windows-amd64
-TOOLS_EXES = configtxgen configtxlator cryptogen discover idemixgen osnadmin peer
+TOOLS_EXES = configtxgen configtxlator cryptogen discover idemixgen peer
 
 pkgmap.configtxgen    := $(PKGNAME)/cmd/configtxgen
 pkgmap.configtxlator  := $(PKGNAME)/cmd/configtxlator
@@ -91,7 +90,6 @@ pkgmap.cryptogen      := $(PKGNAME)/cmd/cryptogen
 pkgmap.discover       := $(PKGNAME)/cmd/discover
 pkgmap.idemixgen      := $(PKGNAME)/cmd/idemixgen
 pkgmap.orderer        := $(PKGNAME)/cmd/orderer
-pkgmap.osnadmin       := $(PKGNAME)/cmd/osnadmin
 pkgmap.peer           := $(PKGNAME)/cmd/peer
 
 .DEFAULT_GOAL := all
@@ -208,7 +206,7 @@ $(BUILD_DIR)/bin/%: GO_LDFLAGS = $(METADATA_VAR:%=-X $(PKGNAME)/common/metadata.
 $(BUILD_DIR)/bin/%:
 	@echo "Building $@"
 	@mkdir -p $(@D)
-	GOBIN=$(abspath $(@D)) go install -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(pkgmap.$(@F))
+	GOBIN=$(abspath $(@D)) go install -mod=vendor -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(pkgmap.$(@F))
 	@touch $@
 
 .PHONY: docker
@@ -221,7 +219,6 @@ $(BUILD_DIR)/images/ccenv/$(DUMMY):   BUILD_CONTEXT=images/ccenv
 $(BUILD_DIR)/images/baseos/$(DUMMY):  BUILD_CONTEXT=images/baseos
 $(BUILD_DIR)/images/peer/$(DUMMY):    BUILD_ARGS=--build-arg GO_TAGS=${GO_TAGS}
 $(BUILD_DIR)/images/orderer/$(DUMMY): BUILD_ARGS=--build-arg GO_TAGS=${GO_TAGS}
-$(BUILD_DIR)/images/tools/$(DUMMY): BUILD_ARGS=--build-arg GO_TAGS=${GO_TAGS}
 
 $(BUILD_DIR)/images/%/$(DUMMY):
 	@echo "Building Docker image $(DOCKER_NS)/fabric-$*"
@@ -322,7 +319,3 @@ unit-test-clean:
 .PHONY: filename-spaces
 spaces:
 	@scripts/check_file_name_spaces.sh
-
-.PHONY: docs
-docs:
-	@docker run --rm -v $$(pwd):/docs n42org/tox:3.4.0 sh -c 'cd /docs && tox -e docs'

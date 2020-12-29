@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	configtxtest "github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/internal/fileutil"
+	configtxtest "github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/common/ledger/util"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,8 +24,7 @@ func TestRebuildDBs(t *testing.T) {
 	numLedgers := 3
 	for i := 0; i < numLedgers; i++ {
 		genesisBlock, _ := configtxtest.MakeGenesisBlock(constructTestLedgerID(i))
-		_, err := provider.CreateFromGenesisBlock(genesisBlock)
-		require.NoError(t, err)
+		provider.Create(genesisBlock)
 	}
 
 	// rebuild should fail when provider is still open
@@ -38,19 +37,19 @@ func TestRebuildDBs(t *testing.T) {
 
 	// verify blockstoreIndex, configHistory, history, state, bookkeeper dbs are deleted
 	rootFSPath := conf.RootFSPath
-	empty, err := fileutil.DirEmpty(filepath.Join(BlockStorePath(rootFSPath), "index"))
+	empty, err := util.DirEmpty(filepath.Join(BlockStorePath(rootFSPath), "index"))
 	require.NoError(t, err)
 	require.True(t, empty)
-	empty, err = fileutil.DirEmpty(ConfigHistoryDBPath(rootFSPath))
+	empty, err = util.DirEmpty(ConfigHistoryDBPath(rootFSPath))
 	require.NoError(t, err)
 	require.True(t, empty)
-	empty, err = fileutil.DirEmpty(HistoryDBPath(rootFSPath))
+	empty, err = util.DirEmpty(HistoryDBPath(rootFSPath))
 	require.NoError(t, err)
 	require.True(t, empty)
-	empty, err = fileutil.DirEmpty(StateDBPath(rootFSPath))
+	empty, err = util.DirEmpty(StateDBPath(rootFSPath))
 	require.NoError(t, err)
 	require.True(t, empty)
-	empty, err = fileutil.DirEmpty(BookkeeperDBPath(rootFSPath))
+	empty, err = util.DirEmpty(BookkeeperDBPath(rootFSPath))
 	require.NoError(t, err)
 	require.True(t, empty)
 

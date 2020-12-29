@@ -25,14 +25,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/utils"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSignECDSABadParameter(t *testing.T) {
 	// Generate a key
 	lowLevelKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Induce an error on the underlying ecdsa algorithm
 	curve := *elliptic.P256().Params()
@@ -40,8 +40,8 @@ func TestSignECDSABadParameter(t *testing.T) {
 	lowLevelKey.Curve = &curve
 
 	_, err = signECDSA(lowLevelKey, []byte("hello world"), nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "zero parameter")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "zero parameter")
 }
 
 func TestVerifyECDSA(t *testing.T) {
@@ -49,28 +49,28 @@ func TestVerifyECDSA(t *testing.T) {
 
 	// Generate a key
 	lowLevelKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	msg := []byte("hello world")
 	sigma, err := signECDSA(lowLevelKey, msg, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	valid, err := verifyECDSA(&lowLevelKey.PublicKey, sigma, msg, nil)
-	require.NoError(t, err)
-	require.True(t, valid)
+	assert.NoError(t, err)
+	assert.True(t, valid)
 
 	_, err = verifyECDSA(&lowLevelKey.PublicKey, nil, msg, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Failed unmashalling signature [")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed unmashalling signature [")
 
 	R, S, err := utils.UnmarshalECDSASignature(sigma)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	S.Add(utils.GetCurveHalfOrdersAt(elliptic.P256()), big.NewInt(1))
 	sigmaWrongS, err := utils.MarshalECDSASignature(R, S)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = verifyECDSA(&lowLevelKey.PublicKey, sigmaWrongS, msg, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Invalid S. Must be smaller than half the order [")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid S. Must be smaller than half the order [")
 }
 
 func TestEcdsaSignerSign(t *testing.T) {
@@ -82,48 +82,48 @@ func TestEcdsaSignerSign(t *testing.T) {
 
 	// Generate a key
 	lowLevelKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	k := &ecdsaPrivateKey{lowLevelKey}
 	pk, err := k.PublicKey()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Sign
 	msg := []byte("Hello World")
 	sigma, err := signer.Sign(k, msg, nil)
-	require.NoError(t, err)
-	require.NotNil(t, sigma)
+	assert.NoError(t, err)
+	assert.NotNil(t, sigma)
 
 	// Verify
 	valid, err := verifyECDSA(&lowLevelKey.PublicKey, sigma, msg, nil)
-	require.NoError(t, err)
-	require.True(t, valid)
+	assert.NoError(t, err)
+	assert.True(t, valid)
 
 	valid, err = verifierPrivateKey.Verify(k, sigma, msg, nil)
-	require.NoError(t, err)
-	require.True(t, valid)
+	assert.NoError(t, err)
+	assert.True(t, valid)
 
 	valid, err = verifierPublicKey.Verify(pk, sigma, msg, nil)
-	require.NoError(t, err)
-	require.True(t, valid)
+	assert.NoError(t, err)
+	assert.True(t, valid)
 }
 
 func TestEcdsaPrivateKey(t *testing.T) {
 	t.Parallel()
 
 	lowLevelKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	k := &ecdsaPrivateKey{lowLevelKey}
 
-	require.False(t, k.Symmetric())
-	require.True(t, k.Private())
+	assert.False(t, k.Symmetric())
+	assert.True(t, k.Private())
 
 	_, err = k.Bytes()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Not supported.")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Not supported.")
 
 	k.privKey = nil
 	ski := k.SKI()
-	require.Nil(t, ski)
+	assert.Nil(t, ski)
 
 	k.privKey = lowLevelKey
 	ski = k.SKI()
@@ -131,29 +131,29 @@ func TestEcdsaPrivateKey(t *testing.T) {
 	hash := sha256.New()
 	hash.Write(raw)
 	ski2 := hash.Sum(nil)
-	require.Equal(t, ski2, ski, "SKI is not computed in the right way.")
+	assert.Equal(t, ski2, ski, "SKI is not computed in the right way.")
 
 	pk, err := k.PublicKey()
-	require.NoError(t, err)
-	require.NotNil(t, pk)
+	assert.NoError(t, err)
+	assert.NotNil(t, pk)
 	ecdsaPK, ok := pk.(*ecdsaPublicKey)
-	require.True(t, ok)
-	require.Equal(t, &lowLevelKey.PublicKey, ecdsaPK.pubKey)
+	assert.True(t, ok)
+	assert.Equal(t, &lowLevelKey.PublicKey, ecdsaPK.pubKey)
 }
 
 func TestEcdsaPublicKey(t *testing.T) {
 	t.Parallel()
 
 	lowLevelKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	k := &ecdsaPublicKey{&lowLevelKey.PublicKey}
 
-	require.False(t, k.Symmetric())
-	require.False(t, k.Private())
+	assert.False(t, k.Symmetric())
+	assert.False(t, k.Private())
 
 	k.pubKey = nil
 	ski := k.SKI()
-	require.Nil(t, ski)
+	assert.Nil(t, ski)
 
 	k.pubKey = &lowLevelKey.PublicKey
 	ski = k.SKI()
@@ -161,22 +161,22 @@ func TestEcdsaPublicKey(t *testing.T) {
 	hash := sha256.New()
 	hash.Write(raw)
 	ski2 := hash.Sum(nil)
-	require.Equal(t, ski, ski2, "SKI is not computed in the right way.")
+	assert.Equal(t, ski, ski2, "SKI is not computed in the right way.")
 
 	pk, err := k.PublicKey()
-	require.NoError(t, err)
-	require.Equal(t, k, pk)
+	assert.NoError(t, err)
+	assert.Equal(t, k, pk)
 
 	bytes, err := k.Bytes()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	bytes2, err := x509.MarshalPKIXPublicKey(k.pubKey)
-	require.NoError(t, err)
-	require.Equal(t, bytes2, bytes, "bytes are not computed in the right way.")
+	assert.NoError(t, err)
+	assert.Equal(t, bytes2, bytes, "bytes are not computed in the right way.")
 
 	invalidCurve := &elliptic.CurveParams{Name: "P-Invalid"}
 	invalidCurve.BitSize = 1024
 	k.pubKey = &ecdsa.PublicKey{Curve: invalidCurve, X: big.NewInt(1), Y: big.NewInt(1)}
 	_, err = k.Bytes()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Failed marshalling key [")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed marshalling key [")
 }

@@ -12,10 +12,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 

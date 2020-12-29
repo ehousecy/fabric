@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package etcdraft
 
 import (
-	"bytes"
 	"path"
 	"reflect"
 	"time"
@@ -17,43 +16,39 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/crypto"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/common/types"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/orderer/consensus/inactive"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/crypto"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/metrics"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/common/multichannel"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/orderer/consensus/follower"
+	"github.com/ehousecy/fabric/orderer/consensus/inactive"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/raft"
 )
 
-//go:generate counterfeiter -o mocks/inactive_chain_registry.go --fake-name InactiveChainRegistry . InactiveChainRegistry
+//go:generate mockery -dir . -name InactiveChainRegistry -case underscore -output mocks
 
 // InactiveChainRegistry registers chains that are inactive
 type InactiveChainRegistry interface {
 	// TrackChain tracks a chain with the given name, and calls the given callback
 	// when this chain should be created.
 	TrackChain(chainName string, genesisBlock *common.Block, createChain func())
-	// Stop stops the InactiveChainRegistry. This is used when removing the
-	// system channel.
-	Stop()
 }
 
-//go:generate counterfeiter -o mocks/chain_manager.go --fake-name ChainManager . ChainManager
+//go:generate mockery -dir . -name ChainGetter -case underscore -output mocks
 
-// ChainManager defines the methods from multichannel.Registrar needed by the Consenter.
-type ChainManager interface {
-	GetConsensusChain(channelID string) consensus.Chain
-	CreateChain(channelID string)
-	SwitchChainToFollower(channelID string)
-	ReportConsensusRelationAndStatusMetrics(channelID string, relation types.ConsensusRelation, status types.Status)
+// ChainGetter obtains instances of ChainSupport for the given channel
+type ChainGetter interface {
+	// GetChain obtains the ChainSupport for the given channel.
+	// Returns nil, false when the ChainSupport for the given channel
+	// isn't found.
+	GetChain(chainID string) *multichannel.ChainSupport
 }
 
 // Config contains etcdraft configurations
@@ -66,11 +61,12 @@ type Config struct {
 
 // Consenter implements etcdraft consenter
 type Consenter struct {
-	ChainManager          ChainManager
+	CreateChain           func(chainName string)
 	InactiveChainRegistry InactiveChainRegistry
 	Dialer                *cluster.PredicateDialer
 	Communication         cluster.Communicator
 	*Dispatcher
+	Chains         ChainGetter
 	Logger         *flogging.FabricLogger
 	EtcdRaftConfig Config
 	OrdererConfig  localconfig.TopLevel
@@ -95,14 +91,17 @@ func (c *Consenter) TargetChannel(message proto.Message) string {
 // ReceiverByChain returns the MessageReceiver for the given channelID or nil
 // if not found.
 func (c *Consenter) ReceiverByChain(channelID string) MessageReceiver {
-	chain := c.ChainManager.GetConsensusChain(channelID)
-	if chain == nil {
+	cs := c.Chains.GetChain(channelID)
+	if cs == nil {
 		return nil
 	}
-	if etcdRaftChain, isEtcdRaftChain := chain.(*Chain); isEtcdRaftChain {
+	if cs.Chain == nil {
+		c.Logger.Panicf("Programming error - Chain %s is nil although it exists in the mapping", channelID)
+	}
+	if etcdRaftChain, isEtcdRaftChain := cs.Chain.(*Chain); isEtcdRaftChain {
 		return etcdRaftChain
 	}
-	c.Logger.Warningf("Chain %s is of type %v and not etcdraft.Chain", channelID, reflect.TypeOf(chain))
+	c.Logger.Warningf("Chain %s is of type %v and not etcdraft.Chain", channelID, reflect.TypeOf(cs.Chain))
 	return nil
 }
 
@@ -162,16 +161,14 @@ func (c *Consenter) HandleChain(support consensus.ConsenterSupport, metadata *co
 	id, err := c.detectSelfID(consenters)
 	if err != nil {
 		if c.InactiveChainRegistry != nil {
-			// There is a system channel, use the InactiveChainRegistry to track the
-			// future config updates of application channel.
 			c.InactiveChainRegistry.TrackChain(support.ChannelID(), support.Block(0), func() {
-				c.ChainManager.CreateChain(support.ChannelID())
+				c.CreateChain(support.ChannelID())
 			})
-			c.ChainManager.ReportConsensusRelationAndStatusMetrics(support.ChannelID(), types.ConsensusRelationConfigTracker, types.StatusInactive)
 			return &inactive.Chain{Err: errors.Errorf("channel %s is not serviced by me", support.ChannelID())}, nil
+		} else {
+			//TODO fully construct a follower chain
+			return &follower.Chain{Err: errors.Errorf("orderer is a follower of channel %s", support.ChannelID())}, nil
 		}
-
-		return nil, errors.Wrap(err, "without a system channel, a follower should have been created")
 	}
 
 	var evictionSuspicion time.Duration
@@ -232,20 +229,25 @@ func (c *Consenter) HandleChain(support consensus.ConsenterSupport, metadata *co
 		StreamsByType: cluster.NewStreamsByType(),
 	}
 
-	var haltCallback func() // called after the etcdraft.Chain halts when it detects eviction form the cluster.
+	// when we have a system channel
 	if c.InactiveChainRegistry != nil {
-		// when we have a system channel, we use the InactiveChainRegistry to track membership upon eviction.
-		c.Logger.Info("With system channel: after eviction InactiveChainRegistry.TrackChain will be called")
-		haltCallback = func() {
-			c.InactiveChainRegistry.TrackChain(support.ChannelID(), nil, func() { c.ChainManager.CreateChain(support.ChannelID()) })
-			c.ChainManager.ReportConsensusRelationAndStatusMetrics(support.ChannelID(), types.ConsensusRelationConfigTracker, types.StatusInactive)
-		}
-	} else {
-		// when we do NOT have a system channel, we switch to a follower.Chain upon eviction.
-		c.Logger.Info("Without system channel: after eviction Registrar.SwitchToFollower will be called")
-		haltCallback = func() { c.ChainManager.SwitchChainToFollower(support.ChannelID()) }
+		return NewChain(
+			support,
+			opts,
+			c.Communication,
+			rpc,
+			c.BCCSP,
+			func() (BlockPuller, error) {
+				return NewBlockPuller(support, c.Dialer, c.OrdererConfig.General.Cluster, c.BCCSP)
+			},
+			func() {
+				c.InactiveChainRegistry.TrackChain(support.ChannelID(), nil, func() { c.CreateChain(support.ChannelID()) })
+			},
+			nil,
+		)
 	}
 
+	// when we do NOT have a system channel
 	return NewChain(
 		support,
 		opts,
@@ -255,60 +257,17 @@ func (c *Consenter) HandleChain(support consensus.ConsenterSupport, metadata *co
 		func() (BlockPuller, error) {
 			return NewBlockPuller(support, c.Dialer, c.OrdererConfig.General.Cluster, c.BCCSP)
 		},
-		haltCallback,
+		func() {
+			c.Logger.Warning("Start a follower.Chain: not yet implemented")
+			//TODO start follower.Chain
+		},
 		nil,
 	)
 }
 
-func (c *Consenter) IsChannelMember(joinBlock *common.Block) (bool, error) {
-	if joinBlock == nil {
-		return false, errors.New("nil block")
-	}
-	envelopeConfig, err := protoutil.ExtractEnvelope(joinBlock, 0)
-	if err != nil {
-		return false, err
-	}
-	bundle, err := channelconfig.NewBundleFromEnvelope(envelopeConfig, c.BCCSP)
-	if err != nil {
-		return false, err
-	}
-	oc, exists := bundle.OrdererConfig()
-	if !exists {
-		return false, errors.New("no orderer config in bundle")
-	}
-	configMetadata := &etcdraft.ConfigMetadata{}
-	if err := proto.Unmarshal(oc.ConsensusMetadata(), configMetadata); err != nil {
-		return false, err
-	}
-
-	verifyOpts, err := createX509VerifyOptions(oc)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to create x509 verify options from orderer config")
-	}
-
-	if err := VerifyConfigMetadata(configMetadata, verifyOpts); err != nil {
-		return false, errors.Wrapf(err, "failed to validate config metadata of ordering config")
-	}
-
-	member := false
-	for _, consenter := range configMetadata.Consenters {
-		if bytes.Equal(c.Cert, consenter.ServerTlsCert) || bytes.Equal(c.Cert, consenter.ClientTlsCert) {
-			member = true
-			break
-		}
-	}
-
-	return member, nil
-}
-
-// RemoveInactiveChainRegistry stops and removes the inactive chain registry.
-// This is used when removing the system channel.
-func (c *Consenter) RemoveInactiveChainRegistry() {
-	if c.InactiveChainRegistry == nil {
-		return
-	}
-	c.InactiveChainRegistry.Stop()
-	c.InactiveChainRegistry = nil
+func (c *Consenter) JoinChain(support consensus.ConsenterSupport, joinBlock *common.Block) (consensus.Chain, error) {
+	//TODO fully construct a follower.Chain
+	return nil, errors.New("not implemented")
 }
 
 // ReadBlockMetadata attempts to read raft metadata from block metadata, if available.
@@ -341,7 +300,7 @@ func New(
 	conf *localconfig.TopLevel,
 	srvConf comm.ServerConfig,
 	srv *comm.GRPCServer,
-	registrar ChainManager,
+	r *multichannel.Registrar,
 	icr InactiveChainRegistry,
 	metricsProvider metrics.Provider,
 	bccsp bccsp.BCCSP,
@@ -355,9 +314,10 @@ func New(
 	}
 
 	consenter := &Consenter{
-		ChainManager:          registrar,
+		CreateChain:           r.CreateChain,
 		Cert:                  srvConf.SecOpts.Certificate,
 		Logger:                logger,
+		Chains:                r,
 		EtcdRaftConfig:        cfg,
 		OrdererConfig:         *conf,
 		Dialer:                clusterDialer,

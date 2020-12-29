@@ -7,17 +7,17 @@ SPDX-License-Identifier: Apache-2.0
 package api
 
 import (
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
 	"time"
 
+	"github.com/ehousecy/fabric/gossip/common"
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/gossip/common"
 	"google.golang.org/grpc"
 )
 
@@ -129,9 +129,9 @@ func (pit PeerIdentityType) String() string {
 		return fmt.Sprintf("non PEM encoded identity: %s", base64Representation)
 	}
 
-	cert, _ := x509.ParseCertificate(bl.Bytes)
+	cert, _ := sm2.ParseCertificate(bl.Bytes)
 	if cert == nil {
-		return fmt.Sprintf("non x509 identity: %s", base64Representation)
+		return fmt.Sprintf("non sm2 identity: %s", base64Representation)
 	}
 	m := make(map[string]interface{})
 	m["MSP"] = sID.Mspid

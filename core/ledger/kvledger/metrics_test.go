@@ -12,13 +12,13 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
-	lgr "github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/validation"
-	"github.com/hyperledger/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/common/metrics"
+	"github.com/ehousecy/fabric/common/metrics/metricsfakes"
+	lgr "github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/validation"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +45,7 @@ func TestStatsBlockCommit(t *testing.T) {
 	// create a ledger
 	ledgerid := "ledger1"
 	_, gb := testutil.NewBlockGenerator(t, ledgerid, false)
-	l, err := provider.CreateFromGenesisBlock(gb)
+	l, err := provider.Create(gb)
 	require.NoError(t, err)
 	ledger := l.(*kvLedger)
 	defer ledger.Close()

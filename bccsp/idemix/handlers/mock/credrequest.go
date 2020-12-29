@@ -4,7 +4,7 @@ package mock
 import (
 	"sync"
 
-	"github.com/hyperledger/fabric/bccsp/idemix/handlers"
+	"github.com/ehousecy/fabric/bccsp/idemix/handlers"
 )
 
 type CredRequest struct {

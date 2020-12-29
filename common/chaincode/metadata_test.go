@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToChaincodes(t *testing.T) {
@@ -20,7 +20,7 @@ func TestToChaincodes(t *testing.T) {
 			Version: "1.0",
 		},
 	}
-	require.Equal(t, []*gossip.Chaincode{
+	assert.Equal(t, []*gossip.Chaincode{
 		{Name: "foo", Version: "1.0"},
 	}, ccs.AsChaincodes())
 }
@@ -35,11 +35,11 @@ func TestMetadataMapping(t *testing.T) {
 	}
 	mm.Update(md1)
 	res, found := mm.Lookup("cc1")
-	require.Equal(t, md1, res)
-	require.True(t, found)
+	assert.Equal(t, md1, res)
+	assert.True(t, found)
 	res, found = mm.Lookup("cc2")
-	require.Zero(t, res)
-	require.False(t, found)
+	assert.Zero(t, res)
+	assert.False(t, found)
 	md2 := Metadata{
 		Name:    "cc1",
 		Id:      []byte{1},
@@ -48,8 +48,8 @@ func TestMetadataMapping(t *testing.T) {
 	}
 	mm.Update(md2)
 	res, found = mm.Lookup("cc1")
-	require.True(t, found)
-	require.Equal(t, md2, res)
+	assert.True(t, found)
+	assert.Equal(t, md2, res)
 
-	require.Equal(t, MetadataSet{md2}, mm.Aggregate())
+	assert.Equal(t, MetadataSet{md2}, mm.Aggregate())
 }

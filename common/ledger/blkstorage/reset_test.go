@@ -15,8 +15,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -232,7 +232,8 @@ func assertBlockStorePostReset(t *testing.T, store *BlockStore, originallyCommit
 	require.Equal(t, originallyCommittedBlocks[0], blk)
 
 	_, err = store.RetrieveBlockByNumber(1)
-	require.EqualError(t, err, "no such block number [1] in index")
+	require.Error(t, err)
+	require.Equal(t, err, ErrNotFoundInIndex)
 
 	err = store.AddBlock(originallyCommittedBlocks[0])
 	require.EqualError(t, err, "block number should have been 1 but was 0")

@@ -13,12 +13,12 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/dataformat"
-	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/dataformat"
+	"github.com/ehousecy/fabric/common/metrics"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
 	"github.com/pkg/errors"
 )
 
@@ -35,11 +35,8 @@ const (
 	// a double underscore ensures that the dbname does not clash with the dbnames created for the chaincodes
 	fabricInternalDBName = "fabric__internal"
 	// dataformatVersionDocID is used as a key for maintaining version of the data format (maintained in fabric internal db)
-	dataformatVersionDocID = "dataformatVersion"
-)
-
-var (
-	maxDataImportBatchMemorySize = 2 * 1024 * 1024
+	dataformatVersionDocID      = "dataformatVersion"
+	fullScanIteratorValueFormat = byte(1)
 )
 
 // VersionedDBProvider implements interface VersionedDBProvider
@@ -109,6 +106,7 @@ func readDataformatVersion(couchInstance *couchInstance) (string, error) {
 		return "", err
 	}
 	doc, _, err := db.readDoc(dataformatVersionDocID)
+	logger.Debugf("dataformatVersionDoc = %s", doc)
 	if err != nil || doc == nil {
 		return "", err
 	}
@@ -133,113 +131,27 @@ func (provider *VersionedDBProvider) GetDBHandle(dbName string, nsProvider state
 	provider.mux.Lock()
 	defer provider.mux.Unlock()
 	vdb := provider.databases[dbName]
-	if vdb != nil {
-		return vdb, nil
+	if vdb == nil {
+		var err error
+		vdb, err = newVersionedDB(
+			provider.couchInstance,
+			provider.redoLoggerProvider.newRedoLogger(dbName),
+			dbName,
+			provider.cache,
+			nsProvider,
+		)
+		if err != nil {
+			return nil, err
+		}
+		provider.databases[dbName] = vdb
 	}
-
-	var err error
-	vdb, err = newVersionedDB(
-		provider.couchInstance,
-		provider.redoLoggerProvider.newRedoLogger(dbName),
-		dbName,
-		provider.cache,
-		nsProvider,
-	)
-	if err != nil {
-		return nil, err
-	}
-	provider.databases[dbName] = vdb
 	return vdb, nil
-}
-
-// ImportFromSnapshot loads the public state and pvtdata hashes from the snapshot files previously generated
-func (provider *VersionedDBProvider) ImportFromSnapshot(
-	dbName string,
-	savepoint *version.Height,
-	itr statedb.FullScanIterator,
-) error {
-	metadataDB, err := createCouchDatabase(provider.couchInstance, constructMetadataDBName(dbName))
-	if err != nil {
-		return errors.WithMessagef(err, "error while creating the metadata database for channel %s", dbName)
-	}
-
-	vdb := &VersionedDB{
-		chainName:     dbName,
-		couchInstance: provider.couchInstance,
-		metadataDB:    metadataDB,
-		channelMetadata: &channelMetadata{
-			ChannelName:      dbName,
-			NamespaceDBsInfo: make(map[string]*namespaceDBInfo),
-		},
-		namespaceDBs: make(map[string]*couchDatabase),
-	}
-	if err := vdb.writeChannelMetadata(); err != nil {
-		return errors.WithMessage(err, "error while writing channel metadata")
-	}
-
-	s := &snapshotImporter{
-		vdb: vdb,
-		itr: itr,
-	}
-	if err := s.importState(); err != nil {
-		return err
-	}
-
-	return vdb.recordSavepoint(savepoint)
-}
-
-// BytesKeySupported returns true if a db created supports bytes as a key
-func (provider *VersionedDBProvider) BytesKeySupported() bool {
-	return false
 }
 
 // Close closes the underlying db instance
 func (provider *VersionedDBProvider) Close() {
 	// No close needed on Couch
 	provider.redoLoggerProvider.close()
-}
-
-// Drop drops the couch dbs and redologger data for the channel.
-// It is not an error if a database does not exist.
-func (provider *VersionedDBProvider) Drop(dbName string) error {
-	metadataDBName := constructMetadataDBName(dbName)
-	couchDBDatabase := couchDatabase{couchInstance: provider.couchInstance, dbName: metadataDBName, indexWarmCounter: 1}
-	_, couchDBReturn, err := couchDBDatabase.getDatabaseInfo()
-	if couchDBReturn != nil && couchDBReturn.StatusCode == 404 {
-		// db does not exist
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	metadataDB, err := createCouchDatabase(provider.couchInstance, metadataDBName)
-	if err != nil {
-		return err
-	}
-	channelMetadata, err := readChannelMetadata(metadataDB)
-	if err != nil {
-		return err
-	}
-
-	for _, dbInfo := range channelMetadata.NamespaceDBsInfo {
-		// do not drop metadataDB until all other dbs are dropped
-		if dbInfo.DBName == metadataDBName {
-			continue
-		}
-		if err := dropDB(provider.couchInstance, dbInfo.DBName); err != nil {
-			logger.Errorw("Error dropping database", "channel", dbName, "namespace", dbInfo.Namespace, "error", err)
-			return err
-		}
-	}
-	if err := dropDB(provider.couchInstance, metadataDBName); err != nil {
-		logger.Errorw("Error dropping metatdataDB", "channel", dbName, "error", err)
-		return err
-	}
-
-	delete(provider.databases, dbName)
-
-	return provider.redoLoggerProvider.leveldbProvider.Drop(dbName)
 }
 
 // HealthCheck checks to see if the couch instance of the peer is healthy
@@ -328,28 +240,25 @@ func (vdb *VersionedDB) getNamespaceDBHandle(namespace string) (*couchDatabase, 
 	namespaceDBName := constructNamespaceDBName(vdb.chainName, namespace)
 	vdb.mux.Lock()
 	defer vdb.mux.Unlock()
-
 	db = vdb.namespaceDBs[namespace]
-	if db != nil {
-		return db, nil
-	}
-
-	var err error
-	if _, ok := vdb.channelMetadata.NamespaceDBsInfo[namespace]; !ok {
-		logger.Debugf("[%s] add namespaceDBInfo for namespace %s", vdb.chainName, namespace)
-		vdb.channelMetadata.NamespaceDBsInfo[namespace] = &namespaceDBInfo{
-			Namespace: namespace,
-			DBName:    namespaceDBName,
+	if db == nil {
+		var err error
+		if _, ok := vdb.channelMetadata.NamespaceDBsInfo[namespace]; !ok {
+			logger.Debugf("[%s] add namespaceDBInfo for namespace %s", vdb.chainName, namespace)
+			vdb.channelMetadata.NamespaceDBsInfo[namespace] = &namespaceDBInfo{
+				Namespace: namespace,
+				DBName:    namespaceDBName,
+			}
+			if err = vdb.writeChannelMetadata(); err != nil {
+				return nil, err
+			}
 		}
-		if err = vdb.writeChannelMetadata(); err != nil {
+		db, err = createCouchDatabase(vdb.couchInstance, namespaceDBName)
+		if err != nil {
 			return nil, err
 		}
+		vdb.namespaceDBs[namespace] = db
 	}
-	db, err = createCouchDatabase(vdb.couchInstance, namespaceDBName)
-	if err != nil {
-		return nil, err
-	}
-	vdb.namespaceDBs[namespace] = db
 	return db, nil
 }
 
@@ -427,7 +336,7 @@ func (vdb *VersionedDB) LoadCommittedVersions(keys []*statedb.CompositeKey) erro
 
 	nsMetadataMap, err := vdb.retrieveMetadata(missingKeys)
 	logger.Debugf("missingKeys=%s", missingKeys)
-	logger.Debugf("nsMetadataMap=%v", nsMetadataMap)
+	logger.Debugf("nsMetadataMap=%s", nsMetadataMap)
 	if err != nil {
 		return err
 	}
@@ -452,17 +361,15 @@ func (vdb *VersionedDB) LoadCommittedVersions(keys []*statedb.CompositeKey) erro
 // GetVersion implements method in VersionedDB interface
 func (vdb *VersionedDB) GetVersion(namespace string, key string) (*version.Height, error) {
 	version, keyFound := vdb.GetCachedVersion(namespace, key)
-	if keyFound {
-		return version, nil
+	if !keyFound {
+		// This if block get executed only during simulation because during commit
+		// we always call `LoadCommittedVersions` before calling `GetVersion`
+		vv, err := vdb.GetState(namespace, key)
+		if err != nil || vv == nil {
+			return nil, err
+		}
+		version = vv.Version
 	}
-
-	// This if block get executed only during simulation because during commit
-	// we always call `LoadCommittedVersions` before calling `GetVersion`
-	vv, err := vdb.GetState(namespace, key)
-	if err != nil || vv == nil {
-		return nil, err
-	}
-	version = vv.Version
 	return version, nil
 }
 
@@ -905,12 +812,8 @@ func (vdb *VersionedDB) initChannelMetadata(isNewDB bool, namespaceProvider stat
 
 // readChannelMetadata returns channel metadata stored in metadataDB
 func (vdb *VersionedDB) readChannelMetadata() (*channelMetadata, error) {
-	return readChannelMetadata(vdb.metadataDB)
-}
-
-func readChannelMetadata(metadataDB *couchDatabase) (*channelMetadata, error) {
 	var err error
-	couchDoc, _, err := metadataDB.readDoc(channelMetadataDocID)
+	couchDoc, _, err := vdb.metadataDB.readDoc(channelMetadataDocID)
 	if err != nil {
 		logger.Errorf("Failed to read db name mapping data %s", err.Error())
 		return nil, err
@@ -936,7 +839,7 @@ func (vdb *VersionedDB) writeChannelMetadata() error {
 // FullScanIterator that can be used to iterate over entire data in the statedb for a channel.
 // `skipNamespace` parameter can be used to control if the consumer wants the FullScanIterator
 // to skip one or more namespaces from the returned results.
-func (vdb *VersionedDB) GetFullScanIterator(skipNamespace func(string) bool) (statedb.FullScanIterator, error) {
+func (vdb *VersionedDB) GetFullScanIterator(skipNamespace func(string) bool) (statedb.FullScanIterator, byte, error) {
 	namespacesToScan := []string{}
 	for ns := range vdb.channelMetadata.NamespaceDBsInfo {
 		if skipNamespace(ns) {
@@ -955,7 +858,7 @@ func (vdb *VersionedDB) GetFullScanIterator(skipNamespace func(string) bool) (st
 	for _, ns := range namespacesToScan {
 		db, err := vdb.getNamespaceDBHandle(ns)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to get database handle for the namespace %s", ns)
+			return nil, byte(0), errors.WithMessagef(err, "failed to get database handle for the namespace %s", ns)
 		}
 		dbsToScan = append(dbsToScan, &namespaceDB{ns, db})
 	}
@@ -1053,7 +956,7 @@ func newQueryScanner(namespace string, db *couchDatabase, query string, internal
 	return scanner, nil
 }
 
-func (scanner *queryScanner) Next() (*statedb.VersionedKV, error) {
+func (scanner *queryScanner) Next() (statedb.QueryResult, error) {
 	doc, err := scanner.next()
 	if err != nil {
 		return nil, err
@@ -1067,11 +970,11 @@ func (scanner *queryScanner) Next() (*statedb.VersionedKV, error) {
 	}
 	scanner.resultsInfo.totalRecordsReturned++
 	return &statedb.VersionedKV{
-		CompositeKey: &statedb.CompositeKey{
+		CompositeKey: statedb.CompositeKey{
 			Namespace: scanner.namespace,
 			Key:       kv.key,
 		},
-		VersionedValue: kv.VersionedValue,
+		VersionedValue: *kv.VersionedValue,
 	}, nil
 }
 
@@ -1156,9 +1059,9 @@ type namespaceDB struct {
 	db *couchDatabase
 }
 
-func newDBsScanner(dbsToScan []*namespaceDB, prefetchLimit int32, toSkipKeysFromEmptyNs map[string]bool) (*dbsScanner, error) {
+func newDBsScanner(dbsToScan []*namespaceDB, prefetchLimit int32, toSkipKeysFromEmptyNs map[string]bool) (*dbsScanner, byte, error) {
 	if len(dbsToScan) == 0 {
-		return nil, nil
+		return nil, fullScanIteratorValueFormat, nil
 	}
 	s := &dbsScanner{
 		dbs:                   dbsToScan,
@@ -1166,9 +1069,9 @@ func newDBsScanner(dbsToScan []*namespaceDB, prefetchLimit int32, toSkipKeysFrom
 		toSkipKeysFromEmptyNs: toSkipKeysFromEmptyNs,
 	}
 	if err := s.beginNextDBScan(); err != nil {
-		return nil, err
+		return nil, byte(0), err
 	}
-	return s, nil
+	return s, fullScanIteratorValueFormat, nil
 }
 
 func (s *dbsScanner) beginNextDBScan() error {
@@ -1190,14 +1093,15 @@ func (s *dbsScanner) beginNextDBScan() error {
 
 // Next returns the key-values present in the namespaceDB. Once a namespaceDB
 // is processed, it moves to the next namespaceDB till all are processed.
-func (s *dbsScanner) Next() (*statedb.VersionedKV, error) {
+// The <version, value, metadata> is converted to []byte using a proto.
+func (s *dbsScanner) Next() (*statedb.CompositeKey, []byte, error) {
 	if s == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	for {
 		couchDoc, err := s.resultItr.next()
 		if err != nil {
-			return nil, errors.WithMessagef(
+			return nil, nil, errors.WithMessagef(
 				err,
 				"failed to retrieve the next entry from scanner associated with namespace %s",
 				s.currentNamespace,
@@ -1209,14 +1113,14 @@ func (s *dbsScanner) Next() (*statedb.VersionedKV, error) {
 				break
 			}
 			if err := s.beginNextDBScan(); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			continue
 		}
 		if s.currentNamespace == "" {
 			key, err := couchDoc.key()
 			if err != nil {
-				return nil, errors.WithMessagef(
+				return nil, nil, errors.WithMessagef(
 					err,
 					"failed to retrieve key from the couchdoc present in the empty namespace",
 				)
@@ -1225,24 +1129,29 @@ func (s *dbsScanner) Next() (*statedb.VersionedKV, error) {
 				continue
 			}
 		}
-		kv, err := couchDocToKeyValue(couchDoc)
+		fields, err := validateAndRetrieveFields(couchDoc)
 		if err != nil {
-			return nil, errors.WithMessagef(
+			return nil, nil, errors.WithMessagef(
 				err,
 				"failed to validate and retrieve fields from couch doc with id %s",
-				kv.key,
+				fields.id,
 			)
 		}
-		return &statedb.VersionedKV{
-				CompositeKey: &statedb.CompositeKey{
-					Namespace: s.currentNamespace,
-					Key:       kv.key,
-				},
-				VersionedValue: kv.VersionedValue,
-			},
-			nil
+		dbval, err := encodeValueVersionMetadata(fields.value, []byte(fields.versionAndMetadata))
+		if err != nil {
+			return nil, nil, errors.WithMessagef(
+				err,
+				"failed to encode value [%v] version and metadata [%v]",
+				fields.value,
+				fields.versionAndMetadata,
+			)
+		}
+		return &statedb.CompositeKey{
+			Namespace: s.currentNamespace,
+			Key:       fields.id,
+		}, dbval, nil
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (s *dbsScanner) Close() {
@@ -1250,88 +1159,4 @@ func (s *dbsScanner) Close() {
 		return
 	}
 	s.resultItr.Close()
-}
-
-type snapshotImporter struct {
-	vdb              *VersionedDB
-	itr              statedb.FullScanIterator
-	currentNs        string
-	currentNsDB      *couchDatabase
-	pendingDocsBatch []*couchDoc
-	batchMemorySize  int
-}
-
-func (s *snapshotImporter) importState() error {
-	if s.itr == nil {
-		return nil
-	}
-	for {
-		versionedKV, err := s.itr.Next()
-		if err != nil {
-			return err
-		}
-		if versionedKV == nil {
-			break
-		}
-
-		switch {
-		case s.currentNsDB == nil:
-			if err := s.createDBForNamespace(versionedKV.Namespace); err != nil {
-				return err
-			}
-		case s.currentNs != versionedKV.Namespace:
-			if err := s.storePendingDocs(); err != nil {
-				return err
-			}
-			if err := s.createDBForNamespace(versionedKV.Namespace); err != nil {
-				return err
-			}
-		}
-
-		doc, err := keyValToCouchDoc(
-			&keyValue{
-				key:            versionedKV.Key,
-				VersionedValue: versionedKV.VersionedValue,
-			},
-		)
-		if err != nil {
-			return err
-		}
-		s.pendingDocsBatch = append(s.pendingDocsBatch, doc)
-		s.batchMemorySize += doc.len()
-
-		if s.batchMemorySize >= maxDataImportBatchMemorySize ||
-			len(s.pendingDocsBatch) == s.vdb.couchInstance.maxBatchUpdateSize() {
-			if err := s.storePendingDocs(); err != nil {
-				return err
-			}
-		}
-	}
-
-	return s.storePendingDocs()
-}
-
-func (s *snapshotImporter) createDBForNamespace(ns string) error {
-	s.currentNs = ns
-	var err error
-	s.currentNsDB, err = s.vdb.getNamespaceDBHandle(ns)
-	return errors.WithMessagef(err, "error while creating database for the namespace %s", ns)
-}
-
-func (s *snapshotImporter) storePendingDocs() error {
-	if len(s.pendingDocsBatch) == 0 {
-		return nil
-	}
-
-	if err := s.currentNsDB.insertDocuments(s.pendingDocsBatch); err != nil {
-		return errors.WithMessagef(
-			err,
-			"error while storing %d states associated with namespace %s",
-			len(s.pendingDocsBatch), s.currentNs,
-		)
-	}
-	s.batchMemorySize = 0
-	s.pendingDocsBatch = nil
-
-	return nil
 }

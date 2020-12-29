@@ -12,11 +12,11 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/common/util"
-	lgr "github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/common/util"
+	lgr "github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +46,7 @@ func testGenerateSampleRWSet(t *testing.T) []byte {
 
 	bg, gb := testutil.NewBlockGenerator(t, "testLedger", false)
 	gbHash := protoutil.BlockHeaderHash(gb.Header)
-	ledger, err := provider.CreateFromGenesisBlock(gb)
+	ledger, err := provider.Create(gb)
 	require.NoError(t, err)
 	defer ledger.Close()
 
@@ -63,7 +63,7 @@ func testGenerateSampleRWSet(t *testing.T) []byte {
 	simulator, err := ledger.NewTxSimulator(txid)
 	require.NoError(t, err)
 	for i := 0; i < 10011; i++ {
-		require.NoError(t, simulator.SetState("ns1", fmt.Sprintf("key-%000d", i), []byte(fmt.Sprintf("value-%000d", i))))
+		simulator.SetState("ns1", fmt.Sprintf("key-%000d", i), []byte(fmt.Sprintf("value-%000d", i)))
 	}
 	simulator.Done()
 	simRes, err := simulator.GetTxSimulationResults()
@@ -71,13 +71,12 @@ func testGenerateSampleRWSet(t *testing.T) []byte {
 	pubSimBytes, err := simRes.GetPubSimulationBytes()
 	require.NoError(t, err)
 	block1 := bg.NextBlock([][]byte{pubSimBytes})
-	require.NoError(t, ledger.CommitLegacy(&lgr.BlockAndPvtData{Block: block1}, &lgr.CommitOptions{}))
+	ledger.CommitLegacy(&lgr.BlockAndPvtData{Block: block1}, &lgr.CommitOptions{})
 
 	simulator, err = ledger.NewTxSimulator(txid)
 	require.NoError(t, err)
-	_, err = simulator.GetState("ns1", fmt.Sprintf("key-%000d", 5))
-	require.NoError(t, err)
-	require.NoError(t, simulator.SetState("ns1", fmt.Sprintf("key-%000d", 6), []byte(fmt.Sprintf("value-%000d-new", 6))))
+	simulator.GetState("ns1", fmt.Sprintf("key-%000d", 5))
+	simulator.SetState("ns1", fmt.Sprintf("key-%000d", 6), []byte(fmt.Sprintf("value-%000d-new", 6)))
 	itr, err := simulator.GetStateRangeScanIterator("ns1", "", "")
 	require.NoError(t, err)
 	numKVs := 0

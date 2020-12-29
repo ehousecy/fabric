@@ -18,7 +18,7 @@ none
 Known Issues & Workarounds
 --------------------------
 The fabric-ccenv image which is used to build chaincode, currently includes
-the github.com/hyperledger/fabric/core/chaincode/shim ("shim") package.
+the github.com/ehousecy/fabric/core/chaincode/shim ("shim") package.
 This is convenient, as it provides the ability to package chaincode
 without the need to include the "shim". However, this may cause issues in future
 releases (and/or when trying to use packages which are included by the "shim").

@@ -11,7 +11,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"github.com/ehousecy/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
 )
 

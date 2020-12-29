@@ -8,9 +8,9 @@ package validation
 
 import (
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
 )
 
 // block is used to used to hold the information from its proto format to a structure
@@ -86,7 +86,7 @@ func (u *publicAndHashUpdates) applyWriteSet(
 ) error {
 	u.publicUpdates.ContainsPostOrderWrites =
 		u.publicUpdates.ContainsPostOrderWrites || containsPostOrderWrites
-	txops, err := prepareTxOps(txRWSet, u, db)
+	txops, err := prepareTxOps(txRWSet, txHeight, u, db)
 	logger.Debugf("txops=%#v", txops)
 	if err != nil {
 		return err

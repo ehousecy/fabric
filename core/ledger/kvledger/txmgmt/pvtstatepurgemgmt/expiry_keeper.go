@@ -8,10 +8,10 @@ package pvtstatepurgemgmt
 
 import (
 	proto "github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/util"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/util"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/bookkeeping"
 )
 
 var logger = flogging.MustGetLogger("pvtstatepurgemgmt")
@@ -39,7 +39,7 @@ type expiryInfoKey struct {
 	expiryBlk     uint64
 }
 
-func newExpiryKeeper(ledgerid string, provider *bookkeeping.Provider) *expiryKeeper {
+func newExpiryKeeper(ledgerid string, provider bookkeeping.Provider) *expiryKeeper {
 	return &expiryKeeper{provider.GetDBHandle(ledgerid, bookkeeping.PvtdataExpiry)}
 }
 

@@ -7,10 +7,10 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
+	tls "github.com/tjfoc/gmtls"
 
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"github.com/pkg/errors"
 )
 
@@ -35,9 +35,7 @@ func NewOrdererClientFromEnv() (*OrdererClient, error) {
 		CommonClient: CommonClient{
 			GRPCClient: gClient,
 			Address:    address,
-			sn:         override,
-		},
-	}
+			sn:         override}}
 	return oClient, nil
 }
 

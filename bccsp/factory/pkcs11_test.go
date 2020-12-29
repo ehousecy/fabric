@@ -12,8 +12,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/pkcs11"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/pkcs11"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExportedInitFactories(t *testing.T) {
@@ -21,55 +21,57 @@ func TestExportedInitFactories(t *testing.T) {
 	factoriesInitError = initFactories(nil)
 
 	err := InitFactories(nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestInitFactories(t *testing.T) {
 	err := initFactories(nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = initFactories(&FactoryOpts{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestInitFactoriesInvalidArgs(t *testing.T) {
 	err := initFactories(&FactoryOpts{
-		Default: "SW",
-		SW:      &SwOpts{},
+		ProviderName: "SW",
+		SwOpts:       &SwOpts{},
 	})
-	require.EqualError(t, err, "Failed initializing SW.BCCSP: Could not initialize BCCSP SW [Failed initializing configuration at [0,]: Hash Family not supported []]")
+	assert.EqualError(t, err, "Failed initializing SW.BCCSP: Could not initialize BCCSP SW [Failed initializing configuration at [0,]: Hash Family not supported []]")
 
 	err = initFactories(&FactoryOpts{
-		Default: "PKCS11",
-		PKCS11:  &pkcs11.PKCS11Opts{},
+		ProviderName: "PKCS11",
+		Pkcs11Opts:   &pkcs11.PKCS11Opts{},
 	})
-	require.EqualError(t, err, "Failed initializing PKCS11.BCCSP: Could not initialize BCCSP PKCS11 [Failed initializing configuration: Security level not supported [0]]")
+	assert.EqualError(t, err, "Failed initializing PKCS11.BCCSP: Could not initialize BCCSP PKCS11 [Failed initializing configuration: Hash Family not supported []]")
 }
 
 func TestGetBCCSPFromOpts(t *testing.T) {
 	opts := GetDefaultOpts()
-	opts.SW.FileKeystore = &FileKeystoreOpts{KeyStorePath: os.TempDir()}
+	opts.SwOpts.Ephemeral = false
+	opts.SwOpts.FileKeystore = &FileKeystoreOpts{KeyStorePath: os.TempDir()}
 	csp, err := GetBCCSPFromOpts(opts)
-	require.NoError(t, err)
-	require.NotNil(t, csp)
+	assert.NoError(t, err)
+	assert.NotNil(t, csp)
 
 	lib, pin, label := pkcs11.FindPKCS11Lib()
 	csp, err = GetBCCSPFromOpts(&FactoryOpts{
-		Default: "PKCS11",
-		PKCS11: &pkcs11.PKCS11Opts{
-			Security: 256,
-			Hash:     "SHA2",
-			Library:  lib,
-			Pin:      pin,
-			Label:    label,
+		ProviderName: "PKCS11",
+		Pkcs11Opts: &pkcs11.PKCS11Opts{
+			SecLevel:   256,
+			HashFamily: "SHA2",
+			Ephemeral:  true,
+			Library:    lib,
+			Pin:        pin,
+			Label:      label,
 		},
 	})
-	require.NoError(t, err)
-	require.NotNil(t, csp)
+	assert.NoError(t, err)
+	assert.NotNil(t, csp)
 
 	csp, err = GetBCCSPFromOpts(&FactoryOpts{
-		Default: "BadName",
+		ProviderName: "BadName",
 	})
-	require.EqualError(t, err, "Could not find BCCSP, no 'BadName' provider")
-	require.Nil(t, csp)
+	assert.EqualError(t, err, "Could not find BCCSP, no 'BadName' provider")
+	assert.Nil(t, csp)
 }

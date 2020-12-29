@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package kvledger
 
-import "github.com/hyperledger/fabric/internal/fileutil"
+import "github.com/ehousecy/fabric/internal/fileutil"
 
 func dropDBs(rootFSPath string) error {
 	// During block commits to stateDB, the transaction manager updates the bookkeeperDB and one of the
@@ -27,7 +27,10 @@ func dropDBs(rootFSPath string) error {
 	if err := dropBookkeeperDB(rootFSPath); err != nil {
 		return err
 	}
-	return dropHistoryDB(rootFSPath)
+	if err := dropHistoryDB(rootFSPath); err != nil {
+		return err
+	}
+	return nil
 }
 
 func dropStateLevelDB(rootFSPath string) error {

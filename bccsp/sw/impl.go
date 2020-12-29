@@ -19,8 +19,8 @@ import (
 	"hash"
 	"reflect"
 
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/flogging"
 	"github.com/pkg/errors"
 )
 

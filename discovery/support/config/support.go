@@ -15,61 +15,76 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/discovery"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	mspconstants "github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	mspconstants "github.com/ehousecy/fabric/msp"
 	"github.com/pkg/errors"
 )
 
 var logger = flogging.MustGetLogger("discovery.config")
 
-// CurrentConfigGetter enables to fetch the last channel config
-type CurrentConfigGetter interface {
-	// GetCurrConfig returns the current channel config for the given channel
-	GetCurrConfig(channel string) *common.Config
+// CurrentConfigBlockGetter enables to fetch the last config block
+type CurrentConfigBlockGetter interface {
+	// GetCurrConfigBlock returns the current config block for the given channel
+	GetCurrConfigBlock(channel string) *common.Block
 }
 
-// CurrentConfigGetterFunc enables to fetch the last channel config
-type CurrentConfigGetterFunc func(channel string) *common.Config
+// CurrentConfigBlockGetterFunc enables to fetch the last config block
+type CurrentConfigBlockGetterFunc func(channel string) *common.Block
 
-// CurrentConfigGetterFunc enables to fetch the last channel config
-func (f CurrentConfigGetterFunc) GetCurrConfig(channel string) *common.Config {
+// CurrentConfigBlockGetterFunc enables to fetch the last config block
+func (f CurrentConfigBlockGetterFunc) GetCurrConfigBlock(channel string) *common.Block {
 	return f(channel)
 }
 
 // DiscoverySupport implements support that is used for service discovery
 // that is related to configuration
 type DiscoverySupport struct {
-	CurrentConfigGetter
+	CurrentConfigBlockGetter
 }
 
 // NewDiscoverySupport creates a new DiscoverySupport
-func NewDiscoverySupport(getLastConfig CurrentConfigGetter) *DiscoverySupport {
+func NewDiscoverySupport(getLastConfigBlock CurrentConfigBlockGetter) *DiscoverySupport {
 	return &DiscoverySupport{
-		CurrentConfigGetter: getLastConfig,
+		CurrentConfigBlockGetter: getLastConfigBlock,
 	}
 }
 
 // Config returns the channel's configuration
 func (s *DiscoverySupport) Config(channel string) (*discovery.ConfigResult, error) {
-	config := s.GetCurrConfig(channel)
-	if config == nil {
-		return nil, errors.Errorf("could not get last config for channel %s", channel)
+	block := s.GetCurrConfigBlock(channel)
+	if block == nil {
+		return nil, errors.Errorf("could not get last config block for channel %s", channel)
+	}
+	if block.Data == nil || len(block.Data.Data) == 0 {
+		return nil, errors.Errorf("no transactions in block")
+	}
+	env := &common.Envelope{}
+	if err := proto.Unmarshal(block.Data.Data[0], env); err != nil {
+		return nil, errors.Wrap(err, "failed unmarshaling envelope")
+	}
+	pl := &common.Payload{}
+	if err := proto.Unmarshal(env.Payload, pl); err != nil {
+		return nil, errors.Wrap(err, "failed unmarshaling payload")
+	}
+	ce := &common.ConfigEnvelope{}
+	if err := proto.Unmarshal(pl.Data, ce); err != nil {
+		return nil, errors.Wrap(err, "failed unmarshaling config envelope")
 	}
 
-	if err := ValidateConfig(config); err != nil {
-		return nil, errors.WithMessage(err, "config is invalid")
+	if err := ValidateConfigEnvelope(ce); err != nil {
+		return nil, errors.Wrap(err, "config envelope is invalid")
 	}
 
 	res := &discovery.ConfigResult{
 		Msps:     make(map[string]*msp.FabricMSPConfig),
 		Orderers: make(map[string]*discovery.Endpoints),
 	}
-	ordererGrp := config.ChannelGroup.Groups[channelconfig.OrdererGroupKey].Groups
-	appGrp := config.ChannelGroup.Groups[channelconfig.ApplicationGroupKey].Groups
+	ordererGrp := ce.Config.ChannelGroup.Groups[channelconfig.OrdererGroupKey].Groups
+	appGrp := ce.Config.ChannelGroup.Groups[channelconfig.ApplicationGroupKey].Groups
 
 	var globalEndpoints []string
-	globalOrderers := config.ChannelGroup.Values[channelconfig.OrdererAddressesKey]
+	globalOrderers := ce.Config.ChannelGroup.Values[channelconfig.OrdererAddressesKey]
 	if globalOrderers != nil {
 		ordererAddressesConfig := &common.OrdererAddresses{}
 		if err := proto.Unmarshal(globalOrderers.Value, ordererAddressesConfig); err != nil {
@@ -226,11 +241,14 @@ func appendMSPConfigs(ordererGrp, appGrp map[string]*common.ConfigGroup, output 
 	return nil
 }
 
-func ValidateConfig(c *common.Config) error {
-	if c.ChannelGroup == nil {
+func ValidateConfigEnvelope(ce *common.ConfigEnvelope) error {
+	if ce.Config == nil {
+		return fmt.Errorf("field Config is nil")
+	}
+	if ce.Config.ChannelGroup == nil {
 		return fmt.Errorf("field Config.ChannelGroup is nil")
 	}
-	grps := c.ChannelGroup.Groups
+	grps := ce.Config.ChannelGroup.Groups
 	if grps == nil {
 		return fmt.Errorf("field Config.ChannelGroup.Groups is nil")
 	}
@@ -243,7 +261,7 @@ func ValidateConfig(c *common.Config) error {
 			return fmt.Errorf("key Config.ChannelGroup.Groups[%s].Groups is nil", field)
 		}
 	}
-	if c.ChannelGroup.Values == nil {
+	if ce.Config.ChannelGroup.Values == nil {
 		return fmt.Errorf("field Config.ChannelGroup.Values is nil")
 	}
 	return nil

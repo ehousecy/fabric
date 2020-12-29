@@ -14,18 +14,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/internal/configtxgen/metadata"
+	"github.com/ehousecy/fabric/internal/configtxlator/update"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-config/protolator"
 	"github.com/hyperledger/fabric-config/protolator/protoext/ordererext"
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/configtxgen/metadata"
-	"github.com/hyperledger/fabric/internal/configtxlator/update"
-	"github.com/hyperledger/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -38,15 +38,10 @@ func doOutputBlock(config *genesisconfig.Profile, channelID string, outputBlock 
 	}
 	logger.Info("Generating genesis block")
 	if config.Orderer == nil {
-		return errors.New("refusing to generate block which is missing orderer section")
+		return errors.Errorf("refusing to generate block which is missing orderer section")
 	}
-	if config.Consortiums != nil {
-		logger.Info("Creating system channel genesis block")
-	} else {
-		if config.Application == nil {
-			return errors.New("refusing to generate application channel block which is missing application section")
-		}
-		logger.Info("Creating application channel genesis block")
+	if config.Consortiums == nil {
+		logger.Warning("Genesis block does not contain a consortiums group definition.  This block cannot be used for orderer bootstrap.")
 	}
 	genesisBlock := pgen.GenesisBlockForChannel(channelID)
 	logger.Info("Writing genesis block")

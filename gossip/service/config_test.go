@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/gossip/election"
+	"github.com/ehousecy/fabric/gossip/election"
 
-	"github.com/hyperledger/fabric/gossip/service"
+	"github.com/ehousecy/fabric/gossip/service"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGlobalConfig(t *testing.T) {
@@ -51,5 +51,5 @@ func TestGlobalConfig(t *testing.T) {
 		SkipPullingInvalidTransactionsDuringCommit: false,
 	}
 
-	require.Equal(t, coreConfig, expectedConfig)
+	assert.Equal(t, coreConfig, expectedConfig)
 }

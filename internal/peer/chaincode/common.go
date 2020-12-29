@@ -8,7 +8,7 @@ package chaincode
 
 import (
 	"context"
-	"crypto/tls"
+	tls "github.com/tjfoc/gmtls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -21,12 +21,12 @@ import (
 	pcommon "github.com/hyperledger/fabric-protos-go/common"
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -469,7 +469,7 @@ func InitCmdFactory(cmdName string, isEndorserRequired, isOrdererRequired bool, 
 			return nil, errors.New("no endorser clients retrieved - this might indicate a bug")
 		}
 	}
-	certificate, err := common.GetClientCertificateFnc()
+	certificate, err := common.GetCertificateFnc()
 	if err != nil {
 		return nil, errors.WithMessage(err, "error getting client certificate")
 	}

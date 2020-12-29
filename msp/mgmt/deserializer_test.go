@@ -11,62 +11,62 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/msp"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDeserializersManager(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
-	require.NotNil(t, NewDeserializersManager(cryptoProvider))
+	assert.NoError(t, err)
+	assert.NotNil(t, NewDeserializersManager(cryptoProvider))
 }
 
 func TestMspDeserializersManager_Deserialize(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	m := NewDeserializersManager(cryptoProvider)
 
 	i, err := GetLocalMSP(cryptoProvider).GetDefaultSigningIdentity()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	raw, err := i.Serialize()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	i2, err := m.Deserialize(raw)
-	require.NoError(t, err)
-	require.NotNil(t, i2)
-	require.NotNil(t, i2.IdBytes)
-	require.Equal(t, m.GetLocalMSPIdentifier(), i2.Mspid)
+	assert.NoError(t, err)
+	assert.NotNil(t, i2)
+	assert.NotNil(t, i2.IdBytes)
+	assert.Equal(t, m.GetLocalMSPIdentifier(), i2.Mspid)
 }
 
 func TestMspDeserializersManager_GetChannelDeserializers(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	m := NewDeserializersManager(cryptoProvider)
 
 	deserializers := m.GetChannelDeserializers()
-	require.NotNil(t, deserializers)
+	assert.NotNil(t, deserializers)
 }
 
 func TestMspDeserializersManager_GetLocalDeserializer(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	m := NewDeserializersManager(cryptoProvider)
 
 	i, err := GetLocalMSP(cryptoProvider).GetDefaultSigningIdentity()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	raw, err := i.Serialize()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	i2, err := m.GetLocalDeserializer().DeserializeIdentity(raw)
-	require.NoError(t, err)
-	require.NotNil(t, i2)
-	require.Equal(t, m.GetLocalMSPIdentifier(), i2.GetMSPIdentifier())
+	assert.NoError(t, err)
+	assert.NotNil(t, i2)
+	assert.Equal(t, m.GetLocalMSPIdentifier(), i2.GetMSPIdentifier())
 }
 
 func TestMain(m *testing.M) {

@@ -13,19 +13,19 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/scc/lscc"
-	"github.com/hyperledger/fabric/core/scc/lscc/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/scc/lscc"
+	"github.com/ehousecy/fabric/core/scc/lscc/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNamespaces(t *testing.T) {
 	ccInfoProvdier := &lscc.DeployedCCInfoProvider{}
 	namespaces := ccInfoProvdier.Namespaces()
-	require.Len(t, namespaces, 1)
-	require.Equal(t, "lscc", namespaces[0])
+	assert.Len(t, namespaces, 1)
+	assert.Equal(t, "lscc", namespaces[0])
 }
 
 func TestChaincodeInfo(t *testing.T) {
@@ -46,19 +46,19 @@ func TestChaincodeInfo(t *testing.T) {
 	ccInfoProvdier := &lscc.DeployedCCInfoProvider{}
 
 	ccInfo1, err := ccInfoProvdier.ChaincodeInfo("", "cc1", mockQE)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	expectedCCInfo1 := cc1
 	expectedCCInfo1.IsLegacy = true
-	require.Equal(t, expectedCCInfo1, ccInfo1)
+	assert.Equal(t, expectedCCInfo1, ccInfo1)
 
 	ccInfo2, err := ccInfoProvdier.ChaincodeInfo("", "cc2", mockQE)
-	require.NoError(t, err)
-	require.Equal(t, cc2.Name, ccInfo2.Name)
-	require.True(t, proto.Equal(cc2.ExplicitCollectionConfigPkg, ccInfo2.ExplicitCollectionConfigPkg))
+	assert.NoError(t, err)
+	assert.Equal(t, cc2.Name, ccInfo2.Name)
+	assert.True(t, proto.Equal(cc2.ExplicitCollectionConfigPkg, ccInfo2.ExplicitCollectionConfigPkg))
 
 	ccInfo3, err := ccInfoProvdier.ChaincodeInfo("", "cc3", mockQE)
-	require.NoError(t, err)
-	require.Nil(t, ccInfo3)
+	assert.NoError(t, err)
+	assert.Nil(t, ccInfo3)
 }
 
 func TestAllChaincodesInfo(t *testing.T) {
@@ -89,21 +89,21 @@ func TestAllChaincodesInfo(t *testing.T) {
 
 	ccInfoProvider := &lscc.DeployedCCInfoProvider{}
 	deployedChaincodesInfo, err := ccInfoProvider.AllChaincodesInfo("testchannel", mockQE)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(deployedChaincodesInfo))
-	require.Equal(t, cc1, deployedChaincodesInfo["cc1"])
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(deployedChaincodesInfo))
+	assert.Equal(t, cc1, deployedChaincodesInfo["cc1"])
 
 	// because ExplicitCollectionConfigPkg is a protobuf object, we have to compare individual fields for cc2
 	ccInfo := deployedChaincodesInfo["cc2"]
-	require.True(t, proto.Equal(cc2.ExplicitCollectionConfigPkg, ccInfo.ExplicitCollectionConfigPkg))
-	require.Equal(t, cc2.Name, ccInfo.Name)
-	require.Equal(t, cc2.Version, ccInfo.Version)
-	require.Equal(t, cc2.Hash, ccInfo.Hash)
-	require.Equal(t, cc2.IsLegacy, ccInfo.IsLegacy)
+	assert.True(t, proto.Equal(cc2.ExplicitCollectionConfigPkg, ccInfo.ExplicitCollectionConfigPkg))
+	assert.Equal(t, cc2.Name, ccInfo.Name)
+	assert.Equal(t, cc2.Version, ccInfo.Version)
+	assert.Equal(t, cc2.Hash, ccInfo.Hash)
+	assert.Equal(t, cc2.IsLegacy, ccInfo.IsLegacy)
 
 	mockQE.GetStateRangeScanIteratorReturns(nil, fmt.Errorf("fake-rangescan-error"))
 	_, err = ccInfoProvider.AllChaincodesInfo("testchannel", mockQE)
-	require.EqualError(t, err, "fake-rangescan-error")
+	assert.EqualError(t, err, "fake-rangescan-error")
 }
 
 func TestCollectionInfo(t *testing.T) {
@@ -124,24 +124,24 @@ func TestCollectionInfo(t *testing.T) {
 	ccInfoProvdier := &lscc.DeployedCCInfoProvider{}
 
 	collInfo1, err := ccInfoProvdier.CollectionInfo("", "cc1", "non-existing-coll-in-cc1", mockQE)
-	require.NoError(t, err)
-	require.Nil(t, collInfo1)
+	assert.NoError(t, err)
+	assert.Nil(t, collInfo1)
 
 	collInfo2, err := ccInfoProvdier.CollectionInfo("", "cc2", "cc2_coll1", mockQE)
-	require.NoError(t, err)
-	require.Equal(t, "cc2_coll1", collInfo2.Name)
+	assert.NoError(t, err)
+	assert.Equal(t, "cc2_coll1", collInfo2.Name)
 
 	collInfo3, err := ccInfoProvdier.CollectionInfo("", "cc2", "non-existing-coll-in-cc2", mockQE)
-	require.NoError(t, err)
-	require.Nil(t, collInfo3)
+	assert.NoError(t, err)
+	assert.Nil(t, collInfo3)
 
 	ccPkg1, err := ccInfoProvdier.AllCollectionsConfigPkg("", "cc1", mockQE)
-	require.NoError(t, err)
-	require.Nil(t, ccPkg1)
+	assert.NoError(t, err)
+	assert.Nil(t, ccPkg1)
 
 	ccPkg2, err := ccInfoProvdier.AllCollectionsConfigPkg("", "cc2", mockQE)
-	require.NoError(t, err)
-	require.Equal(t, prepapreCollectionConfigPkg([]string{"cc2_coll1", "cc2_coll2"}), ccPkg2)
+	assert.NoError(t, err)
+	assert.Equal(t, prepapreCollectionConfigPkg([]string{"cc2_coll1", "cc2_coll2"}), ccPkg2)
 }
 
 func prepareMockQE(t *testing.T, deployedChaincodes []*ledger.DeployedChaincodeInfo) *mock.QueryExecutor {
@@ -150,12 +150,12 @@ func prepareMockQE(t *testing.T, deployedChaincodes []*ledger.DeployedChaincodeI
 	for _, cc := range deployedChaincodes {
 		chaincodeData := &ccprovider.ChaincodeData{Name: cc.Name, Version: cc.Version, Id: cc.Hash}
 		chaincodeDataBytes, err := proto.Marshal(chaincodeData)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		lsccTable[cc.Name] = chaincodeDataBytes
 
 		if cc.ExplicitCollectionConfigPkg != nil {
 			collConfigPkgByte, err := proto.Marshal(cc.ExplicitCollectionConfigPkg)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			lsccTable[privdata.BuildCollectionKVSKey(cc.Name)] = collConfigPkgByte
 		}
 	}

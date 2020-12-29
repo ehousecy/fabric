@@ -11,8 +11,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/discovery"
-	"github.com/hyperledger/fabric/discovery/protoext"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/discovery/protoext"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSignedRequestToRequest(t *testing.T) {
@@ -20,12 +20,12 @@ func TestSignedRequestToRequest(t *testing.T) {
 		Payload: []byte{0},
 	}
 	_, err := protoext.SignedRequestToRequest(sr)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	req := &discovery.Request{}
 	b, _ := proto.Marshal(req)
 	sr.Payload = b
 	r, err := protoext.SignedRequestToRequest(sr)
-	require.NoError(t, err)
-	require.NotNil(t, r)
+	assert.NoError(t, err)
+	assert.NotNil(t, r)
 }

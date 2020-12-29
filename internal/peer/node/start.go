@@ -26,76 +26,74 @@ import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	discprotos "github.com/hyperledger/fabric-protos-go/discovery"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/cauthdsl"
-	ccdef "github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/crypto"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/common/deliver"
-	"github.com/hyperledger/fabric/common/fabhttp"
-	"github.com/hyperledger/fabric/common/flogging"
-	floggingmetrics "github.com/hyperledger/fabric/common/flogging/metrics"
-	"github.com/hyperledger/fabric/common/grpclogging"
-	"github.com/hyperledger/fabric/common/grpcmetrics"
-	"github.com/hyperledger/fabric/common/metadata"
-	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/core/aclmgmt"
-	"github.com/hyperledger/fabric/core/cclifecycle"
-	"github.com/hyperledger/fabric/core/chaincode"
-	"github.com/hyperledger/fabric/core/chaincode/accesscontrol"
-	"github.com/hyperledger/fabric/core/chaincode/extcc"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/core/chaincode/platforms"
-	"github.com/hyperledger/fabric/core/committer/txvalidator/plugin"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	coreconfig "github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/core/container"
-	"github.com/hyperledger/fabric/core/container/dockercontroller"
-	"github.com/hyperledger/fabric/core/container/externalbuilder"
-	"github.com/hyperledger/fabric/core/deliverservice"
-	"github.com/hyperledger/fabric/core/dispatcher"
-	"github.com/hyperledger/fabric/core/endorser"
-	authHandler "github.com/hyperledger/fabric/core/handlers/auth"
-	endorsement2 "github.com/hyperledger/fabric/core/handlers/endorsement/api"
-	endorsement3 "github.com/hyperledger/fabric/core/handlers/endorsement/api/identities"
-	"github.com/hyperledger/fabric/core/handlers/library"
-	validation "github.com/hyperledger/fabric/core/handlers/validation/api"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/cceventmgmt"
-	"github.com/hyperledger/fabric/core/ledger/kvledger"
-	"github.com/hyperledger/fabric/core/ledger/ledgermgmt"
-	"github.com/hyperledger/fabric/core/ledger/snapshotgrpc"
-	"github.com/hyperledger/fabric/core/operations"
-	"github.com/hyperledger/fabric/core/peer"
-	"github.com/hyperledger/fabric/core/policy"
-	"github.com/hyperledger/fabric/core/scc"
-	"github.com/hyperledger/fabric/core/scc/cscc"
-	"github.com/hyperledger/fabric/core/scc/lscc"
-	"github.com/hyperledger/fabric/core/scc/qscc"
-	"github.com/hyperledger/fabric/core/transientstore"
-	"github.com/hyperledger/fabric/discovery"
-	"github.com/hyperledger/fabric/discovery/endorsement"
-	discsupport "github.com/hyperledger/fabric/discovery/support"
-	discacl "github.com/hyperledger/fabric/discovery/support/acl"
-	ccsupport "github.com/hyperledger/fabric/discovery/support/chaincode"
-	"github.com/hyperledger/fabric/discovery/support/config"
-	"github.com/hyperledger/fabric/discovery/support/gossip"
-	gossipcommon "github.com/hyperledger/fabric/gossip/common"
-	gossipgossip "github.com/hyperledger/fabric/gossip/gossip"
-	gossipmetrics "github.com/hyperledger/fabric/gossip/metrics"
-	gossipprivdata "github.com/hyperledger/fabric/gossip/privdata"
-	"github.com/hyperledger/fabric/gossip/service"
-	gossipservice "github.com/hyperledger/fabric/gossip/service"
-	peergossip "github.com/hyperledger/fabric/internal/peer/gossip"
-	"github.com/hyperledger/fabric/internal/peer/version"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/msp"
-	"github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/cauthdsl"
+	ccdef "github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/crypto"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/common/deliver"
+	"github.com/ehousecy/fabric/common/flogging"
+	floggingmetrics "github.com/ehousecy/fabric/common/flogging/metrics"
+	"github.com/ehousecy/fabric/common/grpclogging"
+	"github.com/ehousecy/fabric/common/grpcmetrics"
+	"github.com/ehousecy/fabric/common/metadata"
+	"github.com/ehousecy/fabric/common/metrics"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/core/aclmgmt"
+	"github.com/ehousecy/fabric/core/cclifecycle"
+	"github.com/ehousecy/fabric/core/chaincode"
+	"github.com/ehousecy/fabric/core/chaincode/accesscontrol"
+	"github.com/ehousecy/fabric/core/chaincode/extcc"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/core/chaincode/platforms"
+	"github.com/ehousecy/fabric/core/committer/txvalidator/plugin"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	coreconfig "github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/core/container"
+	"github.com/ehousecy/fabric/core/container/dockercontroller"
+	"github.com/ehousecy/fabric/core/container/externalbuilder"
+	"github.com/ehousecy/fabric/core/deliverservice"
+	"github.com/ehousecy/fabric/core/dispatcher"
+	"github.com/ehousecy/fabric/core/endorser"
+	authHandler "github.com/ehousecy/fabric/core/handlers/auth"
+	endorsement2 "github.com/ehousecy/fabric/core/handlers/endorsement/api"
+	endorsement3 "github.com/ehousecy/fabric/core/handlers/endorsement/api/identities"
+	"github.com/ehousecy/fabric/core/handlers/library"
+	validation "github.com/ehousecy/fabric/core/handlers/validation/api"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/cceventmgmt"
+	"github.com/ehousecy/fabric/core/ledger/kvledger"
+	"github.com/ehousecy/fabric/core/ledger/ledgermgmt"
+	"github.com/ehousecy/fabric/core/operations"
+	"github.com/ehousecy/fabric/core/peer"
+	"github.com/ehousecy/fabric/core/policy"
+	"github.com/ehousecy/fabric/core/scc"
+	"github.com/ehousecy/fabric/core/scc/cscc"
+	"github.com/ehousecy/fabric/core/scc/lscc"
+	"github.com/ehousecy/fabric/core/scc/qscc"
+	"github.com/ehousecy/fabric/core/transientstore"
+	"github.com/ehousecy/fabric/discovery"
+	"github.com/ehousecy/fabric/discovery/endorsement"
+	discsupport "github.com/ehousecy/fabric/discovery/support"
+	discacl "github.com/ehousecy/fabric/discovery/support/acl"
+	ccsupport "github.com/ehousecy/fabric/discovery/support/chaincode"
+	"github.com/ehousecy/fabric/discovery/support/config"
+	"github.com/ehousecy/fabric/discovery/support/gossip"
+	gossipcommon "github.com/ehousecy/fabric/gossip/common"
+	gossipgossip "github.com/ehousecy/fabric/gossip/gossip"
+	gossipmetrics "github.com/ehousecy/fabric/gossip/metrics"
+	gossipprivdata "github.com/ehousecy/fabric/gossip/privdata"
+	"github.com/ehousecy/fabric/gossip/service"
+	gossipservice "github.com/ehousecy/fabric/gossip/service"
+	peergossip "github.com/ehousecy/fabric/internal/peer/gossip"
+	"github.com/ehousecy/fabric/internal/peer/version"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -876,10 +874,6 @@ func serve(args []string) error {
 	// Register the Endorser server
 	pb.RegisterEndorserServer(peerServer.Server(), auth)
 
-	// register the snapshot server
-	snapshotSvc := &snapshotgrpc.SnapshotService{LedgerGetter: peerInstance, ACLProvider: aclProvider}
-	pb.RegisterSnapshotServer(peerServer.Server(), snapshotSvc)
-
 	go func() {
 		var grpcErr error
 		if grpcErr = peerServer.Start(); grpcErr != nil {
@@ -955,17 +949,17 @@ func registerDiscoveryService(
 	gSup := gossip.NewDiscoverySupport(gossipService)
 	ccSup := ccsupport.NewDiscoverySupport(metadataProvider)
 	ea := endorsement.NewEndorsementAnalyzer(gSup, ccSup, acl, metadataProvider)
-	confSup := config.NewDiscoverySupport(config.CurrentConfigGetterFunc(func(channelID string) *common.Config {
+	confSup := config.NewDiscoverySupport(config.CurrentConfigBlockGetterFunc(func(channelID string) *common.Block {
 		channel := peerInstance.Channel(channelID)
 		if channel == nil {
 			return nil
 		}
-		config, err := peer.RetrievePersistedChannelConfig(channel.Ledger())
+		block, err := peer.ConfigBlockFromLedger(channel.Ledger())
 		if err != nil {
-			logger.Errorw("failed to get channel config", "error", err)
+			logger.Error("failed to get config block", err)
 			return nil
 		}
-		return config
+		return block
 	}))
 	support := discsupport.NewDiscoverySupport(acl, gSup, ea, confSup, acl)
 	svc := discovery.NewService(discovery.Config{
@@ -1222,17 +1216,8 @@ func initGossipService(
 
 func newOperationsSystem(coreConfig *peer.Config) *operations.System {
 	return operations.NewSystem(operations.Options{
-		Options: fabhttp.Options{
-			Logger:        flogging.MustGetLogger("peer.operations"),
-			ListenAddress: coreConfig.OperationsListenAddress,
-			TLS: fabhttp.TLS{
-				Enabled:            coreConfig.OperationsTLSEnabled,
-				CertFile:           coreConfig.OperationsTLSCertFile,
-				KeyFile:            coreConfig.OperationsTLSKeyFile,
-				ClientCertRequired: coreConfig.OperationsTLSClientAuthRequired,
-				ClientCACertFiles:  coreConfig.OperationsTLSClientRootCAs,
-			},
-		},
+		Logger:        flogging.MustGetLogger("peer.operations"),
+		ListenAddress: coreConfig.OperationsListenAddress,
 		Metrics: operations.MetricsOptions{
 			Provider: coreConfig.MetricsProvider,
 			Statsd: &operations.Statsd{
@@ -1241,6 +1226,13 @@ func newOperationsSystem(coreConfig *peer.Config) *operations.System {
 				WriteInterval: coreConfig.StatsdWriteInterval,
 				Prefix:        coreConfig.StatsdPrefix,
 			},
+		},
+		TLS: operations.TLS{
+			Enabled:            coreConfig.OperationsTLSEnabled,
+			CertFile:           coreConfig.OperationsTLSCertFile,
+			KeyFile:            coreConfig.OperationsTLSKeyFile,
+			ClientCertRequired: coreConfig.OperationsTLSClientAuthRequired,
+			ClientCACertFiles:  coreConfig.OperationsTLSClientRootCAs,
 		},
 		Version: metadata.Version,
 	})

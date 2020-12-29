@@ -13,13 +13,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hyperledger/fabric/integration/chaincode/kvexecutor"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/integration/chaincode/kvexecutor"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 
 	"github.com/tedsuo/ifrit"
 )
@@ -66,7 +64,7 @@ var _ bool = Describe("Pvtdata dissemination for implicit collection", func() {
 			Chaincode: nwo.Chaincode{
 				Name:        "kvexecutor",
 				Version:     "1.0",
-				Path:        components.Build("github.com/hyperledger/fabric/integration/chaincode/kvexecutor/cmd"),
+				Path:        components.Build("github.com/ehousecy/fabric/integration/chaincode/kvexecutor/cmd"),
 				Lang:        "binary",
 				PackageFile: filepath.Join(network.RootDir, "kvexcutor.tar.gz"),
 				Label:       "kvexcutor",
@@ -174,25 +172,6 @@ func readImplicitCollection(n *nwo.Network, peer *nwo.Peer, chaincodeName string
 		Ctor:      fmt.Sprintf(`{"Args":["readWriteKVs","%s","%s"]}`, readInputBase64, ""),
 	}
 	queryChaincode(n, peer, command, expectedMsg, expectSuccess)
-}
-
-func invokeChaincode(n *nwo.Network, peer *nwo.Peer, command commands.ChaincodeInvoke) {
-	sess, err := n.PeerUserSession(peer, "User1", command)
-	Expect(err).NotTo(HaveOccurred())
-	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
-	Expect(sess.Err).To(gbytes.Say("Chaincode invoke successful."))
-}
-
-func queryChaincode(n *nwo.Network, peer *nwo.Peer, command commands.ChaincodeQuery, expectedMessage string, expectSuccess bool) {
-	sess, err := n.PeerUserSession(peer, "User1", command)
-	Expect(err).NotTo(HaveOccurred())
-	if expectSuccess {
-		Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
-		Expect(sess).To(gbytes.Say(expectedMessage))
-	} else {
-		Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit())
-		Expect(sess.Err).To(gbytes.Say(expectedMessage))
-	}
 }
 
 func discoverAllPeers(n *nwo.Network, peer *nwo.Peer, channelID string, retries int, retryInterval time.Duration) {

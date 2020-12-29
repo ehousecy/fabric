@@ -9,7 +9,7 @@ package kvledger
 import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger"
 )
 
 // collElgNotifier listens for the chaincode events and determines whether the peer has become eligible for one or more existing
@@ -82,7 +82,7 @@ func (n *collElgNotifier) HandleStateUpdates(trigger *ledger.StateUpdateTrigger)
 		}
 	}
 	if len(nsCollMap) > 0 {
-		return n.invokeLedgerSpecificNotifier(trigger.LedgerID, trigger.CommittingBlockNum, nsCollMap)
+		n.invokeLedgerSpecificNotifier(trigger.LedgerID, trigger.CommittingBlockNum, nsCollMap)
 	}
 	return nil
 }
@@ -91,9 +91,9 @@ func (n *collElgNotifier) registerListener(ledgerID string, listener collElgList
 	n.listeners[ledgerID] = listener
 }
 
-func (n *collElgNotifier) invokeLedgerSpecificNotifier(ledgerID string, commtingBlk uint64, nsCollMap map[string][]string) error {
+func (n *collElgNotifier) invokeLedgerSpecificNotifier(ledgerID string, commtingBlk uint64, nsCollMap map[string][]string) {
 	listener := n.listeners[ledgerID]
-	return listener.ProcessCollsEligibilityEnabled(commtingBlk, nsCollMap)
+	listener.ProcessCollsEligibilityEnabled(commtingBlk, nsCollMap)
 }
 
 // elgEnabledCollNames returns the names of the collections for which the peer is not eligible as per 'existingPkg' and is eligible as per 'postCommitPkg'

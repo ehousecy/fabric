@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric/core/chaincode/platforms/util"
-	"github.com/hyperledger/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/core/chaincode/platforms/util"
+	"github.com/ehousecy/fabric/core/config/configtest"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 var platform = &Platform{}
@@ -142,13 +142,13 @@ fi
 
 func TestGenerateBuildOptions(t *testing.T) {
 	opts, err := platform.DockerBuildOptions("pathname")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	expectedOpts := util.DockerBuildOptions{
 		Image: "hyperledger/fabric-nodeenv:latest",
 		Cmd:   expectedBuildScript,
 	}
-	require.Equal(t, expectedOpts, opts)
+	assert.Equal(t, expectedOpts, opts)
 }
 
 func makeCodePackage(pfiles []*packageFile) ([]byte, error) {

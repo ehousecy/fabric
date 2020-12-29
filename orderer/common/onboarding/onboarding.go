@@ -11,19 +11,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-config/protolator"
+
+	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/blockledger"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/consensus/etcdraft"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/blockledger"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/consensus/etcdraft"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -109,7 +110,7 @@ func (ri *ReplicationInitiator) ReplicateIfNeeded(bootstrapBlock *common.Block) 
 
 func (ri *ReplicationInitiator) createReplicator(bootstrapBlock *common.Block, filter func(string) bool) *cluster.Replicator {
 	consenterCert := &etcdraft.ConsenterCertificate{
-		Logger:               ri.logger,
+		//Logger:               ri.logger,
 		ConsenterCertificate: ri.secOpts.Certificate,
 		CryptoProvider:       ri.cryptoProvider,
 	}
@@ -219,7 +220,6 @@ type InactiveChainReplicator struct {
 	replicator                        ChainReplicator
 	scheduleChan                      <-chan time.Time
 	quitChan                          chan struct{}
-	doneChan                          chan struct{}
 	lock                              sync.RWMutex
 	chains2CreationCallbacks          map[string]chainCreation
 }
@@ -240,7 +240,6 @@ func NewInactiveChainReplicator(
 		logger:                            logger,
 		scheduleChan:                      ticker.C,
 		quitChan:                          make(chan struct{}),
-		doneChan:                          make(chan struct{}),
 		replicator:                        chainReplicator,
 		chains2CreationCallbacks:          make(map[string]chainCreation),
 		retrieveLastSysChannelConfigBlock: getSysChannelConfigBlockFunc,
@@ -250,12 +249,12 @@ func NewInactiveChainReplicator(
 	return icr
 }
 
-func (i *InactiveChainReplicator) Channels() []cluster.ChannelGenesisBlock {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+func (dc *InactiveChainReplicator) Channels() []cluster.ChannelGenesisBlock {
+	dc.lock.RLock()
+	defer dc.lock.RUnlock()
 
 	var res []cluster.ChannelGenesisBlock
-	for name, chain := range i.chains2CreationCallbacks {
+	for name, chain := range dc.chains2CreationCallbacks {
 		res = append(res, cluster.ChannelGenesisBlock{
 			ChannelName:  name,
 			GenesisBlock: chain.genesisBlock,
@@ -264,7 +263,7 @@ func (i *InactiveChainReplicator) Channels() []cluster.ChannelGenesisBlock {
 	return res
 }
 
-func (i *InactiveChainReplicator) Close() {}
+func (dc *InactiveChainReplicator) Close() {}
 
 type chainCreation struct {
 	create       func()
@@ -273,70 +272,81 @@ type chainCreation struct {
 
 // TrackChain tracks a chain with the given name, and calls the given callback
 // when this chain should be activated.
-func (i *InactiveChainReplicator) TrackChain(chain string, genesisBlock *common.Block, createChainCallback func()) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+func (dc *InactiveChainReplicator) TrackChain(chain string, genesisBlock *common.Block, createChainCallback func()) {
+	dc.lock.Lock()
+	defer dc.lock.Unlock()
 
-	i.logger.Infof("Adding %s to the set of chains to track", chain)
-	i.chains2CreationCallbacks[chain] = chainCreation{
+	dc.logger.Infof("Adding %s to the set of chains to track", chain)
+	dc.chains2CreationCallbacks[chain] = chainCreation{
 		genesisBlock: genesisBlock,
 		create:       createChainCallback,
 	}
 }
 
-func (i *InactiveChainReplicator) Run() {
+func (dc *InactiveChainReplicator) Run() {
 	for {
 		select {
-		case <-i.scheduleChan:
-			i.replicateDisabledChains()
-		case <-i.quitChan:
-			close(i.doneChan)
+		case <-dc.scheduleChan:
+			dc.replicateDisabledChains()
+		case <-dc.quitChan:
 			return
 		}
 	}
 }
 
-func (i *InactiveChainReplicator) replicateDisabledChains() {
-	chains := i.listInactiveChains()
+func (dc *InactiveChainReplicator) replicateDisabledChains() {
+	chains := dc.listInactiveChains()
 	if len(chains) == 0 {
-		i.logger.Debugf("No inactive chains to try to replicate")
+		dc.logger.Debugf("No inactive chains to try to replicate")
 		return
 	}
 
 	// For each chain, ensure we registered it into the verifier registry, otherwise
 	// we won't be able to verify its blocks.
 	for _, chain := range chains {
-		i.registerChain(chain)
+		dc.registerChain(chain)
 	}
 
-	i.logger.Infof("Found %d inactive chains: %v", len(chains), chains)
-	lastSystemChannelConfigBlock := i.retrieveLastSysChannelConfigBlock()
-	replicatedChains := i.replicator.ReplicateChains(lastSystemChannelConfigBlock, chains)
-	i.logger.Infof("Successfully replicated %d chains: %v", len(replicatedChains), replicatedChains)
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	dc.logger.Infof("Found %d inactive chains: %v", len(chains), chains)
+	lastSystemChannelConfigBlock := dc.retrieveLastSysChannelConfigBlock()
+	replicatedChains := dc.replicator.ReplicateChains(lastSystemChannelConfigBlock, chains)
+	dc.logger.Infof("Successfully replicated %d chains: %v", len(replicatedChains), replicatedChains)
+	dc.lock.Lock()
+	defer dc.lock.Unlock()
 	for _, chainName := range replicatedChains {
-		chain := i.chains2CreationCallbacks[chainName]
-		delete(i.chains2CreationCallbacks, chainName)
+		chain := dc.chains2CreationCallbacks[chainName]
+		delete(dc.chains2CreationCallbacks, chainName)
 		chain.create()
 	}
 }
 
-// Stop stops the inactive chain replicator. This is used when removing the
-// system channel.
-func (i *InactiveChainReplicator) Stop() {
-	close(i.quitChan)
-	<-i.doneChan
+func (dc *InactiveChainReplicator) stop() {
+	close(dc.quitChan)
 }
 
-func (i *InactiveChainReplicator) listInactiveChains() []string {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+func (dc *InactiveChainReplicator) listInactiveChains() []string {
+	dc.lock.RLock()
+	defer dc.lock.RUnlock()
 	var chains []string
-	for chain := range i.chains2CreationCallbacks {
+	for chain := range dc.chains2CreationCallbacks {
 		chains = append(chains, chain)
 	}
 	return chains
+}
+
+//go:generate mockery -dir . -name Factory -case underscore  -output mocks/
+
+// Factory retrieves or creates new ledgers by chainID
+type Factory interface {
+	// GetOrCreate gets an existing ledger (if it exists)
+	// or creates it if it does not
+	GetOrCreate(chainID string) (blockledger.ReadWriter, error)
+
+	// ChannelIDs returns the channel IDs the Factory is aware of
+	ChannelIDs() []string
+
+	// Close releases all resources acquired by the factory
+	Close()
 }
 
 type blockGetter struct {

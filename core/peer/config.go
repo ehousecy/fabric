@@ -20,16 +20,16 @@ SPDX-License-Identifier: Apache-2.0
 package peer
 
 import (
-	"crypto/tls"
 	"fmt"
+	tls "github.com/tjfoc/gmtls"
 	"io/ioutil"
 	"net"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -37,11 +37,7 @@ import (
 // ExternalBuilder represents the configuration structure of
 // a chaincode external builder
 type ExternalBuilder struct {
-	// TODO: Remove Environment in 3.0
-	// Deprecated: Environment is retained for backwards compatibility.
-	// New deployments should use the new PropagateEnvironment field
-	Environment          []string `yaml:"environmentWhitelist"`
-	PropagateEnvironment []string `yaml:"propagateEnvironment"`
+	EnvironmentWhitelist []string `yaml:"environmentWhitelist"`
 	Name                 string   `yaml:"name"`
 	Path                 string   `yaml:"path"`
 }
@@ -280,18 +276,15 @@ func (c *Config) load() error {
 	if err != nil {
 		return err
 	}
-	c.ExternalBuilders = externalBuilders
-	for builderIndex, builder := range c.ExternalBuilders {
+	for _, builder := range externalBuilders {
 		if builder.Path == "" {
 			return fmt.Errorf("invalid external builder configuration, path attribute missing in one or more builders")
 		}
 		if builder.Name == "" {
 			return fmt.Errorf("external builder at path %s has no name attribute", builder.Path)
 		}
-		if builder.Environment != nil && builder.PropagateEnvironment == nil {
-			c.ExternalBuilders[builderIndex].PropagateEnvironment = builder.Environment
-		}
 	}
+	c.ExternalBuilders = externalBuilders
 
 	c.OperationsListenAddress = viper.GetString("operations.listenAddress")
 	c.OperationsTLSEnabled = viper.GetBool("operations.tls.enabled")

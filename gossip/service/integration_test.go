@@ -12,14 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/deliverservice"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/election"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/peer/blocksprovider"
-	"github.com/hyperledger/fabric/internal/pkg/peer/orderers"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/deliverservice"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/election"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/peer/blocksprovider"
+	"github.com/ehousecy/fabric/internal/pkg/peer/orderers"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -168,12 +169,12 @@ func TestLeaderYield(t *testing.T) {
 	ds0.waitForDeliveryServiceActivation()
 	t.Log("p0 started its delivery service")
 	// Ensure it's a leader
-	require.Equal(t, 0, getLeader())
+	assert.Equal(t, 0, getLeader())
 	// Wait for p0 to lose its leadership
 	ds0.waitForDeliveryServiceTermination()
 	t.Log("p0 stopped its delivery service")
 	// Ensure p0 is not a leader
-	require.NotEqual(t, 0, getLeader())
+	assert.NotEqual(t, 0, getLeader())
 	// Wait for p1 to take over. It should take over before time reaches timeLimit
 	timeLimit := time.Now().Add(takeOverMaxTimeout)
 	for getLeader() != 1 && time.Now().Before(timeLimit) {

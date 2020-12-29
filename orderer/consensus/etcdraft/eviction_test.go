@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/cluster/mocks"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/cluster/mocks"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/raft/raftpb"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -253,7 +253,7 @@ func TestEvictionSuspector(t *testing.T) {
 			}
 
 			if testCase.expectedPanic != "" {
-				require.PanicsWithValue(t, testCase.expectedPanic, runTestCase)
+				assert.PanicsWithValue(t, testCase.expectedPanic, runTestCase)
 			} else {
 				runTestCase()
 				// Run the test case again.
@@ -264,8 +264,8 @@ func TestEvictionSuspector(t *testing.T) {
 				runTestCase()
 			}
 
-			require.True(t, foundExpectedLog, "expected to find %s but didn't", testCase.expectedLog)
-			require.Equal(t, testCase.expectedCommittedBlockCount, len(committedBlocks))
+			assert.True(t, foundExpectedLog, "expected to find %s but didn't", testCase.expectedLog)
+			assert.Equal(t, testCase.expectedCommittedBlockCount, len(committedBlocks))
 		})
 	}
 }

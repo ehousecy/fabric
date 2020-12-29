@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLedgerConfig(t *testing.T) {
@@ -44,7 +44,7 @@ func TestLedgerConfig(t *testing.T) {
 					Enabled: false,
 				},
 				SnapshotsConfig: &ledger.SnapshotsConfig{
-					RootDir: "/peerfs/snapshots",
+					RootDir: "/peerfs/ledgersData/snapshots",
 				},
 			},
 		},
@@ -91,7 +91,7 @@ func TestLedgerConfig(t *testing.T) {
 					Enabled: false,
 				},
 				SnapshotsConfig: &ledger.SnapshotsConfig{
-					RootDir: "/peerfs/snapshots",
+					RootDir: "/peerfs/ledgersData/snapshots",
 				},
 			},
 		},
@@ -116,7 +116,7 @@ func TestLedgerConfig(t *testing.T) {
 				"ledger.pvtdataStore.purgeInterval":                       1000,
 				"ledger.pvtdataStore.deprioritizedDataReconcilerInterval": "180m",
 				"ledger.history.enableHistoryDatabase":                    true,
-				"ledger.snapshots.rootDir":                                "/peerfs/customLocationForsnapshots",
+				"ledger.snapshots.rootDir":                                "/peerfs/snapshots",
 			},
 			expected: &ledger.Config{
 				RootFSPath: "/peerfs/ledgersData",
@@ -147,7 +147,7 @@ func TestLedgerConfig(t *testing.T) {
 					Enabled: true,
 				},
 				SnapshotsConfig: &ledger.SnapshotsConfig{
-					RootDir: "/peerfs/customLocationForsnapshots",
+					RootDir: "/peerfs/snapshots",
 				},
 			},
 		},
@@ -160,7 +160,7 @@ func TestLedgerConfig(t *testing.T) {
 				viper.Set(k, v)
 			}
 			conf := ledgerConfig()
-			require.EqualValues(t, _test.expected, conf)
+			assert.EqualValues(t, _test.expected, conf)
 		})
 	}
 }

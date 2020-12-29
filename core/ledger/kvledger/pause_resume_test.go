@@ -9,10 +9,10 @@ package kvledger
 import (
 	"testing"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	configtxtest "github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/msgs"
-	"github.com/hyperledger/fabric/core/ledger/mock"
+	configtxtest "github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,8 +30,7 @@ func TestPauseAndResume(t *testing.T) {
 	for i := 0; i < numLedgers; i++ {
 		genesisBlock, _ := configtxtest.MakeGenesisBlock(constructTestLedgerID(i))
 		genesisBlocks[i] = genesisBlock
-		_, err := provider.CreateFromGenesisBlock(genesisBlock)
-		require.NoError(t, err)
+		provider.Create(genesisBlock)
 	}
 	activeLedgerIDs, err = provider.List()
 	require.NoError(t, err)
@@ -69,7 +68,7 @@ func TestPauseAndResume(t *testing.T) {
 
 	// open paused channel should fail
 	_, err = provider.Open(constructTestLedgerID(3))
-	require.EqualError(t, err, "cannot open ledger [ledger_000003], ledger status is [INACTIVE]")
+	require.Equal(t, ErrInactiveLedger, err)
 }
 
 func TestPauseAndResumeErrors(t *testing.T) {
@@ -80,13 +79,12 @@ func TestPauseAndResumeErrors(t *testing.T) {
 
 	ledgerID := constructTestLedgerID(0)
 	genesisBlock, _ := configtxtest.MakeGenesisBlock(ledgerID)
-	_, err := provider.CreateFromGenesisBlock(genesisBlock)
-	require.NoError(t, err)
+	provider.Create(genesisBlock)
 	// purposely set an invalid metatdata
-	require.NoError(t, provider.idStore.db.Put(metadataKey(ledgerID), []byte("invalid"), true))
+	provider.idStore.db.Put(provider.idStore.encodeLedgerKey(ledgerID, metadataKeyPrefix), []byte("invalid"), true)
 
 	// fail if provider is open (e.g., peer is up running)
-	err = PauseChannel(conf.RootFSPath, constructTestLedgerID(0))
+	err := PauseChannel(conf.RootFSPath, constructTestLedgerID(0))
 	require.Error(t, err, "as another peer node command is executing, wait for that command to complete its execution or terminate it before retrying")
 
 	err = ResumeChannel(conf.RootFSPath, constructTestLedgerID(0))
@@ -123,14 +121,23 @@ func assertLedgerStatus(t *testing.T, provider *Provider, genesisBlocks []*commo
 	}
 
 	for i := 0; i < numLedgers; i++ {
-		m, err := s.getLedgerMetadata(constructTestLedgerID(i))
+		active, exists, err := s.ledgerIDActive(constructTestLedgerID(i))
 		require.NoError(t, err)
-		require.NotNil(t, m)
-		if contains(pausedLedgers, i) {
-			require.Equal(t, msgs.Status_INACTIVE, m.GetStatus())
+		if !contains(pausedLedgers, i) {
+			require.True(t, active)
+			require.True(t, exists)
 		} else {
-			require.Equal(t, msgs.Status_ACTIVE, m.GetStatus())
+			require.False(t, active)
+			require.True(t, exists)
 		}
+
+		// every channel (paused or non-paused) should have an entry for genesis block
+		gbBytes, err := s.db.Get(s.encodeLedgerKey(constructTestLedgerID(i), ledgerKeyPrefix))
+		require.NoError(t, err)
+		gb := &common.Block{}
+		require.NoError(t, proto.Unmarshal(gbBytes, gb))
+		require.True(t, proto.Equal(gb, genesisBlocks[i]), "proto messages are not equal")
+
 	}
 }
 

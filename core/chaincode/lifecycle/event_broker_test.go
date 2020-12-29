@@ -12,12 +12,12 @@ import (
 	"io"
 
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle/mock"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/core/container/externalbuilder"
-	"github.com/hyperledger/fabric/core/ledger"
-	ledgermock "github.com/hyperledger/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle/mock"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/core/container/externalbuilder"
+	"github.com/ehousecy/fabric/core/ledger"
+	ledgermock "github.com/ehousecy/fabric/core/ledger/mock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -49,7 +49,7 @@ var _ = Describe("EventBroker", func() {
 			},
 			References: make(map[string]map[string]*lifecycle.CachedChaincodeDefinition),
 		}
-		eventBroker.RegisterListener("channel-1", fakeListener, nil)
+		eventBroker.RegisterListener("channel-1", fakeListener)
 		pkgParser.ParseReturns(&persistence.ChaincodePackage{
 			DBArtifacts: []byte("db-artifacts"),
 		}, nil)

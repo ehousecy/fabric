@@ -9,9 +9,9 @@ package mgmt
 import (
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLocalMSP(t *testing.T) {
@@ -22,7 +22,7 @@ func TestLocalMSP(t *testing.T) {
 	}
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = GetLocalMSP(cryptoProvider).GetDefaultSigningIdentity()
 	if err != nil {
 		t.Fatalf("GetDefaultSigningIdentity failed, err %s", err)

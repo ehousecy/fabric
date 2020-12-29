@@ -10,8 +10,8 @@ import (
 	"time"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
 )
 
 var logger = flogging.MustGetLogger("orderer.common.blockcutter")

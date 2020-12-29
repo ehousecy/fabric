@@ -12,13 +12,13 @@ import (
 	"github.com/golang/protobuf/proto"
 	pcommon "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/core/common/ccpackage"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/core/common/ccpackage"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -163,7 +163,7 @@ func (p *Packager) packageCC() error {
 		bytesToWrite = protoutil.MarshalOrPanic(cds)
 	}
 
-	logger.Debugf("Packaged chaincode into deployment spec of size %d, output file %s", len(bytesToWrite), p.Input.OutputFile)
+	logger.Debugf("Packaged chaincode into deployment spec of size <%d>, output file ", len(bytesToWrite), p.Input.OutputFile)
 	err = ioutil.WriteFile(p.Input.OutputFile, bytesToWrite, 0700)
 	if err != nil {
 		logger.Errorf("failed writing deployment spec to file [%s]: [%s]", p.Input.OutputFile, err)

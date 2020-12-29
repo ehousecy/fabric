@@ -120,7 +120,6 @@ Flags:
       --connectionProfile string       The fully qualified path to the connection profile that provides the necessary connection information for the network. Note: currently only supported for providing peer connection information
   -h, --help                           help for install
       --peerAddresses stringArray      The addresses of the peers to connect to
-      --targetPeer string              When using a connection profile, the name of the peer to target for this action
       --tlsRootCertFiles stringArray   If TLS is enabled, the paths to the TLS root cert files of the peers to connect to. The order and number of certs specified should match the --peerAddresses flag
 
 Global Flags:
@@ -148,7 +147,6 @@ Flags:
   -h, --help                           help for queryinstalled
   -O, --output string                  The output format for query results. Default is human-readable plain-text. json is currently the only supported format.
       --peerAddresses stringArray      The addresses of the peers to connect to
-      --targetPeer string              When using a connection profile, the name of the peer to target for this action
       --tlsRootCertFiles stringArray   If TLS is enabled, the paths to the TLS root cert files of the peers to connect to. The order and number of certs specified should match the --peerAddresses flag
 
 Global Flags:
@@ -177,7 +175,6 @@ Flags:
       --output-directory string        The output directory to use when writing a chaincode install package to disk. Default is the current working directory.
       --package-id string              The identifier of the chaincode install package
       --peerAddresses stringArray      The addresses of the peers to connect to
-      --targetPeer string              When using a connection profile, the name of the peer to target for this action
       --tlsRootCertFiles stringArray   If TLS is enabled, the paths to the TLS root cert files of the peers to connect to. The order and number of certs specified should match the --peerAddresses flag
 
 Global Flags:
@@ -595,7 +592,7 @@ also outputs which organizations have approved the chaincode definition. If an
 organization has approved the chaincode definition specified in the command, the
 command will return a value of true. You can use this command to learn whether enough
 channel members have approved a chaincode definition to meet the
-`/Channel/Application/Endorsement` policy (a majority by default) before the
+`Application/Channel/Endorsement` policy (a majority by default) before the
 definition can be committed to a channel.
 
   * Here is an example of the `peer lifecycle chaincode checkcommitreadiness` command,

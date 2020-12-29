@@ -12,28 +12,28 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/orderer/common/cluster/mocks"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/orderer/consensus/etcdraft"
-	"github.com/hyperledger/fabric/orderer/mocks/common/multichannel"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/orderer/common/cluster/mocks"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/orderer/consensus/etcdraft"
+	"github.com/ehousecy/fabric/orderer/mocks/common/multichannel"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEndpointconfigFromFromSupport(t *testing.T) {
 	blockBytes, err := ioutil.ReadFile("testdata/mychannel.block")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	goodConfigBlock := &common.Block{}
-	require.NoError(t, proto.Unmarshal(blockBytes, goodConfigBlock))
+	assert.NoError(t, proto.Unmarshal(blockBytes, goodConfigBlock))
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	for _, testCase := range []struct {
 		name            string
@@ -101,25 +101,25 @@ func TestEndpointconfigFromFromSupport(t *testing.T) {
 
 			certs, err := etcdraft.EndpointconfigFromSupport(cs, cryptoProvider)
 			if testCase.expectedError == "" {
-				require.NotNil(t, certs)
-				require.NoError(t, err)
+				assert.NotNil(t, certs)
+				assert.NoError(t, err)
 				return
 			}
-			require.EqualError(t, err, testCase.expectedError)
-			require.Nil(t, certs)
+			assert.EqualError(t, err, testCase.expectedError)
+			assert.Nil(t, certs)
 		})
 	}
 }
 
 func TestNewBlockPuller(t *testing.T) {
 	ca, err := tlsgen.NewCA()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	blockBytes, err := ioutil.ReadFile("testdata/mychannel.block")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	goodConfigBlock := &common.Block{}
-	require.NoError(t, proto.Unmarshal(blockBytes, goodConfigBlock))
+	assert.NoError(t, proto.Unmarshal(blockBytes, goodConfigBlock))
 
 	lastBlock := &common.Block{
 		Metadata: &common.BlockMetadata{
@@ -146,11 +146,11 @@ func TestNewBlockPuller(t *testing.T) {
 	}
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	bp, err := etcdraft.NewBlockPuller(cs, dialer, localconfig.Cluster{}, cryptoProvider)
-	require.NoError(t, err)
-	require.NotNil(t, bp)
+	assert.NoError(t, err)
+	assert.NotNil(t, bp)
 
 	// From here on, we test failures.
 	for _, testCase := range []struct {
@@ -180,8 +180,8 @@ func TestNewBlockPuller(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.dialer.Config.SecOpts.Certificate = testCase.certificate
 			bp, err := etcdraft.NewBlockPuller(testCase.cs, testCase.dialer, localconfig.Cluster{}, cryptoProvider)
-			require.Nil(t, bp)
-			require.EqualError(t, err, testCase.expectedError)
+			assert.Nil(t, bp)
+			assert.EqualError(t, err, testCase.expectedError)
 		})
 	}
 }
@@ -206,6 +206,6 @@ func TestLedgerBlockPuller(t *testing.T) {
 		BlockPuller:    puller,
 	}
 
-	require.Equal(t, genesisBlock, lbp.PullBlock(0))
-	require.Equal(t, notGenesisBlock, lbp.PullBlock(1))
+	assert.Equal(t, genesisBlock, lbp.PullBlock(0))
+	assert.Equal(t, notGenesisBlock, lbp.PullBlock(1))
 }

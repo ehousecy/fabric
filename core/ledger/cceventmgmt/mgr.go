@@ -9,8 +9,8 @@ package cceventmgmt
 import (
 	"sync"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/ledger"
 )
 
 var logger = flogging.MustGetLogger("cceventmgmt")
@@ -57,28 +57,6 @@ func (m *Mgr) Register(ledgerid string, l ChaincodeLifecycleEventListener) {
 	m.rwlock.Lock()
 	defer m.rwlock.Unlock()
 	m.ccLifecycleListeners[ledgerid] = append(m.ccLifecycleListeners[ledgerid], l)
-}
-
-// RegisterAndInvokeFor registers the listener and in addition invokes the listener for each chaincode that is present in the supplied
-// list of legacyChaincodes and is installed on the peer
-func (m *Mgr) RegisterAndInvokeFor(legacyChaincodes []*ChaincodeDefinition, ledgerid string, l ChaincodeLifecycleEventListener) error {
-	m.rwlock.Lock()
-	defer m.rwlock.Unlock()
-	m.ccLifecycleListeners[ledgerid] = append(m.ccLifecycleListeners[ledgerid], l)
-	for _, chaincodeDefinition := range legacyChaincodes {
-		installed, dbArtifacts, err := m.infoProvider.RetrieveChaincodeArtifacts(chaincodeDefinition)
-		if err != nil {
-			return err
-		}
-		if !installed {
-			continue
-		}
-		if err := l.HandleChaincodeDeploy(chaincodeDefinition, dbArtifacts); err != nil {
-			return err
-		}
-		l.ChaincodeDeployDone(true)
-	}
-	return nil
 }
 
 // HandleChaincodeDeploy is expected to be invoked when a chaincode is deployed via a deploy transaction

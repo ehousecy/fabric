@@ -11,16 +11,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/util"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
-	"github.com/hyperledger/fabric/common/flogging"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/queryutil"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/queryutil/mock"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
-	statedbmock "github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/mock"
+	"github.com/ehousecy/fabric/common/flogging"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/queryutil"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/queryutil/mock"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	statedbmock "github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -176,8 +176,8 @@ func TestGetRangeScanError(t *testing.T) {
 	itr1 := &statedbmock.ResultsIterator{}
 	itr1.NextReturns(
 		&statedb.VersionedKV{
-			CompositeKey:   &statedb.CompositeKey{Namespace: "ns", Key: "dummyKey"},
-			VersionedValue: &statedb.VersionedValue{Value: []byte("dummyVal")},
+			CompositeKey:   statedb.CompositeKey{Namespace: "ns", Key: "dummyKey"},
+			VersionedValue: statedb.VersionedValue{Value: []byte("dummyVal")},
 		},
 		nil,
 	)
@@ -199,8 +199,8 @@ func TestGetRangeScanUnderlyingIteratorReturnsError(t *testing.T) {
 	itr1 := &statedbmock.ResultsIterator{}
 	itr1.NextReturns(
 		&statedb.VersionedKV{
-			CompositeKey:   &statedb.CompositeKey{Namespace: "ns", Key: "dummyKey"},
-			VersionedValue: &statedb.VersionedValue{Value: []byte("dummyVal")},
+			CompositeKey:   statedb.CompositeKey{Namespace: "ns", Key: "dummyKey"},
+			VersionedValue: statedb.VersionedValue{Value: []byte("dummyVal")},
 		},
 		nil,
 	)

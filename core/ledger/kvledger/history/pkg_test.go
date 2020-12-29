@@ -12,13 +12,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/txmgr"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/bookkeeping"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/txmgr"
+	"github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -69,10 +69,11 @@ func newTestHistoryEnv(t *testing.T) *levelDBLockBasedHistoryEnv {
 	}
 	txMgr, err := txmgr.NewLockBasedTxMgr(txmgrInitializer)
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	testHistoryDBProvider, err := NewDBProvider(testHistoryDBPath)
-	require.NoError(t, err)
-	testHistoryDB := testHistoryDBProvider.GetDBHandle("TestHistoryDB")
+	assert.NoError(t, err)
+	testHistoryDB, err := testHistoryDBProvider.GetDBHandle("TestHistoryDB")
+	assert.NoError(t, err)
 
 	return &levelDBLockBasedHistoryEnv{
 		t,
@@ -121,7 +122,7 @@ func newBlockStorageTestEnv(t testing.TB) *testBlockStoreEnv {
 	indexConfig := &blkstorage.IndexConfig{AttrsToIndex: attrsToIndex}
 
 	p, err := blkstorage.NewProvider(conf, indexConfig, &disabled.Provider{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return &testBlockStoreEnv{t, p, testPath}
 }
 

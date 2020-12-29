@@ -16,12 +16,12 @@ import (
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/internal/peer/common/mock"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/internal/peer/common/mock"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFetch(t *testing.T) {
@@ -65,7 +65,7 @@ func TestFetch(t *testing.T) {
 			cmd.SetArgs(args)
 
 			err = cmd.Execute()
-			require.NoError(t, err, "fetch command expected to succeed")
+			assert.NoError(t, err, "fetch command expected to succeed")
 
 			if _, err := os.Stat(outputBlockPath); os.IsNotExist(err) {
 				// path/to/whatever does not exist
@@ -83,8 +83,8 @@ func TestFetch(t *testing.T) {
 		cmd.SetArgs(args)
 
 		err = cmd.Execute()
-		require.Error(t, err, "fetch command expected to fail")
-		require.Regexp(t, err.Error(), fmt.Sprintf("fetch target illegal: %s", block))
+		assert.Error(t, err, "fetch command expected to fail")
+		assert.Regexp(t, err.Error(), fmt.Sprintf("fetch target illegal: %s", block))
 
 		if fileInfo, _ := os.Stat(outputBlockPath); fileInfo != nil {
 			// path/to/whatever does exist
@@ -99,15 +99,15 @@ func TestFetchArgs(t *testing.T) {
 	cmd := fetchCmd(nil)
 	AddFlags(cmd)
 	err := cmd.Execute()
-	require.Error(t, err, "fetch command expected to fail")
-	require.Contains(t, err.Error(), "fetch target required")
+	assert.Error(t, err, "fetch command expected to fail")
+	assert.Contains(t, err.Error(), "fetch target required")
 
 	// failure - too many args
 	args := []string{"strawberry", "kiwi", "lemonade"}
 	cmd.SetArgs(args)
 	err = cmd.Execute()
-	require.Error(t, err, "fetch command expected to fail")
-	require.Contains(t, err.Error(), "trailing args detected")
+	assert.Error(t, err, "fetch command expected to fail")
+	assert.Contains(t, err.Error(), "trailing args detected")
 }
 
 func TestFetchNilCF(t *testing.T) {
@@ -126,8 +126,8 @@ func TestFetchNilCF(t *testing.T) {
 	args := []string{"-c", mockchain, "oldest"}
 	cmd.SetArgs(args)
 	err := cmd.Execute()
-	require.Error(t, err, "fetch command expected to fail")
-	require.Contains(t, err.Error(), "deliver client failed to connect to")
+	assert.Error(t, err, "fetch command expected to fail")
+	assert.Contains(t, err.Error(), "deliver client failed to connect to")
 }
 
 func getMockDeliverClient(channelID string) *common.DeliverClient {

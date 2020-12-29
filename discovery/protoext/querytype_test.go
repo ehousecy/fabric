@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/discovery"
-	"github.com/hyperledger/fabric/discovery/protoext"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/discovery/protoext"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetQueryType(t *testing.T) {
@@ -30,7 +30,7 @@ func TestGetQueryType(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			require.Equal(t, tt.expected, protoext.GetQueryType(tt.q))
+			assert.Equal(t, tt.expected, protoext.GetQueryType(tt.q))
 		})
 	}
 }

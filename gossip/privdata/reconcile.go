@@ -15,12 +15,12 @@ import (
 
 	protosgossip "github.com/hyperledger/fabric-protos-go/gossip"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	commonutil "github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/committer"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	privdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
-	"github.com/hyperledger/fabric/gossip/util"
+	commonutil "github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/committer"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	privdatacommon "github.com/ehousecy/fabric/gossip/privdata/common"
+	"github.com/ehousecy/fabric/gossip/util"
 	"github.com/pkg/errors"
 )
 
@@ -286,7 +286,7 @@ func (r *Reconciler) preparePvtDataToCommit(elements []*protosgossip.PvtDataElem
 func (r *Reconciler) logMismatched(pvtdataMismatched []*ledger.PvtdataHashMismatch) {
 	if len(pvtdataMismatched) > 0 {
 		for _, hashMismatch := range pvtdataMismatched {
-			r.logger.Warningf("failed to reconcile pvtdata chaincode %s, collection %s, block num %d, tx num %d due to hash mismatch or partially available bootKVs",
+			r.logger.Warningf("failed to reconcile pvtdata chaincode %s, collection %s, block num %d, tx num %d due to hash mismatch",
 				hashMismatch.Namespace, hashMismatch.Collection, hashMismatch.BlockNum, hashMismatch.TxNum)
 		}
 	}

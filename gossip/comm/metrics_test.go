@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/metrics/mocks"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/metrics/mocks"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func newCommInstanceWithMetrics(t *testing.T, sec *naiveSecProvider, metrics *metrics.CommMetrics) (c Comm, port int) {
@@ -65,20 +65,20 @@ func TestMetrics(t *testing.T) {
 		}
 	}
 
-	require.EqualValues(t,
+	assert.EqualValues(t,
 		1,
 		testMetricProvider.FakeSentMessages.AddArgsForCall(0),
 	)
 
-	require.EqualValues(t,
+	assert.EqualValues(t,
 		1,
 		testMetricProvider.FakeReceivedMessages.AddArgsForCall(0),
 	)
 
-	require.EqualValues(t,
+	assert.EqualValues(t,
 		1,
 		testMetricProvider.FakeBufferOverflow.AddArgsForCall(0),
 	)
 
-	require.Equal(t, uint32(1), atomic.LoadUint32(&overflown))
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&overflown))
 }

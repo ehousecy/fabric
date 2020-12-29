@@ -16,10 +16,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
-	localconfig "github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/common/multichannel"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	localconfig "github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/common/multichannel"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )
 
@@ -89,21 +89,21 @@ func testMsgTrace(handler func(dir string, msg *cb.Envelope) recvr, t *testing.T
 	r := handler(dir, msg)
 
 	rMsg, err := r.Recv()
-	require.Equal(t, msg, rMsg)
-	require.Nil(t, err)
+	assert.Equal(t, msg, rMsg)
+	assert.Nil(t, err)
 
 	var fileData []byte
 	for i := 0; i < 100; i++ {
 		// Writing the trace file is deliberately non-blocking, wait up to a second, checking every 10 ms to see if the file now exists.
 		time.Sleep(10 * time.Millisecond)
 		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-			require.Nil(t, err)
+			assert.Nil(t, err)
 			if path == dir {
 				return nil
 			}
-			require.Nil(t, fileData, "Should only be one file")
+			assert.Nil(t, fileData, "Should only be one file")
 			fileData, err = ioutil.ReadFile(path)
-			require.Nil(t, err)
+			assert.Nil(t, err)
 			return nil
 		})
 		if fileData != nil {
@@ -111,7 +111,7 @@ func testMsgTrace(handler func(dir string, msg *cb.Envelope) recvr, t *testing.T
 		}
 	}
 
-	require.Equal(t, protoutil.MarshalOrPanic(msg), fileData)
+	assert.Equal(t, protoutil.MarshalOrPanic(msg), fileData)
 }
 
 func TestBroadcastMsgTrace(t *testing.T) {
@@ -150,6 +150,6 @@ func TestDeliverNoChannel(t *testing.T) {
 	r := &multichannel.Registrar{}
 	ds := &deliverSupport{Registrar: r}
 	chain := ds.GetChain("mychannel")
-	require.Nil(t, chain)
-	require.True(t, chain == nil)
+	assert.Nil(t, chain)
+	assert.True(t, chain == nil)
 }

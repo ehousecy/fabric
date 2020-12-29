@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -49,25 +50,25 @@ func TestLevelDBHelper(t *testing.T) {
 	// second time open should not have any side effect
 	db.Open()
 	IsEmpty, err := db.IsEmpty()
-	require.NoError(t, err)
-	require.True(t, IsEmpty)
+	assert.NoError(t, err)
+	assert.True(t, IsEmpty)
 	db.Put([]byte("key1"), []byte("value1"), false)
 	db.Put([]byte("key2"), []byte("value2"), true)
 	db.Put([]byte("key3"), []byte("value3"), true)
 
 	val, _ := db.Get([]byte("key2"))
-	require.Equal(t, "value2", string(val))
+	assert.Equal(t, "value2", string(val))
 
 	db.Delete([]byte("key1"), false)
 	db.Delete([]byte("key2"), true)
 
 	val1, err1 := db.Get([]byte("key1"))
-	require.NoError(t, err1, "")
-	require.Equal(t, "", string(val1))
+	assert.NoError(t, err1, "")
+	assert.Equal(t, "", string(val1))
 
 	val2, err2 := db.Get([]byte("key2"))
-	require.NoError(t, err2, "")
-	require.Equal(t, "", string(val2))
+	assert.NoError(t, err2, "")
+	assert.Equal(t, "", string(val2))
 
 	db.Close()
 	// second time Close should not have any side effect
@@ -77,13 +78,13 @@ func TestLevelDBHelper(t *testing.T) {
 	require.Error(t, err)
 
 	val3, err3 := db.Get([]byte("key3"))
-	require.Error(t, err3)
-	require.Equal(t, "", string(val3))
+	assert.Error(t, err3)
+	assert.Equal(t, "", string(val3))
 
 	db.Open()
 	IsEmpty, err = db.IsEmpty()
-	require.NoError(t, err)
-	require.False(t, IsEmpty)
+	assert.NoError(t, err)
+	assert.False(t, IsEmpty)
 
 	batch := &leveldb.Batch{}
 	batch.Put([]byte("key1"), []byte("value1"))
@@ -92,74 +93,74 @@ func TestLevelDBHelper(t *testing.T) {
 	db.WriteBatch(batch, true)
 
 	val1, err1 = db.Get([]byte("key1"))
-	require.NoError(t, err1, "")
-	require.Equal(t, "value1", string(val1))
+	assert.NoError(t, err1, "")
+	assert.Equal(t, "value1", string(val1))
 
 	val2, err2 = db.Get([]byte("key2"))
-	require.NoError(t, err2, "")
-	require.Equal(t, "value2", string(val2))
+	assert.NoError(t, err2, "")
+	assert.Equal(t, "value2", string(val2))
 
 	val3, err3 = db.Get([]byte("key3"))
-	require.NoError(t, err3, "")
-	require.Equal(t, "", string(val3))
+	assert.NoError(t, err3, "")
+	assert.Equal(t, "", string(val3))
 
 	keys := []string{}
 	itr := db.GetIterator(nil, nil)
 	for itr.Next() {
 		keys = append(keys, string(itr.Key()))
 	}
-	require.Equal(t, []string{"key1", "key2"}, keys)
+	assert.Equal(t, []string{"key1", "key2"}, keys)
 }
 
 func TestFileLock(t *testing.T) {
 	// create 1st fileLock manager
 	fileLockPath := testDBPath + "/fileLock"
 	fileLock1 := NewFileLock(fileLockPath)
-	require.Nil(t, fileLock1.db)
-	require.Equal(t, fileLock1.filePath, fileLockPath)
+	assert.Nil(t, fileLock1.db)
+	assert.Equal(t, fileLock1.filePath, fileLockPath)
 
 	// acquire the file lock using the fileLock manager 1
 	err := fileLock1.Lock()
-	require.NoError(t, err)
-	require.NotNil(t, fileLock1.db)
+	assert.NoError(t, err)
+	assert.NotNil(t, fileLock1.db)
 
 	// create 2nd fileLock manager
 	fileLock2 := NewFileLock(fileLockPath)
-	require.Nil(t, fileLock2.db)
-	require.Equal(t, fileLock2.filePath, fileLockPath)
+	assert.Nil(t, fileLock2.db)
+	assert.Equal(t, fileLock2.filePath, fileLockPath)
 
 	// try to acquire the file lock again using the fileLock2
 	// would result in an error
 	err = fileLock2.Lock()
 	expectedErr := fmt.Sprintf("lock is already acquired on file %s", fileLockPath)
-	require.EqualError(t, err, expectedErr)
-	require.Nil(t, fileLock2.db)
+	assert.EqualError(t, err, expectedErr)
+	assert.Nil(t, fileLock2.db)
 
 	// release the file lock acquired using fileLock1
 	fileLock1.Unlock()
-	require.Nil(t, fileLock1.db)
+	assert.Nil(t, fileLock1.db)
 
 	// As the fileLock1 has released the lock,
 	// the fileLock2 can acquire the lock.
 	err = fileLock2.Lock()
-	require.NoError(t, err)
-	require.NotNil(t, fileLock2.db)
+	assert.NoError(t, err)
+	assert.NotNil(t, fileLock2.db)
 
 	// release the file lock acquired using fileLock 2
 	fileLock2.Unlock()
-	require.Nil(t, fileLock1.db)
+	assert.Nil(t, fileLock1.db)
 
 	// unlock can be called multiple times and it is safe
 	fileLock2.Unlock()
-	require.Nil(t, fileLock1.db)
+	assert.Nil(t, fileLock1.db)
 
 	// cleanup
-	require.NoError(t, os.RemoveAll(fileLockPath))
+	assert.NoError(t, os.RemoveAll(fileLockPath))
 }
 
 func TestCreateDBInEmptyDir(t *testing.T) {
-	require.NoError(t, os.RemoveAll(testDBPath), "")
-	require.NoError(t, os.MkdirAll(testDBPath, 0775), "")
+	assert.NoError(t, os.RemoveAll(testDBPath), "")
+	assert.NoError(t, os.MkdirAll(testDBPath, 0775), "")
 	db := CreateDB(&Conf{DBPath: testDBPath})
 	defer db.Close()
 	defer func() {
@@ -171,10 +172,10 @@ func TestCreateDBInEmptyDir(t *testing.T) {
 }
 
 func TestCreateDBInNonEmptyDir(t *testing.T) {
-	require.NoError(t, os.RemoveAll(testDBPath), "")
-	require.NoError(t, os.MkdirAll(testDBPath, 0775), "")
+	assert.NoError(t, os.RemoveAll(testDBPath), "")
+	assert.NoError(t, os.MkdirAll(testDBPath, 0775), "")
 	file, err := os.Create(filepath.Join(testDBPath, "dummyfile.txt"))
-	require.NoError(t, err, "")
+	assert.NoError(t, err, "")
 	file.Close()
 	db := CreateDB(&Conf{DBPath: testDBPath})
 	defer db.Close()

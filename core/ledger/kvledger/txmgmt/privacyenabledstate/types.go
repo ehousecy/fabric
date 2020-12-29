@@ -9,8 +9,8 @@ package privacyenabledstate
 import (
 	"fmt"
 
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
 )
 
 // PvtdataCompositeKey encloses Namespace, CollectionName and Key components
@@ -61,7 +61,7 @@ type PvtUpdateBatch struct {
 // UpdateMap maintains entries of tuple <Namespace, UpdatesForNamespace>
 type UpdateMap map[string]NsBatch
 
-// NsBatch contains updates related to one namespace
+// nsBatch contains updates related to one namespace
 type NsBatch struct {
 	*statedb.UpdateBatch
 }
@@ -124,17 +124,14 @@ func (b UpdateMap) Contains(ns, coll, key string) bool {
 	return nsBatch.Exists(coll, key)
 }
 
-// GetCollectionNames returns collections in the namespcae batch
 func (nsb NsBatch) GetCollectionNames() []string {
 	return nsb.GetUpdatedNamespaces()
 }
 
-// GetCollectionUpdates returns updates for a specific collection in the namespace batch
 func (nsb NsBatch) GetCollectionUpdates(collName string) map[string]*statedb.VersionedValue {
 	return nsb.GetUpdates(collName)
 }
 
-// GetUpdatedNamespaces returns the namespaces present in the UpdateMap
 func (b UpdateMap) GetUpdatedNamespaces() []string {
 	namespaces := []string{}
 	for ns := range b {

@@ -12,13 +12,13 @@ import (
 	"time"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/orderer/consensus/solo/mocks"
-	mockblockcutter "github.com/hyperledger/fabric/orderer/mocks/common/blockcutter"
-	mockmultichannel "github.com/hyperledger/fabric/orderer/mocks/common/multichannel"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/orderer/consensus/solo/mocks"
+	mockblockcutter "github.com/ehousecy/fabric/orderer/mocks/common/blockcutter"
+	mockmultichannel "github.com/ehousecy/fabric/orderer/mocks/common/multichannel"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 //go:generate counterfeiter -o mocks/orderer_config.go --fake-name OrdererConfig . ordererConfig
@@ -95,7 +95,7 @@ func TestStart(t *testing.T) {
 	defer bs.Halt()
 
 	support.BlockCutterVal.CutNext = true
-	require.Nil(t, bs.Order(testMessage, 0))
+	assert.Nil(t, bs.Order(testMessage, 0))
 	select {
 	case <-support.Blocks:
 	case <-bs.Errored():
@@ -114,7 +114,7 @@ func TestOrderAfterHalt(t *testing.T) {
 	defer close(support.BlockCutterVal.Block)
 	bs := newChain(support)
 	bs.Halt()
-	require.NotNil(t, bs.Order(testMessage, 0), "Order should not be accepted after halt")
+	assert.NotNil(t, bs.Order(testMessage, 0), "Order should not be accepted after halt")
 	select {
 	case <-bs.Errored():
 	default:
@@ -261,7 +261,7 @@ func TestConfigMsg(t *testing.T) {
 	defer bs.Halt()
 
 	syncQueueMessage(testMessage, bs, support.BlockCutterVal)
-	require.Nil(t, bs.Configure(testMessage, 0))
+	assert.Nil(t, bs.Configure(testMessage, 0))
 
 	select {
 	case <-support.Blocks:
@@ -336,7 +336,7 @@ func TestRevalidation(t *testing.T) {
 		support.ProcessConfigMsgVal = testMessage
 
 		t.Run("Valid", func(t *testing.T) {
-			require.Nil(t, bs.Configure(testMessage, 0))
+			assert.Nil(t, bs.Configure(testMessage, 0))
 
 			select {
 			case <-support.Blocks:
@@ -347,7 +347,7 @@ func TestRevalidation(t *testing.T) {
 
 		t.Run("Invalid", func(t *testing.T) {
 			support.ProcessConfigMsgErr = fmt.Errorf("Config message is not valid")
-			require.Nil(t, bs.Configure(testMessage, 0))
+			assert.Nil(t, bs.Configure(testMessage, 0))
 
 			select {
 			case <-support.Blocks:
@@ -376,7 +376,7 @@ func TestRevalidation(t *testing.T) {
 			// We are not calling `syncQueueMessage` here because we don't expect
 			// `Ordered` to be invoked at all in this case, so we don't need to
 			// synchronize on `support.BlockCutterVal.Block`.
-			require.Nil(t, bs.Order(testMessage, 0))
+			assert.Nil(t, bs.Order(testMessage, 0))
 
 			select {
 			case <-support.Blocks:

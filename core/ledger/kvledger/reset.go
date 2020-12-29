@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package kvledger
 
 import (
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
 	"github.com/pkg/errors"
 )
 
@@ -21,15 +21,6 @@ func ResetAllKVLedgers(rootFSPath string) error {
 			" wait for that command to complete its execution or terminate it before retrying")
 	}
 	defer fileLock.Unlock()
-
-	blockstorePath := BlockStorePath(rootFSPath)
-	ledgerIDs, err := blkstorage.GetLedgersBootstrappedFromSnapshot(blockstorePath)
-	if err != nil {
-		return err
-	}
-	if len(ledgerIDs) > 0 {
-		return errors.Errorf("cannot reset channels because the peer contains channel(s) %s that were bootstrapped from snapshot", ledgerIDs)
-	}
 
 	logger.Info("Resetting all channel ledgers to genesis block")
 	logger.Infof("Ledger data folder from config = [%s]", rootFSPath)

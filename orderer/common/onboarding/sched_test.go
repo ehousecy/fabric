@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExponentialDuration(t *testing.T) {
@@ -21,13 +21,13 @@ func TestExponentialDuration(t *testing.T) {
 	prev := exp()
 	for i := 0; i < 3; i++ {
 		n := exp()
-		require.Equal(t, prev*2, n)
+		assert.Equal(t, prev*2, n)
 		prev = n
-		require.True(t, n < time.Second)
+		assert.True(t, n < time.Second)
 	}
 
 	for i := 0; i < 10; i++ {
-		require.Equal(t, time.Second, exp())
+		assert.Equal(t, time.Second, exp())
 	}
 }
 
@@ -69,7 +69,7 @@ func TestTicker(t *testing.T) {
 
 		tickerStopped.Wait()
 		_, ok := <-ticker.C
-		require.False(t, ok)
+		assert.False(t, ok)
 
 	})
 

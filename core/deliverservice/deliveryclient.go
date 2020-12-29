@@ -8,19 +8,19 @@ package deliverservice
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
 	"sync"
 	"time"
 
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/internal/pkg/peer/blocksprovider"
+	"github.com/ehousecy/fabric/internal/pkg/peer/orderers"
 	"github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/internal/pkg/peer/blocksprovider"
-	"github.com/hyperledger/fabric/internal/pkg/peer/orderers"
 	"google.golang.org/grpc"
 )
 
@@ -91,7 +91,7 @@ type DialerAdapter struct {
 	Client *comm.GRPCClient
 }
 
-func (da DialerAdapter) Dial(address string, certPool *x509.CertPool) (*grpc.ClientConn, error) {
+func (da DialerAdapter) Dial(address string, certPool *sm2.CertPool) (*grpc.ClientConn, error) {
 	return da.Client.NewConnection(address, comm.CertPoolOverride(certPool))
 }
 
@@ -140,7 +140,7 @@ func (d *deliverServiceImpl) StartDeliverForChannel(chainID string, ledgerInfo b
 	}
 
 	if d.conf.DeliverGRPCClient.MutualTLSRequired() {
-		dc.TLSCertHash = util.ComputeSHA256(d.conf.DeliverGRPCClient.Certificate().Certificate[0])
+		dc.TLSCertHash = util.ComputeGMSM3(d.conf.DeliverGRPCClient.Certificate().Certificate[0])
 	}
 
 	d.blockProviders[chainID] = dc

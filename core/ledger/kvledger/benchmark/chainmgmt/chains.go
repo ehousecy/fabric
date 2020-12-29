@@ -13,10 +13,10 @@ import (
 	"sync"
 
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/ledgermgmt"
-	"github.com/hyperledger/fabric/core/ledger/ledgermgmt/ledgermgmttest"
+	"github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/ledgermgmt"
+	"github.com/ehousecy/fabric/core/ledger/ledgermgmt/ledgermgmttest"
 )
 
 // ChainID is a type used for the ids for the chains for experiments
@@ -48,7 +48,7 @@ func newChainsMgr(mgrConf *ChainMgrConf, batchConf *BatchConf, initOp chainInitO
 		if !set {
 			panic("environment variable 'useCouchDB' is set to true but 'COUCHDB_ADDR' is not set")
 		}
-		ledgermgmtInitializer.Config.StateDBConfig.StateDatabase = ledger.CouchDB
+		ledgermgmtInitializer.Config.StateDBConfig.StateDatabase = "CouchDB"
 		ledgermgmtInitializer.Config.StateDBConfig.CouchDB = &ledger.CouchDBConfig{
 			Address:            couchdbAddr,
 			RedoLogPath:        filepath.Join(dataDir, "couchdbRedologs"),

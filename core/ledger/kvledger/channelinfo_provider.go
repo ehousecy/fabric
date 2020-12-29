@@ -9,13 +9,13 @@ package kvledger
 import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -45,7 +45,9 @@ func (p *channelInfoProvider) NamespacesAndCollections(vdb statedb.VersionedDB) 
 	for _, ccInfo := range chaincodesInfo {
 		ccName := ccInfo.Name
 		retNamespaces[ccName] = []string{}
-		retNamespaces[ccName] = append(retNamespaces[ccName], implicitCollNames...)
+		for _, implicitCollName := range implicitCollNames {
+			retNamespaces[ccName] = append(retNamespaces[ccName], implicitCollName)
+		}
 		if ccInfo.ExplicitCollectionConfigPkg == nil {
 			continue
 		}
@@ -63,7 +65,9 @@ func (p *channelInfoProvider) NamespacesAndCollections(vdb statedb.VersionedDB) 
 		if ns == "lscc" {
 			continue
 		}
-		retNamespaces[ns] = append(retNamespaces[ns], implicitCollNames...)
+		for _, implicitCollName := range implicitCollNames {
+			retNamespaces[ns] = append(retNamespaces[ns], implicitCollName)
+		}
 	}
 
 	// add namespace ""
@@ -165,13 +169,15 @@ type resultsItr struct {
 
 // Next implements method in interface ledger.ResultsIterator
 func (itr *resultsItr) Next() (commonledger.QueryResult, error) {
-	versionedKV, err := itr.dbItr.Next()
+	queryResult, err := itr.dbItr.Next()
 	if err != nil {
 		return nil, err
 	}
-	if versionedKV == nil {
+	// itr.updateRangeQueryInfo(queryResult)
+	if queryResult == nil {
 		return nil, nil
 	}
+	versionedKV := queryResult.(*statedb.VersionedKV)
 	return &queryresult.KV{Namespace: versionedKV.Namespace, Key: versionedKV.Key, Value: versionedKV.Value}, nil
 }
 

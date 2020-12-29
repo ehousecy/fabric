@@ -10,11 +10,11 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/hyperledger/fabric-lib-go/healthz"
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/orderer/consensus/inactive"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/metrics"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/orderer/consensus/inactive"
 	"github.com/pkg/errors"
 )
 
@@ -101,6 +101,10 @@ func (consenter *consenterImpl) HandleChain(support consensus.ConsenterSupport, 
 	}
 	consenter.healthChecker.RegisterChecker(ch.channel.String(), ch)
 	return ch, nil
+}
+
+func (c *consenterImpl) JoinChain(support consensus.ConsenterSupport, joinBlock *cb.Block) (consensus.Chain, error) {
+	return nil, errors.New("the Kafka orderer does not support JoinChain")
 }
 
 // commonConsenter allows us to retrieve the configuration options set on the

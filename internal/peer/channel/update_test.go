@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/stretchr/testify/assert"
 )
 
 const mockChannel = "mockChannel"
@@ -52,7 +52,7 @@ func TestUpdateChannel(t *testing.T) {
 	args := []string{"-c", mockChannel, "-f", configtxFile, "-o", "localhost:7050"}
 	cmd.SetArgs(args)
 
-	require.NoError(t, cmd.Execute())
+	assert.NoError(t, cmd.Execute())
 }
 
 func TestUpdateChannelMissingConfigTxFlag(t *testing.T) {
@@ -77,7 +77,7 @@ func TestUpdateChannelMissingConfigTxFlag(t *testing.T) {
 	args := []string{"-c", mockChannel, "-o", "localhost:7050"}
 	cmd.SetArgs(args)
 
-	require.Error(t, cmd.Execute())
+	assert.Error(t, cmd.Execute())
 }
 
 func TestUpdateChannelMissingConfigTxFile(t *testing.T) {
@@ -102,7 +102,7 @@ func TestUpdateChannelMissingConfigTxFile(t *testing.T) {
 	args := []string{"-c", mockChannel, "-f", "Non-existent", "-o", "localhost:7050"}
 	cmd.SetArgs(args)
 
-	require.Error(t, cmd.Execute())
+	assert.Error(t, cmd.Execute())
 }
 
 func TestUpdateChannelMissingChannelID(t *testing.T) {
@@ -138,5 +138,5 @@ func TestUpdateChannelMissingChannelID(t *testing.T) {
 	args := []string{"-f", configtxFile, "-o", "localhost:7050"}
 	cmd.SetArgs(args)
 
-	require.Error(t, cmd.Execute())
+	assert.Error(t, cmd.Execute())
 }

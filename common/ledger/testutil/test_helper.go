@@ -13,17 +13,17 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/common/crypto"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/common/crypto"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
 
-	"github.com/hyperledger/fabric/common/ledger/testutil/fakes"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	msptesttools "github.com/hyperledger/fabric/msp/mgmt/testtools"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/ledger/testutil/fakes"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	msptesttools "github.com/ehousecy/fabric/msp/mgmt/testtools"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 var signer msp.SigningIdentity
@@ -74,7 +74,7 @@ type signingIdentity interface {
 // NewBlockGenerator instantiates new BlockGenerator for testing
 func NewBlockGenerator(t *testing.T, ledgerID string, signTxs bool) (*BlockGenerator, *common.Block) {
 	gb, err := test.MakeGenesisBlock(ledgerID)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	gb.Metadata.Metadata[common.BlockMetadataIndex_TRANSACTIONS_FILTER] = txflags.NewWithValues(len(gb.Data.Data), pb.TxValidationCode_VALID)
 	return &BlockGenerator{1, protoutil.BlockHeaderHash(gb.GetHeader()), signTxs, t}, gb
 }

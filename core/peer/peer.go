@@ -12,35 +12,35 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	cc "github.com/hyperledger/fabric/common/config"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/deliver"
-	"github.com/hyperledger/fabric/common/flogging"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/semaphore"
-	"github.com/hyperledger/fabric/core/committer"
-	"github.com/hyperledger/fabric/core/committer/txvalidator"
-	"github.com/hyperledger/fabric/core/committer/txvalidator/plugin"
-	validatorv14 "github.com/hyperledger/fabric/core/committer/txvalidator/v14"
-	validatorv20 "github.com/hyperledger/fabric/core/committer/txvalidator/v20"
-	"github.com/hyperledger/fabric/core/committer/txvalidator/v20/plugindispatcher"
-	vir "github.com/hyperledger/fabric/core/committer/txvalidator/v20/valinforetriever"
-	"github.com/hyperledger/fabric/core/common/privdata"
-	validation "github.com/hyperledger/fabric/core/handlers/validation/api/state"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/ledgermgmt"
-	"github.com/hyperledger/fabric/core/transientstore"
-	"github.com/hyperledger/fabric/gossip/api"
-	gossipprivdata "github.com/hyperledger/fabric/gossip/privdata"
-	gossipservice "github.com/hyperledger/fabric/gossip/service"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/peer/orderers"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	cc "github.com/ehousecy/fabric/common/config"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/deliver"
+	"github.com/ehousecy/fabric/common/flogging"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/semaphore"
+	"github.com/ehousecy/fabric/core/committer"
+	"github.com/ehousecy/fabric/core/committer/txvalidator"
+	"github.com/ehousecy/fabric/core/committer/txvalidator/plugin"
+	validatorv14 "github.com/ehousecy/fabric/core/committer/txvalidator/v14"
+	validatorv20 "github.com/ehousecy/fabric/core/committer/txvalidator/v20"
+	"github.com/ehousecy/fabric/core/committer/txvalidator/v20/plugindispatcher"
+	vir "github.com/ehousecy/fabric/core/committer/txvalidator/v20/valinforetriever"
+	"github.com/ehousecy/fabric/core/common/privdata"
+	validation "github.com/ehousecy/fabric/core/handlers/validation/api/state"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/ledgermgmt"
+	"github.com/ehousecy/fabric/core/transientstore"
+	"github.com/ehousecy/fabric/gossip/api"
+	gossipprivdata "github.com/ehousecy/fabric/gossip/privdata"
+	gossipservice "github.com/ehousecy/fabric/gossip/service"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/peer/orderers"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -148,8 +148,6 @@ func (flbs fileLedgerBlockStore) RetrieveBlocks(startBlockNumber uint64) (common
 	return flbs.GetBlocksIterator(startBlockNumber)
 }
 
-func (flbs fileLedgerBlockStore) Shutdown() {}
-
 // NewConfigSupport returns
 func NewConfigSupport(peer *Peer) cc.Manager {
 	return &configSupport{
@@ -226,31 +224,8 @@ func (p *Peer) CreateChannel(
 	return nil
 }
 
-// CreateChannelFromSnapshot creates a channel from the specified snapshot.
-func (p *Peer) CreateChannelFromSnapshot(
-	snapshotDir string,
-	deployedCCInfoProvider ledger.DeployedChaincodeInfoProvider,
-	legacyLifecycleValidation plugindispatcher.LifecycleResources,
-	newLifecycleValidation plugindispatcher.CollectionAndLifecycleResources,
-) error {
-	channelCallback := func(l ledger.PeerLedger, cid string) {
-		if err := p.createChannel(cid, l, deployedCCInfoProvider, legacyLifecycleValidation, newLifecycleValidation); err != nil {
-			logger.Errorf("error creating channel for %s", cid)
-			return
-		}
-		p.initChannel(cid)
-	}
-
-	err := p.LedgerMgr.CreateLedgerFromSnapshot(snapshotDir, channelCallback)
-	if err != nil {
-		return errors.WithMessagef(err, "cannot create ledger from snapshot %s", snapshotDir)
-	}
-
-	return nil
-}
-
-// RetrievePersistedChannelConfig retrieves the persisted channel config from statedb
-func RetrievePersistedChannelConfig(ledger ledger.PeerLedger) (*common.Config, error) {
+// retrievePersistedChannelConfig retrieves the persisted channel config from statedb
+func retrievePersistedChannelConfig(ledger ledger.PeerLedger) (*common.Config, error) {
 	qe, err := ledger.NewQueryExecutor()
 	if err != nil {
 		return nil, err
@@ -267,7 +242,7 @@ func (p *Peer) createChannel(
 	legacyLifecycleValidation plugindispatcher.LifecycleResources,
 	newLifecycleValidation plugindispatcher.CollectionAndLifecycleResources,
 ) error {
-	chanConf, err := RetrievePersistedChannelConfig(l)
+	chanConf, err := retrievePersistedChannelConfig(l)
 	if err != nil {
 		return err
 	}
@@ -478,11 +453,6 @@ func (p *Peer) GetPolicyManager(cid string) policies.Manager {
 		return c.Resources().PolicyManager()
 	}
 	return nil
-}
-
-// JoinBySnaphotStatus queries ledger mgr to get the status of joinbysnapshot
-func (p *Peer) JoinBySnaphotStatus() *pb.JoinBySnapshotStatus {
-	return p.LedgerMgr.JoinBySnapshotStatus()
 }
 
 // initChannel takes care to initialize channel after peer joined, for example deploys system CCs

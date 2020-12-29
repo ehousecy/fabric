@@ -11,14 +11,14 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	validation "github.com/hyperledger/fabric/core/handlers/validation/api"
-	. "github.com/hyperledger/fabric/core/handlers/validation/api/capabilities"
-	. "github.com/hyperledger/fabric/core/handlers/validation/api/identities"
-	. "github.com/hyperledger/fabric/core/handlers/validation/api/policies"
-	. "github.com/hyperledger/fabric/core/handlers/validation/api/state"
-	"github.com/hyperledger/fabric/protoutil"
+	validation "github.com/ehousecy/fabric/core/handlers/validation/api"
+	. "github.com/ehousecy/fabric/core/handlers/validation/api/capabilities"
+	. "github.com/ehousecy/fabric/core/handlers/validation/api/identities"
+	. "github.com/ehousecy/fabric/core/handlers/validation/api/policies"
+	. "github.com/ehousecy/fabric/core/handlers/validation/api/state"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 // SampleValidationPlugin is an example for a validation plugin,
@@ -59,7 +59,7 @@ func (p *SampleValidationPlugin) Validate(block *common.Block, namespace string,
 	txData := block.Data.Data[0]
 	txn := &MarshaledSignedData{}
 	err := proto.Unmarshal(txData, txn)
-	require.NoError(p.t, err)
+	assert.NoError(p.t, err)
 
 	// Check if the chaincode is instantiated
 	state, err := p.sf.FetchState()
@@ -86,8 +86,8 @@ func (p *SampleValidationPlugin) Validate(block *common.Block, namespace string,
 	}
 
 	identifier := identity.GetIdentityIdentifier()
-	require.Equal(p.t, "SampleOrg", identifier.Mspid)
-	require.Equal(p.t, "foo", identifier.Id)
+	assert.Equal(p.t, "SampleOrg", identifier.Mspid)
+	assert.Equal(p.t, "foo", identifier.Id)
 
 	sd := &protoutil.SignedData{
 		Signature: txn.Signature,

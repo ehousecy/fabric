@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 type tarEntry struct {
@@ -70,20 +70,20 @@ func TestNoMetadata(t *testing.T) {
 	entries := []tarEntry{{"path/to/a/file", []byte("somdata")}}
 	cds := getCodePackage([]byte("cc code"), entries)
 	metadata, err := MetadataAsTarEntries(cds)
-	require.Nil(t, err)
-	require.NotNil(t, metadata)
+	assert.Nil(t, err)
+	assert.NotNil(t, metadata)
 	count, err := getNumEntries(metadata)
-	require.Nil(t, err)
-	require.Equal(t, count, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, count, 0)
 }
 
 func TestMetadata(t *testing.T) {
 	entries := []tarEntry{{"path/to/a/file", []byte("somdata")}, {ccPackageStatedbDir + "/m1", []byte("m1data")}, {ccPackageStatedbDir + "/m2", []byte("m2data")}}
 	cds := getCodePackage([]byte("cc code"), entries)
 	metadata, err := MetadataAsTarEntries(cds)
-	require.Nil(t, err)
-	require.NotNil(t, metadata)
+	assert.Nil(t, err)
+	assert.NotNil(t, metadata)
 	count, err := getNumEntries(metadata)
-	require.Nil(t, err)
-	require.Equal(t, count, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, count, 2)
 }

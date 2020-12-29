@@ -10,11 +10,11 @@ import (
 	"context"
 
 	"github.com/hyperledger/fabric-protos-go/discovery"
-	"github.com/hyperledger/fabric/cmd/common"
-	"github.com/hyperledger/fabric/cmd/common/comm"
-	"github.com/hyperledger/fabric/cmd/common/signer"
-	discoveryclient "github.com/hyperledger/fabric/discovery/client"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/cmd/common"
+	"github.com/ehousecy/fabric/cmd/common/comm"
+	"github.com/ehousecy/fabric/cmd/common/signer"
+	discoveryclient "github.com/ehousecy/fabric/discovery/client"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 

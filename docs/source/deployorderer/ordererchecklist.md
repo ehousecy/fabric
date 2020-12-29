@@ -18,8 +18,6 @@ This checklist covers key configuration parameters for setting up a production o
 * [FileLedger.Location](#fileledger-location)
 * [Operations.*](#operations)
 * [Metrics.*](#metrics)
-* [Admin.*](#admin)
-* [ChannelParticipation.*](#channelparticipation)
 * [Consensus.*](#consensus)
 
 ## General.ListenAddress
@@ -43,24 +41,14 @@ ListenPort: 7050
 ## General.TLS
 
 ```
-# Require server-side TLS
 Enabled: false
 # PrivateKey governs the file location of the private key of the TLS certificate.
 PrivateKey: tls/server.key
 # Certificate governs the file location of the server TLS certificate.
 Certificate: tls/server.crt
-# RootCAs contains a list additional root certificates used for verifying certificates
-# of other orderer nodes during outbound connections.
-# It is not required to be set, but can be used to augment the set of TLS CA certificates
-# available from the MSPs of each channel’s configuration.
 RootCAs:
   - tls/ca.crt
-# Require client certificates / mutual TLS for inbound connections.
 ClientAuthRequired: false
-# If mutual TLS is enabled, ClientRootCAs contains a list of additional root certificates
-# used for verifying certificates of client connections.
-# It is not required to be set, but can be used to augment the set of TLS CA certificates
-# available from the MSPs of each channel’s configuration.
 ClientRootCAs:
 ```
 
@@ -142,7 +130,7 @@ In general, these four parameters would only need to be configured if you want t
 BootstrapMethod: file
 ```
 
-* **`BootstrapMethod`**: If you plan to create this node on a network that is not using a system channel, override this value to `none` and then ensure that [`ChannelParticipation.Enabled`](#channelparticipation) is set to `true`, otherwise you will get an error when you attempt to start the node. If you are creating a node to be joined to a system channel, unless you plan to use a file type other than “file”, this value should be left as is.
+* **`BootstrapMethod`**: (default value should not be overridden) Unless you plan to use a file type other than “file”, this value should be left as is.
 
 ## General.BoostrapFile
 
@@ -157,7 +145,7 @@ BootstrapMethod: file
 BootstrapFile:
 ```
 
-* **`BoostrapFile`**: (if you are creating this node to be joined to a system channel, the default value should be overridden) Specify the location and name of the system channel genesis block to use when this node is created. If you are creating this node without using a system channel, this value will not be used, and can therefore be left blank.
+* **`BoostrapFile`**: (default value should be overridden) Specify the location and name of the system channel genesis block to use when this node is created.
 
 ## General.LocalMSPDir
 
@@ -182,7 +170,7 @@ LocalMSPDir: msp
 LocalMSPID: SampleOrg
 ```
 
-* **`LocalMSPID`**: (default value should be overridden) This identifies the organization this ordering node belongs to. The MSP ID must match the orderer organization MSP ID that exists in the configuration of any channel this joined will be joined to.
+* **`LocalMSPID`**: (default value should be overridden) The MSP ID must match the orderer organization MSP ID that exists in the configuration of the system channel. This means the MSP ID must have been listed in the `configtx.yaml` used to create the genesis block of the system channel (or have been added later to the list of system channel administrators).
 
 ## General.BCCSP.*
 
@@ -309,57 +297,6 @@ Because Prometheus utilizes a "pull" model there is not any configuration requir
 
 * **`Provider`**: Set this value to `statsd` if using `StatsD` or `prometheus` if using `Prometheus`.
 * **`Statsd.Address`**: (required to use `StatsD` metrics for the ordering node) When `StatsD` is enabled, you will need to configure the `hostname` and `port` of the `StatsD` server so that the ordering node can push metric updates.
-
-## Admin.*
-
-```
-Admin:
-    # host and port for the admin server
-    ListenAddress: 127.0.0.1:9443
-
-    # TLS configuration for the admin endpoint
-    TLS:
-        # TLS enabled
-        Enabled: false
-
-        # Certificate is the location of the PEM encoded TLS certificate
-        Certificate:
-
-        # PrivateKey points to the location of the PEM-encoded key
-        PrivateKey:
-
-        # Most admin service endpoints require client authentication when TLS
-        # is enabled. ClientAuthRequired requires client certificate authentication
-        # at the TLS layer to access all resources.
-        #
-        # NOTE: When TLS is enabled, the admin endpoint requires mutual TLS. The
-        # orderer will panic on startup if this value is set to false.
-        ClientAuthRequired: true
-
-        # Paths to PEM encoded ca certificates to trust for client authentication
-        ClientRootCAs: []
-```
-
-* **`ListenAddress`**: The orderer admin server address (host and port) that can be used by the `osnadmin` command to configure channels on the ordering service. This value should be a unique `host:port` combination to avoid conflicts.
-* **`TLS.Enabled`**: Technically this can be set to `false`, but this is not recommended. In general, you should always set this value to `true`.
-* **`TLS.Certificate`**: The path to and file name of the orderer signed certificate issued by the TLS CA.
-* **`TLS.PrivateKey`**: The path to and file name of the orderer private key issued by the TLS CA.
-* **`TLS.ClientAuthRequired`**: This value must be set to `true`. Note that while mutual TLS is required for all operations on the orderer `Admin` endpoint, the entire network is not required to use mutual TLS.
-* **`TLS.ClientRootCAs`**: The path to and file name of the admin client TLS CA root certificate.
-
-## ChannelParticipation.*
-
-```
-ChannelParticipation:
-    # Channel participation API is enabled.
-    Enabled: false
-
-    # The maximum size of the request body when joining a channel.
-    MaxRequestBodySize: 1 MB
-```
-
-* **`Enabled`**: If you are bootstrapping the ordering node with a system channel genesis block, this value can be set to either `true` or `false` (setting the value to `true` allows you to list channels and to migrate away from the system channel in the future). If you are **not** bootstrapping the ordering node with a system channel genesis block, this value must be set to `true` and the [`General.BoostrapMethod`](#general-boostrapmethod) should be set to `none`.
-* **`MaxRequestBodySize`**: (default value should not be overridden) This value controls the maximum size a configuration block can be and be accepted by this ordering node. Most configuration blocks are smaller than 1 MB, but if for some reason a configuration block is too large to be accept, bring down the node, increase this value, and restart the node.
 
 ## Consensus.*
 

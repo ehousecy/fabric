@@ -16,18 +16,18 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/flogging/floggingtest"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/validation/mock"
-	mocklgr "github.com/hyperledger/fabric/core/ledger/mock"
-	lutils "github.com/hyperledger/fabric/core/ledger/util"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/flogging/floggingtest"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/validation/mock"
+	mocklgr "github.com/ehousecy/fabric/core/ledger/mock"
+	lutils "github.com/ehousecy/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -123,7 +123,7 @@ func TestValidateAndPreparePvtBatch(t *testing.T) {
 	require.NoError(t, err)
 	addPvtRWSetToPvtUpdateBatch(tx1TxPvtRWSet, expectedPvtUpdates, version.NewHeight(uint64(10), uint64(0)))
 
-	actualPvtUpdates, err := validateAndPreparePvtBatch(mvccValidatedBlock, testDB, nil, pvtDataMap)
+	actualPvtUpdates, err := validateAndPreparePvtBatch(mvccValidatedBlock, testDB, nil, pvtDataMap, nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedPvtUpdates, actualPvtUpdates)
 
@@ -252,7 +252,7 @@ func TestIncrementPvtdataVersionIfNeeded(t *testing.T) {
 	updateBatch.PvtUpdates.Put("ns", "coll2", "key2", []byte("value2"), version.NewHeight(1, 2))
 	updateBatch.PvtUpdates.Put("ns", "coll3", "key3", []byte("value3"), version.NewHeight(1, 3))
 	updateBatch.PvtUpdates.Put("ns", "col4", "key4", []byte("value4"), version.NewHeight(1, 4))
-	require.NoError(t, testDB.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 4)))
+	testDB.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 4))
 
 	// for the current block, mimic the resultant hashed updates
 	hashUpdates := privacyenabledstate.NewHashedUpdateBatch()
@@ -334,8 +334,7 @@ func TestTXMgrContainsPostOrderWrites(t *testing.T) {
 		func(txEnvelop *common.Envelope, s ledger.TxSimulator, initializingLedger bool) error {
 			rwSetBuilder := rwsetutil.NewRWSetBuilder()
 			rwSetBuilder.AddToWriteSet("ns1", "key1", []byte("value1"))
-			_, err := rwSetBuilder.GetTxSimulationResults()
-			require.NoError(t, err)
+			rwSetBuilder.GetTxSimulationResults()
 			s.(*mocklgr.TxSimulator).GetTxSimulationResultsReturns(
 				rwSetBuilder.GetTxSimulationResults())
 			return nil

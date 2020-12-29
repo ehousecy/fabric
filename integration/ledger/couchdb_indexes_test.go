@@ -14,10 +14,10 @@ import (
 	"syscall"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/nwo/fabricconfig"
-	"github.com/hyperledger/fabric/integration/runner"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/integration/nwo/fabricconfig"
+	"github.com/ehousecy/fabric/integration/runner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	chaincodePathWithNoIndex = "github.com/hyperledger/fabric/integration/chaincode/marbles/cmd"
-	chaincodePathWithIndex   = "github.com/hyperledger/fabric/integration/chaincode/marbles/cmdwithindexspec"
-	chaincodePathWithIndexes = "github.com/hyperledger/fabric/integration/chaincode/marbles/cmdwithindexspecs"
+	chaincodePathWithNoIndex = "github.com/ehousecy/fabric/integration/chaincode/marbles/cmd"
+	chaincodePathWithIndex   = "github.com/ehousecy/fabric/integration/chaincode/marbles/cmdwithindexspec"
+	chaincodePathWithIndexes = "github.com/ehousecy/fabric/integration/chaincode/marbles/cmdwithindexspecs"
 )
 
 var (
@@ -357,11 +357,9 @@ func verifyColorIndexPresence(n *nwo.Network, channel string, orderer *nwo.Order
 func verifyIndexPresence(n *nwo.Network, channel string, orderer *nwo.Orderer, peer *nwo.Peer, ccName string, expectIndexPresent bool, indexQuery string) {
 	By("invoking queryMarbles function with a user constructed query that requires an index due to a sort")
 	sess, err := n.PeerUserSession(peer, "User1", commands.ChaincodeInvoke{
-		ChannelID:     channel,
-		Name:          ccName,
-		Ctor:          prepareChaincodeInvokeArgs("queryMarbles", indexQuery),
-		Orderer:       n.OrdererAddress(orderer, nwo.ListenPort),
-		PeerAddresses: []string{n.PeerAddress(peer, nwo.ListenPort)},
+		ChannelID: channel,
+		Name:      ccName,
+		Ctor:      prepareChaincodeInvokeArgs("queryMarbles", indexQuery),
 	})
 	Expect(err).NotTo(HaveOccurred())
 	if expectIndexPresent {

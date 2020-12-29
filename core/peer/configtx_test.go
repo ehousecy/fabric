@@ -13,16 +13,17 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/capabilities"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	configtxtest "github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/capabilities"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	configtxtest "github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,21 +47,21 @@ func TestConfigTxCreateLedger(t *testing.T) {
 	genesisTx := helper.constructGenesisTx(t, channelID, chanConf)
 	genesisBlock := helper.constructBlock(genesisTx, 0, nil)
 	ledger, err := ledgerMgr.CreateLedger(channelID, genesisBlock)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
-	retrievedchanConf, err := RetrievePersistedChannelConfig(ledger)
-	require.NoError(t, err)
-	require.Equal(t, proto.CompactTextString(chanConf), proto.CompactTextString(retrievedchanConf))
+	retrievedchanConf, err := retrievePersistedChannelConfig(ledger)
+	assert.NoError(t, err)
+	assert.Equal(t, proto.CompactTextString(chanConf), proto.CompactTextString(retrievedchanConf))
 }
 
 func TestConfigTxErrorScenarios(t *testing.T) {
 	configTxProcessor := &ConfigTxProcessor{}
 	// wrong tx type
 	configEnvWrongTxType := &common.ConfigEnvelope{}
-	txEnvelope, err := protoutil.CreateSignedEnvelope(common.HeaderType_DELIVER_SEEK_INFO, "channelID", nil, configEnvWrongTxType, 0, 0)
+	txEnvelope, err := protoutil.CreateSignedEnvelope(common.HeaderType_PEER_ADMIN_OPERATION, "channelID", nil, configEnvWrongTxType, 0, 0)
 	require.NoError(t, err)
 	err = configTxProcessor.GenerateSimulationResults(txEnvelope, nil, false)
-	require.EqualError(t, err, "tx type [DELIVER_SEEK_INFO] is not expected")
+	require.EqualError(t, err, "tx type [PEER_ADMIN_OPERATION] is not expected")
 
 	// empty channelConfig
 	txEnvelope, err = protoutil.CreateSignedEnvelope(common.HeaderType_CONFIG, "channelID", nil, &common.ConfigEnvelope{}, 0, 0)
@@ -89,32 +90,32 @@ func TestConfigTxUpdateChanConfig(t *testing.T) {
 	genesisTx := helper.constructGenesisTx(t, channelID, chanConf)
 	genesisBlock := helper.constructBlock(genesisTx, 0, nil)
 	lgr, err := ledgerMgr.CreateLedger(channelID, genesisBlock)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
-	retrievedchanConf, err := RetrievePersistedChannelConfig(lgr)
-	require.NoError(t, err)
-	require.Equal(t, proto.CompactTextString(chanConf), proto.CompactTextString(retrievedchanConf))
+	retrievedchanConf, err := retrievePersistedChannelConfig(lgr)
+	assert.NoError(t, err)
+	assert.Equal(t, proto.CompactTextString(chanConf), proto.CompactTextString(retrievedchanConf))
 
 	helper.mockCreateChain(t, channelID, lgr)
 	defer helper.clearMockChains()
 
 	bs := helper.peer.channels[channelID].bundleSource
 	inMemoryChanConf := bs.ConfigtxValidator().ConfigProto()
-	require.Equal(t, proto.CompactTextString(chanConf), proto.CompactTextString(inMemoryChanConf))
+	assert.Equal(t, proto.CompactTextString(chanConf), proto.CompactTextString(inMemoryChanConf))
 
-	retrievedchanConf, err = RetrievePersistedChannelConfig(lgr)
-	require.NoError(t, err)
-	require.Equal(t, proto.CompactTextString(bs.ConfigtxValidator().ConfigProto()), proto.CompactTextString(retrievedchanConf))
+	retrievedchanConf, err = retrievePersistedChannelConfig(lgr)
+	assert.NoError(t, err)
+	assert.Equal(t, proto.CompactTextString(bs.ConfigtxValidator().ConfigProto()), proto.CompactTextString(retrievedchanConf))
 
 	lgr.Close()
 	helper.clearMockChains()
 	_, err = ledgerMgr.OpenLedger(channelID)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestGenesisBlockCreateLedger(t *testing.T) {
 	b, err := configtxtest.MakeGenesisBlock("testchain")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	tempdir, err := ioutil.TempDir("", "peer-test")
 	require.NoError(t, err, "failed to create temporary directory")
 
@@ -129,10 +130,10 @@ func TestGenesisBlockCreateLedger(t *testing.T) {
 	}()
 
 	lgr, err := ledgerMgr.CreateLedger("testchain", b)
-	require.NoError(t, err)
-	chanConf, err := RetrievePersistedChannelConfig(lgr)
-	require.NoError(t, err)
-	require.NotNil(t, chanConf)
+	assert.NoError(t, err)
+	chanConf, err := retrievePersistedChannelConfig(lgr)
+	assert.NoError(t, err)
+	assert.NotNil(t, chanConf)
 	t.Logf("chanConf = %s", chanConf)
 }
 
@@ -143,7 +144,7 @@ type testHelper struct {
 
 func newTestHelper(t *testing.T) *testHelper {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return &testHelper{
 		t:    t,
 		peer: &Peer{CryptoProvider: cryptoProvider},
@@ -171,7 +172,7 @@ func (h *testHelper) constructGenesisTx(t *testing.T, channelID string, chanConf
 		LastUpdate: h.constructLastUpdateField(channelID),
 	}
 	txEnvelope, err := protoutil.CreateSignedEnvelope(common.HeaderType_CONFIG, channelID, nil, configEnvelop, 0, 0)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return txEnvelope
 }
 
@@ -196,12 +197,12 @@ func (h *testHelper) constructLastUpdateField(channelID string) *common.Envelope
 
 func (h *testHelper) mockCreateChain(t *testing.T, channelID string, ledger ledger.PeerLedger) {
 	chanBundle, err := h.constructChannelBundle(channelID, ledger)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	if h.peer.channels == nil {
 		h.peer.channels = map[string]*Channel{}
 	}
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	h.peer.channels[channelID] = &Channel{
 		bundleSource:   channelconfig.NewBundleSource(chanBundle),
 		ledger:         ledger,
@@ -219,7 +220,7 @@ func (h *testHelper) constructChannelBundle(channelID string, ledger ledger.Peer
 		return nil, err
 	}
 
-	chanConf, err := RetrievePersistedChannelConfig(ledger)
+	chanConf, err := retrievePersistedChannelConfig(ledger)
 	if err != nil {
 		return nil, err
 	}

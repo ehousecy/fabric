@@ -13,16 +13,17 @@ import (
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/capabilities"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor/mocks"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/capabilities"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor/mocks"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,10 +51,10 @@ func TestProcessSystemChannelNormalMsg(t *testing.T) {
 			OrdererConfigVal: &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, err = NewSystemChannel(ms, mscs, nil, cryptoProvider).ProcessNormalMsg(&cb.Envelope{})
-		require.NotNil(t, err)
-		require.Regexp(t, "header not set", err.Error())
+		assert.NotNil(t, err)
+		assert.Regexp(t, "header not set", err.Error())
 	})
 	t.Run("Mismatched channel ID", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{}
@@ -61,7 +62,7 @@ func TestProcessSystemChannelNormalMsg(t *testing.T) {
 			OrdererConfigVal: &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, err = NewSystemChannel(ms, mscs, nil, cryptoProvider).ProcessNormalMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -71,7 +72,7 @@ func TestProcessSystemChannelNormalMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Equal(t, ErrChannelDoesNotExist, err)
+		assert.Equal(t, ErrChannelDoesNotExist, err)
 	})
 	t.Run("Good", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{}
@@ -80,7 +81,7 @@ func TestProcessSystemChannelNormalMsg(t *testing.T) {
 			OrdererConfigVal: newMockOrdererConfig(true, orderer.ConsensusType_STATE_NORMAL),
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		cs, err := NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessNormalMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -90,8 +91,8 @@ func TestProcessSystemChannelNormalMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Nil(t, err)
-		require.Equal(t, ms.SequenceVal, cs)
+		assert.Nil(t, err)
+		assert.Equal(t, ms.SequenceVal, cs)
 
 	})
 }
@@ -103,10 +104,10 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal: &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigUpdateMsg(&cb.Envelope{})
-		require.NotNil(t, err)
-		require.Regexp(t, "header not set", err.Error())
+		assert.NotNil(t, err)
+		assert.Regexp(t, "header not set", err.Error())
 	})
 	t.Run("NormalUpdate", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{}
@@ -116,7 +117,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       newMockOrdererConfig(true, orderer.ConsensusType_STATE_NORMAL),
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		sysChan := NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider)
 		sysChan.maintenanceFilter = AcceptRule
 		config, cs, err := sysChan.ProcessConfigUpdateMsg(&cb.Envelope{
@@ -128,9 +129,9 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.NotNil(t, config)
-		require.Equal(t, cs, ms.SequenceVal)
-		require.Nil(t, err)
+		assert.NotNil(t, config)
+		assert.Equal(t, cs, ms.SequenceVal)
+		assert.Nil(t, err)
 	})
 	t.Run("BadNewChannelConfig", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{
@@ -141,7 +142,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigUpdateMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -151,7 +152,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Equal(t, mscs.NewChannelConfigErr, err)
+		assert.Equal(t, mscs.NewChannelConfigErr, err)
 	})
 	t.Run("BadProposedUpdate", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{
@@ -162,7 +163,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigUpdateMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -172,7 +173,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.EqualError(t, err, "error validating channel creation transaction for new channel 'foodifferent', could not successfully apply update to template configuration: An error")
+		assert.EqualError(t, err, "error validating channel creation transaction for new channel 'foodifferent', could not successfully apply update to template configuration: An error")
 	})
 	t.Run("BadSignEnvelope", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{
@@ -183,7 +184,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigUpdateMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -193,7 +194,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Regexp(t, "Marshal called with nil", err)
+		assert.Regexp(t, "Marshal called with nil", err)
 	})
 	t.Run("BadByFilter", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{
@@ -205,7 +206,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{RejectRule}), cryptoProvider).ProcessConfigUpdateMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -215,7 +216,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Equal(t, RejectRule.Apply(nil), err)
+		assert.Equal(t, RejectRule.Apply(nil), err)
 	})
 	t.Run("RejectByMaintenance", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{
@@ -227,7 +228,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		sysChan := NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider)
 		sysChan.maintenanceFilter = RejectRule
 		_, _, err = sysChan.ProcessConfigUpdateMsg(&cb.Envelope{
@@ -239,7 +240,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Equal(t, RejectRule.Apply(nil), errors.Cause(err))
+		assert.Equal(t, RejectRule.Apply(nil), errors.Cause(err))
 	})
 	t.Run("Good", func(t *testing.T) {
 		mscs := &mockSystemChannelSupport{
@@ -251,7 +252,7 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		config, cs, err := NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigUpdateMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -261,9 +262,9 @@ func TestSystemChannelConfigUpdateMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Equal(t, cs, ms.SequenceVal)
-		require.NotNil(t, config)
-		require.Nil(t, err)
+		assert.Equal(t, cs, ms.SequenceVal)
+		assert.NotNil(t, config)
+		assert.Nil(t, err)
 	})
 }
 
@@ -279,7 +280,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 				OrdererConfigVal:       &mocks.OrdererConfig{},
 			}
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigMsg(&cb.Envelope{
 				Payload: protoutil.MarshalOrPanic(&cb.Payload{
 					Header: &cb.Header{
@@ -291,7 +292,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 					Data: []byte("hello"),
 				}),
 			})
-			require.Error(t, err)
+			assert.Error(t, err)
 		})
 
 		t.Run("Good", func(t *testing.T) {
@@ -304,7 +305,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 				OrdererConfigVal:       newMockOrdererConfig(false, orderer.ConsensusType_STATE_NORMAL),
 			}
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			sysChan := NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider)
 			sysChan.maintenanceFilter = AcceptRule
 			config, seq, err := sysChan.ProcessConfigMsg(&cb.Envelope{
@@ -317,12 +318,12 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 					},
 				}),
 			})
-			require.Equal(t, seq, ms.SequenceVal)
-			require.NotNil(t, config)
-			require.Nil(t, err)
+			assert.Equal(t, seq, ms.SequenceVal)
+			assert.NotNil(t, config)
+			assert.Nil(t, err)
 			hdr, err := protoutil.ChannelHeader(config)
 			require.NoError(t, err)
-			require.Equal(
+			assert.Equal(
 				t,
 				int32(cb.HeaderType_CONFIG),
 				hdr.Type,
@@ -341,7 +342,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 				OrdererConfigVal:       &mocks.OrdererConfig{},
 			}
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigMsg(&cb.Envelope{
 				Payload: protoutil.MarshalOrPanic(&cb.Payload{
 					Header: &cb.Header{
@@ -353,7 +354,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 					Data: []byte("hello"),
 				}),
 			})
-			require.Error(t, err)
+			assert.Error(t, err)
 		})
 
 		t.Run("WrongEnvelopeType", func(t *testing.T) {
@@ -366,7 +367,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 				OrdererConfigVal:       &mocks.OrdererConfig{},
 			}
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigMsg(&cb.Envelope{
 				Payload: protoutil.MarshalOrPanic(&cb.Payload{
 					Header: &cb.Header{
@@ -387,7 +388,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 					}),
 				}),
 			})
-			require.Error(t, err)
+			assert.Error(t, err)
 		})
 
 		t.Run("GoodConfigMsg", func(t *testing.T) {
@@ -400,7 +401,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 				OrdererConfigVal:       &mocks.OrdererConfig{},
 			}
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			config, seq, err := NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigMsg(&cb.Envelope{
 				Payload: protoutil.MarshalOrPanic(&cb.Payload{
 					Header: &cb.Header{
@@ -433,12 +434,12 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 					}),
 				}),
 			})
-			require.Equal(t, seq, ms.SequenceVal)
-			require.NotNil(t, config)
-			require.Nil(t, err)
+			assert.Equal(t, seq, ms.SequenceVal)
+			assert.NotNil(t, config)
+			assert.Nil(t, err)
 			hdr, err := protoutil.ChannelHeader(config)
-			require.NoError(t, err)
-			require.Equal(
+			assert.NoError(t, err)
+			assert.Equal(
 				t,
 				int32(cb.HeaderType_ORDERER_TRANSACTION),
 				hdr.Type,
@@ -456,7 +457,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 			OrdererConfigVal:       &mocks.OrdererConfig{},
 		}
 		cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		_, _, err = NewSystemChannel(ms, mscs, NewRuleSet([]Rule{AcceptRule}), cryptoProvider).ProcessConfigMsg(&cb.Envelope{
 			Payload: protoutil.MarshalOrPanic(&cb.Payload{
 				Header: &cb.Header{
@@ -467,7 +468,7 @@ func TestSystemChannelConfigMsg(t *testing.T) {
 				},
 			}),
 		})
-		require.Error(t, err)
+		assert.Error(t, err)
 	})
 }
 
@@ -486,12 +487,12 @@ func TestNewChannelConfig(t *testing.T) {
 		capabilities.OrdererV2_0: true,
 	}
 	channelGroup, err := encoder.NewChannelGroup(gConf)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	ctxm, err := channelconfig.NewBundle(channelID, &cb.Config{ChannelGroup: channelGroup}, cryptoProvider)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	originalCG := proto.Clone(ctxm.ConfigtxValidator().ConfigProto().ChannelGroup).(*cb.ConfigGroup)
 
@@ -501,7 +502,7 @@ func TestNewChannelConfig(t *testing.T) {
 
 	t.Run("BadPayload", func(t *testing.T) {
 		_, err := templator.NewChannelConfig(&cb.Envelope{Payload: []byte("bad payload")})
-		require.Error(t, err, "Should not be able to create new channel config from bad payload.")
+		assert.Error(t, err, "Should not be able to create new channel config from bad payload.")
 	})
 
 	for _, tc := range []struct {
@@ -741,19 +742,20 @@ func TestNewChannelConfig(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := templator.NewChannelConfig(&cb.Envelope{Payload: protoutil.MarshalOrPanic(tc.payload)})
-			require.Error(t, err)
-			require.Regexp(t, tc.regex, err.Error())
+			if assert.Error(t, err) {
+				assert.Regexp(t, tc.regex, err.Error())
+			}
 		})
 	}
 
 	// Successful
 	t.Run("Success", func(t *testing.T) {
 		createTx, err := encoder.MakeChannelCreationTransaction("foo", nil, genesisconfig.Load(genesisconfig.SampleSingleMSPChannelProfile, configtest.GetDevConfigDir()))
-		require.Nil(t, err)
+		assert.Nil(t, err)
 		res, err := templator.NewChannelConfig(createTx)
-		require.Nil(t, err)
-		require.NotEmpty(t, res.ConfigtxValidator().ConfigProto().ChannelGroup.ModPolicy)
-		require.True(t, proto.Equal(originalCG, ctxm.ConfigtxValidator().ConfigProto().ChannelGroup), "Underlying system channel config proto was mutated")
+		assert.Nil(t, err)
+		assert.NotEmpty(t, res.ConfigtxValidator().ConfigProto().ChannelGroup.ModPolicy)
+		assert.True(t, proto.Equal(originalCG, ctxm.ConfigtxValidator().ConfigProto().ChannelGroup), "Underlying system channel config proto was mutated")
 	})
 
 	// Successful new channel config type
@@ -764,9 +766,9 @@ func TestNewChannelConfig(t *testing.T) {
 			genesisconfig.Load(genesisconfig.SampleSingleMSPChannelProfile, configtest.GetDevConfigDir()),
 			genesisconfig.Load(genesisconfig.SampleSingleMSPSoloProfile, configtest.GetDevConfigDir()),
 		)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 		_, err = templator.NewChannelConfig(createTx)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 	})
 }
 
@@ -832,5 +834,5 @@ func TestZeroVersions(t *testing.T) {
 
 	zeroVersions(data)
 
-	require.True(t, proto.Equal(expected, data))
+	assert.True(t, proto.Equal(expected, data))
 }

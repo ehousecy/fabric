@@ -12,12 +12,12 @@ import (
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor/mocks"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor/mocks"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 //go:generate counterfeiter -o mocks/sig_filter_support.go --fake-name SigFilterSupport . sigFilterSupport
@@ -66,28 +66,28 @@ func newMockResources(hasPolicy bool, policyErr error) *mocks.Resources {
 
 func TestAccept(t *testing.T) {
 	mockResources := newMockResources(true, nil)
-	require.Nil(t, NewSigFilter("foo", "bar", mockResources).Apply(makeEnvelope()), "Valid envelope and good policy")
+	assert.Nil(t, NewSigFilter("foo", "bar", mockResources).Apply(makeEnvelope()), "Valid envelope and good policy")
 }
 
 func TestMissingPolicy(t *testing.T) {
 	mockResources := newMockResources(false, nil)
 	err := NewSigFilter("foo", "bar", mockResources).Apply(makeEnvelope())
-	require.Error(t, err)
-	require.Regexp(t, "could not find policy", err.Error())
+	assert.Error(t, err)
+	assert.Regexp(t, "could not find policy", err.Error())
 }
 
 func TestEmptyPayload(t *testing.T) {
 	mockResources := newMockResources(true, nil)
 	err := NewSigFilter("foo", "bar", mockResources).Apply(&cb.Envelope{})
-	require.Error(t, err)
-	require.Regexp(t, "could not convert message to signedData", err.Error())
+	assert.Error(t, err)
+	assert.Regexp(t, "could not convert message to signedData", err.Error())
 }
 
 func TestErrorOnPolicy(t *testing.T) {
 	mockResources := newMockResources(true, fmt.Errorf("Error"))
 	err := NewSigFilter("foo", "bar", mockResources).Apply(makeEnvelope())
-	require.Error(t, err)
-	require.Equal(t, ErrPermissionDenied, errors.Cause(err))
+	assert.Error(t, err)
+	assert.Equal(t, ErrPermissionDenied, errors.Cause(err))
 }
 
 func TestMaintenance(t *testing.T) {
@@ -104,15 +104,15 @@ func TestMaintenance(t *testing.T) {
 
 	mockResources.OrdererConfigReturns(newMockOrdererConfig(true, orderer.ConsensusType_STATE_MAINTENANCE), true)
 	err := NewSigFilter("foo", policies.ChannelOrdererWriters, mockResources).Apply(makeEnvelope())
-	require.Error(t, err)
-	require.EqualError(t, err, "Error: permission denied")
+	assert.Error(t, err)
+	assert.EqualError(t, err, "Error: permission denied")
 	err = NewSigFilter("bar", policies.ChannelOrdererWriters, mockResources).Apply(makeEnvelope())
-	require.Error(t, err)
-	require.EqualError(t, err, "Error: permission denied")
+	assert.Error(t, err)
+	assert.EqualError(t, err, "Error: permission denied")
 
 	mockResources.OrdererConfigReturns(newMockOrdererConfig(true, orderer.ConsensusType_STATE_NORMAL), true)
 	err = NewSigFilter("foo", policies.ChannelOrdererWriters, mockResources).Apply(makeEnvelope())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = NewSigFilter("bar", policies.ChannelOrdererWriters, mockResources).Apply(makeEnvelope())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }

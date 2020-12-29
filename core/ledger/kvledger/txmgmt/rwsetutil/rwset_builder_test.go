@@ -13,9 +13,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,11 +103,11 @@ func TestTxSimulationResultWithPvtData(t *testing.T) {
 	///////////////////////////////////////////////////////
 	// construct the expected pvt rwset and compare with the one present in the txSimulationResults
 	///////////////////////////////////////////////////////
-	pvtNs1Coll2 := &kvrwset.KVRWSet{
+	pvt_Ns1_Coll2 := &kvrwset.KVRWSet{
 		Writes: []*kvrwset.KVWrite{newKVWrite("key1", []byte("pvt-ns1-coll2-key1-value"))},
 	}
 
-	pvtNs2Coll2 := &kvrwset.KVRWSet{
+	pvt_Ns2_Coll2 := &kvrwset.KVRWSet{
 		Writes: []*kvrwset.KVWrite{newKVWrite("key1", []byte("pvt-ns2-coll2-key1-value"))},
 	}
 
@@ -119,7 +119,7 @@ func TestTxSimulationResultWithPvtData(t *testing.T) {
 				CollectionPvtRwset: []*rwset.CollectionPvtReadWriteSet{
 					{
 						CollectionName: "coll2",
-						Rwset:          serializeTestProtoMsg(t, pvtNs1Coll2),
+						Rwset:          serializeTestProtoMsg(t, pvt_Ns1_Coll2),
 					},
 				},
 			},
@@ -129,7 +129,7 @@ func TestTxSimulationResultWithPvtData(t *testing.T) {
 				CollectionPvtRwset: []*rwset.CollectionPvtReadWriteSet{
 					{
 						CollectionName: "coll2",
-						Rwset:          serializeTestProtoMsg(t, pvtNs2Coll2),
+						Rwset:          serializeTestProtoMsg(t, pvt_Ns2_Coll2),
 					},
 				},
 			},
@@ -140,21 +140,21 @@ func TestTxSimulationResultWithPvtData(t *testing.T) {
 	///////////////////////////////////////////////////////
 	// construct the public rwset (which will be part of the block) and compare with the one present in the txSimulationResults
 	///////////////////////////////////////////////////////
-	pubNs1 := &kvrwset.KVRWSet{
+	pub_Ns1 := &kvrwset.KVRWSet{
 		Reads: []*kvrwset.KVRead{NewKVRead("key1", version.NewHeight(1, 1))},
 	}
 
-	pubNs2 := &kvrwset.KVRWSet{
+	pub_Ns2 := &kvrwset.KVRWSet{
 		Reads:  []*kvrwset.KVRead{NewKVRead("key1", version.NewHeight(1, 1))},
 		Writes: []*kvrwset.KVWrite{newKVWrite("key1", []byte("ns2-key1-value"))},
 	}
 
-	hashedNs1Coll1 := &kvrwset.HashedRWSet{
+	hashed_Ns1_Coll1 := &kvrwset.HashedRWSet{
 		HashedReads: []*kvrwset.KVReadHash{
 			constructTestPvtKVReadHash(t, "key1", version.NewHeight(1, 1))},
 	}
 
-	hashedNs1Coll2 := &kvrwset.HashedRWSet{
+	hashed_Ns1_Coll2 := &kvrwset.HashedRWSet{
 		HashedReads: []*kvrwset.KVReadHash{
 			constructTestPvtKVReadHash(t, "key1", version.NewHeight(1, 1))},
 		HashedWrites: []*kvrwset.KVWriteHash{
@@ -162,55 +162,55 @@ func TestTxSimulationResultWithPvtData(t *testing.T) {
 		},
 	}
 
-	hashedNs2Coll1 := &kvrwset.HashedRWSet{
+	hashed_Ns2_Coll1 := &kvrwset.HashedRWSet{
 		HashedReads: []*kvrwset.KVReadHash{
 			constructTestPvtKVReadHash(t, "key1", version.NewHeight(1, 1)),
 			constructTestPvtKVReadHash(t, "key2", version.NewHeight(1, 1)),
 		},
 	}
 
-	hashedNs2Coll2 := &kvrwset.HashedRWSet{
+	hashed_Ns2_Coll2 := &kvrwset.HashedRWSet{
 		HashedWrites: []*kvrwset.KVWriteHash{
 			constructTestPvtKVWriteHash(t, "key1", []byte("pvt-ns2-coll2-key1-value")),
 		},
 	}
 
-	combinedNs1 := &rwset.NsReadWriteSet{
+	combined_Ns1 := &rwset.NsReadWriteSet{
 		Namespace: "ns1",
-		Rwset:     serializeTestProtoMsg(t, pubNs1),
+		Rwset:     serializeTestProtoMsg(t, pub_Ns1),
 		CollectionHashedRwset: []*rwset.CollectionHashedReadWriteSet{
 			{
 				CollectionName: "coll1",
-				HashedRwset:    serializeTestProtoMsg(t, hashedNs1Coll1),
+				HashedRwset:    serializeTestProtoMsg(t, hashed_Ns1_Coll1),
 			},
 			{
 				CollectionName: "coll2",
-				HashedRwset:    serializeTestProtoMsg(t, hashedNs1Coll2),
-				PvtRwsetHash:   util.ComputeHash(serializeTestProtoMsg(t, pvtNs1Coll2)),
+				HashedRwset:    serializeTestProtoMsg(t, hashed_Ns1_Coll2),
+				PvtRwsetHash:   util.ComputeHash(serializeTestProtoMsg(t, pvt_Ns1_Coll2)),
 			},
 		},
 	}
-	require.Equal(t, combinedNs1, actualSimRes.PubSimulationResults.NsRwset[0])
+	require.Equal(t, combined_Ns1, actualSimRes.PubSimulationResults.NsRwset[0])
 
-	combinedNs2 := &rwset.NsReadWriteSet{
+	combined_Ns2 := &rwset.NsReadWriteSet{
 		Namespace: "ns2",
-		Rwset:     serializeTestProtoMsg(t, pubNs2),
+		Rwset:     serializeTestProtoMsg(t, pub_Ns2),
 		CollectionHashedRwset: []*rwset.CollectionHashedReadWriteSet{
 			{
 				CollectionName: "coll1",
-				HashedRwset:    serializeTestProtoMsg(t, hashedNs2Coll1),
+				HashedRwset:    serializeTestProtoMsg(t, hashed_Ns2_Coll1),
 			},
 			{
 				CollectionName: "coll2",
-				HashedRwset:    serializeTestProtoMsg(t, hashedNs2Coll2),
-				PvtRwsetHash:   util.ComputeHash(serializeTestProtoMsg(t, pvtNs2Coll2)),
+				HashedRwset:    serializeTestProtoMsg(t, hashed_Ns2_Coll2),
+				PvtRwsetHash:   util.ComputeHash(serializeTestProtoMsg(t, pvt_Ns2_Coll2)),
 			},
 		},
 	}
-	require.Equal(t, combinedNs2, actualSimRes.PubSimulationResults.NsRwset[1])
+	require.Equal(t, combined_Ns2, actualSimRes.PubSimulationResults.NsRwset[1])
 	expectedPubRWSet := &rwset.TxReadWriteSet{
 		DataModel: rwset.TxReadWriteSet_KV,
-		NsRwset:   []*rwset.NsReadWriteSet{combinedNs1, combinedNs2},
+		NsRwset:   []*rwset.NsReadWriteSet{combined_Ns1, combined_Ns2},
 	}
 	require.Equal(t, expectedPubRWSet, actualSimRes.PubSimulationResults)
 }

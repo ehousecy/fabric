@@ -17,19 +17,19 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	pg "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/comm"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/filter"
-	"github.com/hyperledger/fabric/gossip/gossip/algo"
-	"github.com/hyperledger/fabric/gossip/gossip/channel"
-	"github.com/hyperledger/fabric/gossip/gossip/msgstore"
-	"github.com/hyperledger/fabric/gossip/gossip/pull"
-	"github.com/hyperledger/fabric/gossip/identity"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/comm"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/filter"
+	"github.com/ehousecy/fabric/gossip/gossip/algo"
+	"github.com/ehousecy/fabric/gossip/gossip/channel"
+	"github.com/ehousecy/fabric/gossip/gossip/msgstore"
+	"github.com/ehousecy/fabric/gossip/gossip/pull"
+	"github.com/ehousecy/fabric/gossip/identity"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
@@ -192,7 +192,7 @@ func (g *Node) JoinChan(joinMsg api.JoinChannelMessage, channelID common.Channel
 	// joinMsg is supposed to have been already verified
 	g.chanState.joinChannel(joinMsg, channelID, g.gossipMetrics.MembershipMetrics)
 
-	g.logger.Info("Joining gossip network of channel", channelID, "with", len(joinMsg.Members()), "organizations")
+	g.logger.Info("Joining gossip network of channel", string(channelID), "with", len(joinMsg.Members()), "organizations")
 	for _, org := range joinMsg.Members() {
 		g.learnAnchorPeers(string(channelID), org, joinMsg.AnchorPeersOf(org))
 	}
@@ -623,14 +623,14 @@ func (g *Node) SendByCriteria(msg *protoext.SignedGossipMessage, criteria SendCr
 	if len(criteria.Channel) > 0 {
 		gc := g.chanState.getGossipChannelByChainID(criteria.Channel)
 		if gc == nil {
-			return fmt.Errorf("requested to Send for channel %s, but no such channel exists", criteria.Channel)
+			return fmt.Errorf("Requested to Send for channel %s, but no such channel exists", string(criteria.Channel))
 		}
 		membership = gc.GetPeers()
 	}
 
 	peers2send := filter.SelectPeers(criteria.MaxPeers, membership, criteria.IsEligible)
 	if len(peers2send) < criteria.MinAck {
-		return fmt.Errorf("requested to send to at least %d peers, but know only of %d suitable peers", criteria.MinAck, len(peers2send))
+		return fmt.Errorf("Requested to send to at least %d peers, but know only of %d suitable peers", criteria.MinAck, len(peers2send))
 	}
 
 	results := g.comm.SendWithAck(msg, criteria.Timeout, criteria.MinAck, peers2send...)
@@ -742,7 +742,7 @@ func (g *Node) SelfChannelInfo(chain common.ChannelID) *protoext.SignedGossipMes
 func (g *Node) PeerFilter(channel common.ChannelID, messagePredicate api.SubChannelSelectionCriteria) (filter.RoutingFilter, error) {
 	gc := g.chanState.getGossipChannelByChainID(channel)
 	if gc == nil {
-		return nil, errors.Errorf("Channel %s doesn't exist", channel)
+		return nil, errors.Errorf("Channel %s doesn't exist", string(channel))
 	}
 	return gc.PeerFilter(messagePredicate), nil
 }

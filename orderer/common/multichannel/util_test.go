@@ -7,28 +7,56 @@ SPDX-License-Identifier: Apache-2.0
 package multichannel
 
 import (
+	"errors"
 	"fmt"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/capabilities"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/orderer/common/blockcutter"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor"
-	"github.com/hyperledger/fabric/orderer/common/types"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/capabilities"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/orderer/common/blockcutter"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor"
+	"github.com/ehousecy/fabric/orderer/common/types"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/protoutil"
 )
+
+type mockConsenter struct {
+	cluster bool
+}
+
+func (mc *mockConsenter) HandleChain(support consensus.ConsenterSupport, metadata *cb.Metadata) (consensus.Chain, error) {
+	chain := &mockChain{
+		queue:    make(chan *cb.Envelope),
+		cutter:   support.BlockCutter(),
+		support:  support,
+		metadata: metadata,
+		done:     make(chan struct{}),
+	}
+
+	if mc.cluster {
+		clusterChain := &mockChainCluster{}
+		clusterChain.mockChain = chain
+		return clusterChain, nil
+	}
+
+	return chain, nil
+}
+
+func (mc *mockConsenter) JoinChain(support consensus.ConsenterSupport, joinBlock *cb.Block) (consensus.Chain, error) {
+	//TODO
+	return nil, errors.New("not implemented")
+}
 
 type mockChainCluster struct {
 	*mockChain
 }
 
-func (c *mockChainCluster) StatusReport() (types.ConsensusRelation, types.Status) {
-	return types.ConsensusRelationConsenter, types.StatusActive
+func (c *mockChainCluster) StatusReport() (types.ClusterRelation, types.Status) {
+	return types.ClusterRelationMember, types.StatusActive
 }
 
 type mockChain struct {
@@ -192,28 +220,4 @@ func makeNormalTx(chainID string, i int) *cb.Envelope {
 	return &cb.Envelope{
 		Payload: protoutil.MarshalOrPanic(payload),
 	}
-}
-
-func handleChain(support consensus.ConsenterSupport, metadata *cb.Metadata) (consensus.Chain, error) {
-	chain := &mockChain{
-		queue:    make(chan *cb.Envelope),
-		cutter:   support.BlockCutter(),
-		support:  support,
-		metadata: metadata,
-		done:     make(chan struct{}),
-	}
-
-	return chain, nil
-}
-
-func handleChainCluster(support consensus.ConsenterSupport, metadata *cb.Metadata) (consensus.Chain, error) {
-	chain := &mockChain{
-		queue:    make(chan *cb.Envelope),
-		cutter:   support.BlockCutter(),
-		support:  support,
-		metadata: metadata,
-		done:     make(chan struct{}),
-	}
-
-	return &mockChainCluster{mockChain: chain}, nil
 }

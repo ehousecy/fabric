@@ -9,9 +9,9 @@ package msptesttools
 import (
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFakeSetup(t *testing.T) {
@@ -21,7 +21,7 @@ func TestFakeSetup(t *testing.T) {
 	}
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, err = mgmt.GetLocalMSP(cryptoProvider).GetDefaultSigningIdentity()
 	if err != nil {
 		t.Fatalf("GetDefaultSigningIdentity failed, err %s", err)

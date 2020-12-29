@@ -21,9 +21,9 @@ import (
 	"reflect"
 	"testing"
 
-	mocks2 "github.com/hyperledger/fabric/bccsp/mocks"
-	"github.com/hyperledger/fabric/bccsp/sw/mocks"
-	"github.com/stretchr/testify/require"
+	mocks2 "github.com/ehousecy/fabric/bccsp/mocks"
+	"github.com/ehousecy/fabric/bccsp/sw/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestKeyDeriv(t *testing.T) {
@@ -43,8 +43,8 @@ func TestKeyDeriv(t *testing.T) {
 	}
 	csp := CSP{KeyDerivers: keyDerivers}
 	value, err := csp.KeyDeriv(expectedKey, expectedOpts)
-	require.Nil(t, value)
-	require.Contains(t, err.Error(), expectedErr.Error())
+	assert.Nil(t, value)
+	assert.Contains(t, err.Error(), expectedErr.Error())
 
 	keyDerivers = make(map[reflect.Type]KeyDeriver)
 	keyDerivers[reflect.TypeOf(&mocks2.MockKey{})] = &mocks.KeyDeriver{
@@ -55,8 +55,8 @@ func TestKeyDeriv(t *testing.T) {
 	}
 	csp = CSP{KeyDerivers: keyDerivers}
 	value, err = csp.KeyDeriv(expectedKey, expectedOpts)
-	require.Equal(t, expectetValue, value)
-	require.Nil(t, err)
+	assert.Equal(t, expectetValue, value)
+	assert.Nil(t, err)
 }
 
 func TestECDSAPublicKeyKeyDeriver(t *testing.T) {
@@ -65,12 +65,12 @@ func TestECDSAPublicKeyKeyDeriver(t *testing.T) {
 	kd := ecdsaPublicKeyKeyDeriver{}
 
 	_, err := kd.KeyDeriv(&mocks2.MockKey{}, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Invalid opts parameter. It must not be nil.")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid opts parameter. It must not be nil.")
 
 	_, err = kd.KeyDeriv(&ecdsaPublicKey{}, &mocks2.KeyDerivOpts{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Unsupported 'KeyDerivOpts' provided [")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unsupported 'KeyDerivOpts' provided [")
 }
 
 func TestECDSAPrivateKeyKeyDeriver(t *testing.T) {
@@ -79,12 +79,12 @@ func TestECDSAPrivateKeyKeyDeriver(t *testing.T) {
 	kd := ecdsaPrivateKeyKeyDeriver{}
 
 	_, err := kd.KeyDeriv(&mocks2.MockKey{}, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Invalid opts parameter. It must not be nil.")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid opts parameter. It must not be nil.")
 
 	_, err = kd.KeyDeriv(&ecdsaPrivateKey{}, &mocks2.KeyDerivOpts{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Unsupported 'KeyDerivOpts' provided [")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unsupported 'KeyDerivOpts' provided [")
 }
 
 func TestAESPrivateKeyKeyDeriver(t *testing.T) {
@@ -93,10 +93,10 @@ func TestAESPrivateKeyKeyDeriver(t *testing.T) {
 	kd := aesPrivateKeyKeyDeriver{}
 
 	_, err := kd.KeyDeriv(&mocks2.MockKey{}, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Invalid opts parameter. It must not be nil.")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid opts parameter. It must not be nil.")
 
 	_, err = kd.KeyDeriv(&aesPrivateKey{}, &mocks2.KeyDerivOpts{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Unsupported 'KeyDerivOpts' provided [")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unsupported 'KeyDerivOpts' provided [")
 }

@@ -16,15 +16,15 @@ import (
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/consensus"
-	"github.com/hyperledger/fabric/orderer/consensus/kafka/mock"
-	mockmultichannel "github.com/hyperledger/fabric/orderer/mocks/common/multichannel"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/consensus"
+	"github.com/ehousecy/fabric/orderer/consensus/kafka/mock"
+	mockmultichannel "github.com/ehousecy/fabric/orderer/mocks/common/multichannel"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 //go:generate counterfeiter -o mock/orderer_config.go --fake-name OrdererConfig . ordererConfig
@@ -113,7 +113,7 @@ func TestHandleChain(t *testing.T) {
 
 	mockMetadata := &cb.Metadata{Value: protoutil.MarshalOrPanic(&ab.KafkaMetadata{LastOffsetPersisted: newestOffset - 1})}
 	_, err := consenter.HandleChain(mockSupport, mockMetadata)
-	require.NoError(t, err, "Expected the HandleChain call to return without errors")
+	assert.NoError(t, err, "Expected the HandleChain call to return without errors")
 }
 
 // Test helper functions and mock objects defined here

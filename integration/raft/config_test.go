@@ -25,13 +25,12 @@ import (
 	"github.com/hyperledger/fabric-protos-go/msp"
 	protosorderer "github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/ordererclient"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -651,7 +650,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 			extendNetwork(network)
 			certificateRotations := refreshOrdererPEMs(network)
 
-			expectedBlockNumPerChannel := []map[string]int{
+			expectedBlockHeightsPerChannel := []map[string]int{
 				{"systemchannel": 2, "testchannel": 1},
 				{"systemchannel": 3, "testchannel": 2},
 				{"systemchannel": 4, "testchannel": 3},
@@ -675,7 +674,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 				}
 
 				By("Waiting for all orderers to sync")
-				assertBlockReception(expectedBlockNumPerChannel[i*2], orderers, peer, network)
+				assertBlockReception(expectedBlockHeightsPerChannel[i*2], orderers, peer, network)
 
 				By("Killing the orderer")
 				ordererProcesses[i].Signal(syscall.SIGTERM)
@@ -688,7 +687,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 				Eventually(ordererProcesses[i].Ready(), network.EventuallyTimeout).Should(BeClosed())
 
 				By("And waiting for it to stabilize")
-				assertBlockReception(expectedBlockNumPerChannel[i*2], orderers, peer, network)
+				assertBlockReception(expectedBlockHeightsPerChannel[i*2], orderers, peer, network)
 
 				By("Removing the previous certificate of the old orderer")
 				for _, channelName := range []string{"systemchannel", "testchannel"} {
@@ -696,7 +695,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 				}
 
 				By("Waiting for all orderers to sync")
-				assertBlockReception(expectedBlockNumPerChannel[i*2+1], orderers, peer, network)
+				assertBlockReception(expectedBlockHeightsPerChannel[i*2+1], orderers, peer, network)
 			}
 
 			By("Creating testchannel2")
@@ -747,7 +746,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 
 			By("Broadcasting envelope to testchannel")
 			env := CreateBroadcastEnvelope(network, peer, "testchannel", []byte("hello"))
-			resp, err := ordererclient.Broadcast(network, o1, env)
+			resp, err := nwo.Broadcast(network, o1, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -781,12 +780,12 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 
 			By("Ensuring orderer4 doesn't serve testchannel2 and testchannel3")
 			env = CreateBroadcastEnvelope(network, peer, "testchannel2", []byte("hello"))
-			resp, err = ordererclient.Broadcast(network, o4, env)
+			resp, err = nwo.Broadcast(network, o4, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SERVICE_UNAVAILABLE))
 
 			env = CreateBroadcastEnvelope(network, peer, "testchannel3", []byte("hello"))
-			resp, err = ordererclient.Broadcast(network, o4, env)
+			resp, err = nwo.Broadcast(network, o4, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SERVICE_UNAVAILABLE))
 
@@ -814,7 +813,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 
 			By("Submitting a transaction through orderer4")
 			env = CreateBroadcastEnvelope(network, peer, "testchannel2", []byte("hello"))
-			resp, err = ordererclient.Broadcast(network, o4, env)
+			resp, err = nwo.Broadcast(network, o4, env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -1077,7 +1076,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 			}, []*nwo.Orderer{orderers[firstEvictedNode]}, peer, network)
 
 			env := CreateBroadcastEnvelope(network, orderers[secondEvictedNode], network.SystemChannel.Name, []byte("foo"))
-			resp, err := ordererclient.Broadcast(network, orderers[survivor], env)
+			resp, err := nwo.Broadcast(network, orderers[survivor], env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 		})
@@ -1145,7 +1144,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 
 				By("Submitting tx")
 				env := CreateBroadcastEnvelope(network, o2, "testchannel", []byte("foo"))
-				resp, err := ordererclient.Broadcast(network, o2, env)
+				resp, err := nwo.Broadcast(network, o2, env)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -1319,7 +1318,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			blockNum := 0 // there's only one block in channel - genesis
+			blockSeq := 0 // there's only one block in channel - genesis
 			for _, i := range []int{4, 5, 6} {
 				By(fmt.Sprintf("Adding orderer%d", i+1))
 				ordererCertificatePath := filepath.Join(network.OrdererLocalTLSDir(orderers[i]), "server.crt")
@@ -1332,7 +1331,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 					Host:          "127.0.0.1",
 					Port:          uint32(network.OrdererPort(orderers[i], nwo.ClusterPort)),
 				})
-				blockNum++
+				blockSeq++
 
 				// Get the last config block of the system channel
 				configBlock := nwo.GetConfigBlock(network, peer, orderers[0], "systemchannel")
@@ -1345,7 +1344,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 
 				By(fmt.Sprintf("Checking that orderer%d has onboarded the network", i+1))
 				assertBlockReception(map[string]int{
-					"systemchannel": blockNum,
+					"systemchannel": blockSeq,
 				}, []*nwo.Orderer{orderers[i]}, peer, network)
 			}
 
@@ -1369,13 +1368,13 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 			}
 
 			env := CreateBroadcastEnvelope(network, orderers[4], network.SystemChannel.Name, []byte("hello"))
-			resp, err := ordererclient.Broadcast(network, orderers[4], env)
+			resp, err := nwo.Broadcast(network, orderers[4], env)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
-			blockNum++
+			blockSeq++
 
 			assertBlockReception(map[string]int{
-				"systemchannel": blockNum,
+				"systemchannel": blockSeq,
 			}, []*nwo.Orderer{orderers[1], orderers[2], orderers[4], orderers[5], orderers[6]}, peer, network) // alive orderers: 2, 3, 5, 6, 7
 
 			By("Killing orderer[2,3]")
@@ -1396,7 +1395,7 @@ var _ = Describe("EndToEnd reconfiguration and onboarding", func() {
 
 			By("Making sure 4/7 orderers form quorum and serve request")
 			assertBlockReception(map[string]int{
-				"systemchannel": blockNum,
+				"systemchannel": blockSeq,
 			}, []*nwo.Orderer{orderers[3], orderers[4], orderers[5], orderers[6]}, peer, network) // alive orderers: 4, 5, 6, 7
 		})
 	})
@@ -1660,17 +1659,16 @@ func refreshOrdererPEMs(n *nwo.Network) []*certificateChange {
 	return serverCertChanges
 }
 
-// assertBlockReception asserts that the given orderers have the expected
-// newest block number for the specified channels
-func assertBlockReception(expectedBlockNumPerChannel map[string]int, orderers []*nwo.Orderer, p *nwo.Peer, n *nwo.Network) {
-	for channelName, blockNum := range expectedBlockNumPerChannel {
+// assertBlockReception asserts that the given orderers have expected heights for the given channel--> height mapping
+func assertBlockReception(expectedHeightsPerChannel map[string]int, orderers []*nwo.Orderer, p *nwo.Peer, n *nwo.Network) {
+	for channelName, blockSeq := range expectedHeightsPerChannel {
 		for _, orderer := range orderers {
-			waitForBlockReception(orderer, p, n, channelName, blockNum)
+			waitForBlockReception(orderer, p, n, channelName, blockSeq)
 		}
 	}
 }
 
-func waitForBlockReception(o *nwo.Orderer, submitter *nwo.Peer, network *nwo.Network, channelName string, blockNum int) {
+func waitForBlockReception(o *nwo.Orderer, submitter *nwo.Peer, network *nwo.Network, channelName string, blockSeq int) {
 	c := commands.ChannelFetch{
 		ChannelID:  channelName,
 		Block:      "newest",
@@ -1685,7 +1683,7 @@ func waitForBlockReception(o *nwo.Orderer, submitter *nwo.Peer, network *nwo.Net
 			return fmt.Sprintf("exit code is %d: %s", sess.ExitCode(), string(sess.Err.Contents()))
 		}
 		sessErr := string(sess.Err.Contents())
-		expected := fmt.Sprintf("Received block: %d", blockNum)
+		expected := fmt.Sprintf("Received block: %d", blockSeq)
 		if strings.Contains(sessErr, expected) {
 			return ""
 		}

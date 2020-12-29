@@ -18,15 +18,15 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric-protos-go/transientstore"
-	vsccErrors "github.com/hyperledger/fabric/common/errors"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/comm"
-	common2 "github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/protoutil"
+	vsccErrors "github.com/ehousecy/fabric/common/errors"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/comm"
+	common2 "github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -41,9 +41,15 @@ type GossipStateProvider interface {
 }
 
 const (
+	defAntiEntropyInterval             = 10 * time.Second
+	defAntiEntropyStateResponseTimeout = 3 * time.Second
+	defAntiEntropyBatchSize            = 10
+
+	defChannelBufferSize      = 100
+	defAntiEntropyMaxRetries  = 3
 	stragglerWarningThreshold = 100
-	defAntiEntropyBatchSize   = 10
-	defMaxBlockDistance       = 20
+
+	defMaxBlockDistance = 20
 
 	blocking    = true
 	nonBlocking = false

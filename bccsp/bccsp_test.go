@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAESOpts(t *testing.T) {
@@ -32,18 +32,18 @@ func TestAESOpts(t *testing.T) {
 			&AES256KeyGenOpts{ephemeral},
 		} {
 			expectedAlgorithm := reflect.TypeOf(opts).String()[7:13]
-			require.Equal(t, expectedAlgorithm, opts.Algorithm())
-			require.Equal(t, ephemeral, opts.Ephemeral())
+			assert.Equal(t, expectedAlgorithm, opts.Algorithm())
+			assert.Equal(t, ephemeral, opts.Ephemeral())
 		}
 	}
 	test(true)
 	test(false)
 
 	opts := &AESKeyGenOpts{true}
-	require.Equal(t, "AES", opts.Algorithm())
-	require.True(t, opts.Ephemeral())
+	assert.Equal(t, "AES", opts.Algorithm())
+	assert.True(t, opts.Ephemeral())
 	opts.Temporary = false
-	require.False(t, opts.Ephemeral())
+	assert.False(t, opts.Ephemeral())
 }
 
 func TestECDSAOpts(t *testing.T) {
@@ -53,8 +53,8 @@ func TestECDSAOpts(t *testing.T) {
 			&ECDSAP384KeyGenOpts{ephemeral},
 		} {
 			expectedAlgorithm := reflect.TypeOf(opts).String()[7:16]
-			require.Equal(t, expectedAlgorithm, opts.Algorithm())
-			require.Equal(t, ephemeral, opts.Ephemeral())
+			assert.Equal(t, expectedAlgorithm, opts.Algorithm())
+			assert.Equal(t, ephemeral, opts.Ephemeral())
 		}
 	}
 	test(true)
@@ -67,51 +67,51 @@ func TestECDSAOpts(t *testing.T) {
 			&ECDSAPrivateKeyImportOpts{ephemeral},
 			&ECDSAGoPublicKeyImportOpts{ephemeral},
 		} {
-			require.Equal(t, "ECDSA", opts.Algorithm())
-			require.Equal(t, ephemeral, opts.Ephemeral())
+			assert.Equal(t, "ECDSA", opts.Algorithm())
+			assert.Equal(t, ephemeral, opts.Ephemeral())
 		}
 	}
 	test(true)
 	test(false)
 
 	opts := &ECDSAReRandKeyOpts{Temporary: true}
-	require.True(t, opts.Ephemeral())
+	assert.True(t, opts.Ephemeral())
 	opts.Temporary = false
-	require.False(t, opts.Ephemeral())
-	require.Equal(t, "ECDSA_RERAND", opts.Algorithm())
-	require.Empty(t, opts.ExpansionValue())
+	assert.False(t, opts.Ephemeral())
+	assert.Equal(t, "ECDSA_RERAND", opts.Algorithm())
+	assert.Empty(t, opts.ExpansionValue())
 }
 
 func TestHashOpts(t *testing.T) {
 	for _, ho := range []HashOpts{&SHA256Opts{}, &SHA384Opts{}, &SHA3_256Opts{}, &SHA3_384Opts{}} {
 		s := strings.Replace(reflect.TypeOf(ho).String(), "*bccsp.", "", -1)
 		algorithm := strings.Replace(s, "Opts", "", -1)
-		require.Equal(t, algorithm, ho.Algorithm())
+		assert.Equal(t, algorithm, ho.Algorithm())
 		ho2, err := GetHashOpt(algorithm)
-		require.NoError(t, err)
-		require.Equal(t, ho.Algorithm(), ho2.Algorithm())
+		assert.NoError(t, err)
+		assert.Equal(t, ho.Algorithm(), ho2.Algorithm())
 	}
 	_, err := GetHashOpt("foo")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "hash function not recognized")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "hash function not recognized")
 
-	require.Equal(t, "SHA", (&SHAOpts{}).Algorithm())
+	assert.Equal(t, "SHA", (&SHAOpts{}).Algorithm())
 }
 
 func TestHMAC(t *testing.T) {
 	opts := &HMACTruncated256AESDeriveKeyOpts{Arg: []byte("arg")}
-	require.False(t, opts.Ephemeral())
+	assert.False(t, opts.Ephemeral())
 	opts.Temporary = true
-	require.True(t, opts.Ephemeral())
-	require.Equal(t, "HMAC_TRUNCATED_256", opts.Algorithm())
-	require.Equal(t, []byte("arg"), opts.Argument())
+	assert.True(t, opts.Ephemeral())
+	assert.Equal(t, "HMAC_TRUNCATED_256", opts.Algorithm())
+	assert.Equal(t, []byte("arg"), opts.Argument())
 
 	opts2 := &HMACDeriveKeyOpts{Arg: []byte("arg")}
-	require.False(t, opts2.Ephemeral())
+	assert.False(t, opts2.Ephemeral())
 	opts2.Temporary = true
-	require.True(t, opts2.Ephemeral())
-	require.Equal(t, "HMAC", opts2.Algorithm())
-	require.Equal(t, []byte("arg"), opts2.Argument())
+	assert.True(t, opts2.Ephemeral())
+	assert.Equal(t, "HMAC", opts2.Algorithm())
+	assert.Equal(t, []byte("arg"), opts2.Argument())
 }
 
 func TestKeyGenOpts(t *testing.T) {
@@ -127,8 +127,8 @@ func TestKeyGenOpts(t *testing.T) {
 			&AES256ImportKeyOpts{ephemeral},
 		} {
 			expectedAlgorithm := expectedAlgorithms[reflect.TypeOf(opts)]
-			require.Equal(t, expectedAlgorithm, opts.Algorithm())
-			require.Equal(t, ephemeral, opts.Ephemeral())
+			assert.Equal(t, expectedAlgorithm, opts.Algorithm())
+			assert.Equal(t, ephemeral, opts.Ephemeral())
 		}
 	}
 	test(true)

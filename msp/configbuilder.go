@@ -14,8 +14,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/factory"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -133,19 +133,33 @@ const (
 )
 
 func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, keystoreDir string) *factory.FactoryOpts {
-	if bccspConfig == nil {
+	//if bccspConfig == nil {
 		bccspConfig = factory.GetDefaultOpts()
-	}
+	//}
 
-	if bccspConfig.Default == "SW" || bccspConfig.SW != nil {
-		if bccspConfig.SW == nil {
-			bccspConfig.SW = factory.GetDefaultOpts().SW
+	mspLogger.Infof("bccspConfig.ProviderName---,%v",bccspConfig.ProviderName)
+	if bccspConfig.ProviderName == "GM" || bccspConfig.SwOpts != nil {
+		if bccspConfig.SwOpts == nil {
+			bccspConfig.SwOpts = factory.GetDefaultOpts().SwOpts
 		}
 
 		// Only override the KeyStorePath if it was left empty
-		if bccspConfig.SW.FileKeystore == nil ||
-			bccspConfig.SW.FileKeystore.KeyStorePath == "" {
-			bccspConfig.SW.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
+		if bccspConfig.SwOpts.FileKeystore == nil ||
+			bccspConfig.SwOpts.FileKeystore.KeyStorePath == "" {
+			bccspConfig.SwOpts.Ephemeral = false
+			bccspConfig.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
+		}
+	}
+	if bccspConfig.ProviderName == "SW" || bccspConfig.SwOpts != nil {
+		if bccspConfig.SwOpts == nil {
+			bccspConfig.SwOpts = factory.GetDefaultOpts().SwOpts
+		}
+
+		// Only override the KeyStorePath if it was left empty
+		if bccspConfig.SwOpts.FileKeystore == nil ||
+			bccspConfig.SwOpts.FileKeystore.KeyStorePath == "" {
+			bccspConfig.SwOpts.Ephemeral = false
+			bccspConfig.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
 		}
 	}
 
@@ -167,6 +181,7 @@ func GetLocalMspConfigWithType(dir string, bccspConfig *factory.FactoryOpts, ID,
 }
 
 func GetLocalMspConfig(dir string, bccspConfig *factory.FactoryOpts, ID string) (*msp.MSPConfig, error) {
+	/*	mspLogger.Infof("work+++++:%v",dir)*/
 	signcertDir := filepath.Join(dir, signcerts)
 	keystoreDir := filepath.Join(dir, keystore)
 	bccspConfig = SetupBCCSPKeystoreConfig(bccspConfig, keystoreDir)
@@ -333,9 +348,9 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 		mspLogger.Debugf("MSP configuration file not found at [%s]: [%s]", configFile, err)
 	}
 
-	// Set FabricCryptoConfig
+	// Set FabricCryptoConfig todo
 	cryptoConfig := &msp.FabricCryptoConfig{
-		SignatureHashFamily:            bccsp.SHA2,
+		SignatureHashFamily:            bccsp.GMSM3,
 		IdentityIdentifierHashFunction: bccsp.SHA256,
 	}
 
@@ -356,18 +371,21 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 
 	fmpsjs, _ := proto.Marshal(fmspconf)
 
+	/*mspLogger.Infof("mspConfig---,%v",admincert)
+	mspLogger.Infof("mspConfig---,%v",cacerts)
+	mspLogger.Infof("mspConfig---,%v",intermediatecerts)
+	mspLogger.Infof("mspConfig---,%v",sigid)
+	mspLogger.Infof("mspConfig---,%v",cryptoConfig)
+	mspLogger.Infof("mspConfig---,%v",ID)
+	mspLogger.Infof("mspConfig---,%v",tlsCACerts)
+	mspLogger.Infof("mspConfig---,%v",tlsIntermediateCerts)
+	mspLogger.Infof("mspConfig---,%v",nodeOUs)*/
 	mspconf := &msp.MSPConfig{Config: fmpsjs, Type: int32(FABRIC)}
 
 	return mspconf, nil
 }
 
 func loadCertificateAt(dir, certificatePath string, ouType string) []byte {
-
-	if certificatePath == "" {
-		mspLogger.Debugf("Specific certificate for %s is not configured", ouType)
-		return nil
-	}
-
 	f := filepath.Join(dir, certificatePath)
 	raw, err := readFile(f)
 	if err != nil {

@@ -16,8 +16,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/core/ledger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -148,7 +148,7 @@ func TestBadCouchDBInstance(t *testing.T) {
 	require.Error(t, err, "Error should have been thrown with verifyCouchConfig and invalid connection")
 
 	//Test dropDatabase with bad connection
-	err = badDB.dropDatabase()
+	_, err = badDB.dropDatabase()
 	require.Error(t, err, "Error should have been thrown with dropDatabase and invalid connection")
 
 	//Test readDoc with bad connection
@@ -433,7 +433,7 @@ func testDBCreateDatabaseAndPersist(t *testing.T, config *ledger.CouchDBConfig) 
 
 	//Unmarshal the document to Asset structure
 	assetResp = &Asset{}
-	require.NoError(t, json.Unmarshal(dbGetResp.jsonValue, &assetResp))
+	json.Unmarshal(dbGetResp.jsonValue, &assetResp)
 
 	//Assert that the update was saved and retrieved
 	require.Equal(t, "bob", assetResp.Owner)
@@ -561,7 +561,7 @@ func testDBCreateDatabaseAndPersist(t *testing.T, config *ledger.CouchDBConfig) 
 	require.Error(t, readerr, "Error should have been thrown when reading a document with an invalid ID")
 
 	//Drop the database
-	errdbdrop := db.dropDatabase()
+	_, errdbdrop := db.dropDatabase()
 	require.NoError(t, errdbdrop, "Error dropping database")
 
 	//Make sure an error is thrown for getting info for a missing database
@@ -706,10 +706,10 @@ func TestPrefixScan(t *testing.T) {
 	require.Equal(t, database, dbResp.DbName)
 
 	//Save documents
-	for i := rune(0); i < 20; i++ {
-		id1 := string([]rune{0, i, 0})
-		id2 := string([]rune{0, i, 1})
-		id3 := string([]rune{0, i, utf8.MaxRune - 1})
+	for i := 0; i < 20; i++ {
+		id1 := string(0) + string(i) + string(0)
+		id2 := string(0) + string(i) + string(1)
+		id3 := string(0) + string(i) + string(utf8.MaxRune-1)
 		_, saveerr := db.saveDoc(id1, "", &couchDoc{jsonValue: assetJSON, attachments: nil})
 		require.NoError(t, saveerr, "Error when trying to save a document")
 		_, saveerr = db.saveDoc(id2, "", &couchDoc{jsonValue: assetJSON, attachments: nil})
@@ -718,7 +718,7 @@ func TestPrefixScan(t *testing.T) {
 		require.NoError(t, saveerr, "Error when trying to save a document")
 
 	}
-	startKey := string([]rune{0, 10})
+	startKey := string(0) + string(10)
 	endKey := startKey + string(utf8.MaxRune)
 	_, _, geterr := db.readDoc(endKey)
 	require.NoError(t, geterr, "Error when trying to get lastkey")
@@ -728,16 +728,13 @@ func TestPrefixScan(t *testing.T) {
 	require.NotNil(t, resultsPtr)
 	results := resultsPtr
 	require.Equal(t, 3, len(results))
-	require.Equal(t, string([]rune{0, 10, 0}), results[0].id)
-	require.Equal(t, string([]rune{0, 10, 1}), results[1].id)
-	require.Equal(t, string([]rune{0, 10, utf8.MaxRune - 1}), results[2].id)
+	require.Equal(t, string(0)+string(10)+string(0), results[0].id)
+	require.Equal(t, string(0)+string(10)+string(1), results[1].id)
+	require.Equal(t, string(0)+string(10)+string(utf8.MaxRune-1), results[2].id)
 
 	//Drop the database
-	errdbdrop := db.dropDatabase()
+	_, errdbdrop := db.dropDatabase()
 	require.NoError(t, errdbdrop, "Error dropping database")
-
-	// Drop again is not an error
-	require.NoError(t, db.dropDatabase())
 
 	//Retrieve the info for the new database and make sure the name matches
 	_, _, errdbinfo := db.getDatabaseInfo()
@@ -1470,13 +1467,13 @@ func testBatchBatchOperations(t *testing.T, config *ledger.CouchDBConfig) {
 	for _, revdoc := range batchRevs {
 		if revdoc.ID == "marble01" {
 			//update the json with the rev and add to the batch
-			marble01Doc := addRevisionAndDeleteStatus(t, revdoc.Rev, byteJSON01, false)
+			marble01Doc := addRevisionAndDeleteStatus(revdoc.Rev, byteJSON01, false)
 			batchUpdateDocs = append(batchUpdateDocs, &couchDoc{jsonValue: marble01Doc, attachments: attachments1})
 		}
 
 		if revdoc.ID == "marble03" {
 			//update the json with the rev and add to the batch
-			marble03Doc := addRevisionAndDeleteStatus(t, revdoc.Rev, byteJSON03, false)
+			marble03Doc := addRevisionAndDeleteStatus(revdoc.Rev, byteJSON03, false)
 			batchUpdateDocs = append(batchUpdateDocs, &couchDoc{jsonValue: marble03Doc, attachments: attachments3})
 		}
 	}
@@ -1506,12 +1503,12 @@ func testBatchBatchOperations(t *testing.T, config *ledger.CouchDBConfig) {
 	for _, revdoc := range batchRevs {
 		if revdoc.ID == "marble02" {
 			//update the json with the rev and add to the batch
-			marble02Doc := addRevisionAndDeleteStatus(t, revdoc.Rev, byteJSON02, true)
+			marble02Doc := addRevisionAndDeleteStatus(revdoc.Rev, byteJSON02, true)
 			batchUpdateDocs = append(batchUpdateDocs, &couchDoc{jsonValue: marble02Doc, attachments: attachments1})
 		}
 		if revdoc.ID == "marble04" {
 			//update the json with the rev and add to the batch
-			marble04Doc := addRevisionAndDeleteStatus(t, revdoc.Rev, byteJSON04, true)
+			marble04Doc := addRevisionAndDeleteStatus(revdoc.Rev, byteJSON04, true)
 			batchUpdateDocs = append(batchUpdateDocs, &couchDoc{jsonValue: marble04Doc, attachments: attachments3})
 		}
 	}
@@ -1542,12 +1539,12 @@ func testBatchBatchOperations(t *testing.T, config *ledger.CouchDBConfig) {
 }
 
 //addRevisionAndDeleteStatus adds keys for version and chaincodeID to the JSON value
-func addRevisionAndDeleteStatus(t *testing.T, revision string, value []byte, deleted bool) []byte {
+func addRevisionAndDeleteStatus(revision string, value []byte, deleted bool) []byte {
 
 	//create a version mapping
 	jsonMap := make(map[string]interface{})
 
-	require.NoError(t, json.Unmarshal(value, &jsonMap))
+	json.Unmarshal(value, &jsonMap)
 
 	//add the revision
 	if revision != "" {
@@ -1665,54 +1662,4 @@ func TestCouchDocKey(t *testing.T) {
 	doc = &couchDoc{jsonValue: []byte("random")}
 	_, err = doc.key()
 	require.Error(t, err)
-}
-
-func TestCouchDocLength(t *testing.T) {
-	testData := []struct {
-		description    string
-		doc            *couchDoc
-		expectedLength int
-	}{
-		{
-			description: "doc has a json value and attachments",
-			doc: &couchDoc{
-				jsonValue: []byte("7length"),
-				attachments: []*attachmentInfo{
-					{
-						Name:            "5leng",
-						ContentType:     "3le",
-						AttachmentBytes: []byte("8length."),
-					},
-					{
-						AttachmentBytes: []byte("8length."),
-					},
-					{},
-				},
-			},
-			expectedLength: 31, //7 + 5 + 3 + 8 + 8
-		},
-		{
-			description: "doc has only json value",
-			doc: &couchDoc{
-				jsonValue: []byte("7length"),
-			},
-			expectedLength: 7,
-		},
-		{
-			description:    "doc is empty",
-			doc:            &couchDoc{},
-			expectedLength: 0,
-		},
-		{
-			description:    "doc is nil",
-			doc:            nil,
-			expectedLength: 0,
-		},
-	}
-
-	for _, tData := range testData {
-		t.Run(tData.description, func(t *testing.T) {
-			require.Equal(t, tData.expectedLength, tData.doc.len())
-		})
-	}
 }

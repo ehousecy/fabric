@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/Shopify/sarama"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStaticPartitioner(t *testing.T) {
@@ -22,7 +22,7 @@ func TestStaticPartitioner(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		assignedPartition, err := partitioner.Partition(new(sarama.ProducerMessage), numberOfPartitions)
-		require.NoError(t, err, "Partitioner not functioning as expected:", err)
-		require.Equal(t, partition, assignedPartition, "Partitioner not returning the expected partition - expected %d, got %v", partition, assignedPartition)
+		assert.NoError(t, err, "Partitioner not functioning as expected:", err)
+		assert.Equal(t, partition, assignedPartition, "Partitioner not returning the expected partition - expected %d, got %v", partition, assignedPartition)
 	}
 }

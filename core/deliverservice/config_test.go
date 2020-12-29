@@ -14,10 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hyperledger/fabric/core/deliverservice"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/core/deliverservice"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"github.com/spf13/viper"
 )
 
@@ -44,10 +45,10 @@ func TestSecureOptsConfig(t *testing.T) {
 
 		coreConfig := deliverservice.GlobalConfig()
 
-		require.True(t, coreConfig.SecOpts.UseTLS)
-		require.True(t, coreConfig.SecOpts.RequireClientCert)
-		require.Equal(t, keyBytes, coreConfig.SecOpts.Key)
-		require.Equal(t, certBytes, coreConfig.SecOpts.Certificate)
+		assert.True(t, coreConfig.SecOpts.UseTLS)
+		assert.True(t, coreConfig.SecOpts.RequireClientCert)
+		assert.Equal(t, keyBytes, coreConfig.SecOpts.Key)
+		assert.Equal(t, certBytes, coreConfig.SecOpts.Certificate)
 	})
 
 	t.Run("fallback cert", func(t *testing.T) {
@@ -61,10 +62,10 @@ func TestSecureOptsConfig(t *testing.T) {
 
 		coreConfig := deliverservice.GlobalConfig()
 
-		require.True(t, coreConfig.SecOpts.UseTLS)
-		require.True(t, coreConfig.SecOpts.RequireClientCert)
-		require.Equal(t, keyBytes, coreConfig.SecOpts.Key)
-		require.Equal(t, certBytes, coreConfig.SecOpts.Certificate)
+		assert.True(t, coreConfig.SecOpts.UseTLS)
+		assert.True(t, coreConfig.SecOpts.RequireClientCert)
+		assert.Equal(t, keyBytes, coreConfig.SecOpts.Key)
+		assert.Equal(t, certBytes, coreConfig.SecOpts.Certificate)
 	})
 
 	t.Run("no cert", func(t *testing.T) {
@@ -74,7 +75,7 @@ func TestSecureOptsConfig(t *testing.T) {
 		viper.Set("peer.tls.enabled", true)
 		viper.Set("peer.tls.clientAuthRequired", true)
 
-		require.Panics(t, func() { deliverservice.GlobalConfig() })
+		assert.Panics(t, func() { deliverservice.GlobalConfig() })
 	})
 }
 
@@ -108,7 +109,7 @@ func TestGlobalConfig(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expectedConfig, coreConfig)
+	assert.Equal(t, expectedConfig, coreConfig)
 }
 
 func TestGlobalConfigDefault(t *testing.T) {
@@ -125,7 +126,7 @@ func TestGlobalConfigDefault(t *testing.T) {
 		KeepaliveOptions:            comm.DefaultKeepaliveOptions,
 	}
 
-	require.Equal(t, expectedConfig, coreConfig)
+	assert.Equal(t, expectedConfig, coreConfig)
 }
 
 func TestLoadOverridesMap(t *testing.T) {
@@ -153,10 +154,10 @@ func TestLoadOverridesMap(t *testing.T) {
 		require.Len(t, res, 2)
 		ep1, ok := res["addressFrom1"]
 		require.True(t, ok)
-		require.Equal(t, "addressTo1", ep1.Address)
+		assert.Equal(t, "addressTo1", ep1.Address)
 		ep2, ok := res["addressFrom2"]
 		require.True(t, ok)
-		require.Equal(t, "addressTo2", ep2.Address)
+		assert.Equal(t, "addressTo2", ep2.Address)
 	})
 
 	t.Run("MissingCAFiles", func(t *testing.T) {
@@ -178,7 +179,7 @@ func TestLoadOverridesMap(t *testing.T) {
 		require.NoError(t, err)
 		res, err := deliverservice.LoadOverridesMap()
 		require.NoError(t, err)
-		require.Len(t, res, 1)
+		assert.Len(t, res, 1)
 	})
 
 	t.Run("EmptyCAFiles", func(t *testing.T) {
@@ -198,7 +199,7 @@ func TestLoadOverridesMap(t *testing.T) {
 		require.NoError(t, err)
 		res, err := deliverservice.LoadOverridesMap()
 		require.NoError(t, err)
-		require.Len(t, res, 2)
+		assert.Len(t, res, 2)
 	})
 
 	t.Run("BadYaml", func(t *testing.T) {
@@ -213,8 +214,7 @@ func TestLoadOverridesMap(t *testing.T) {
 		err := viper.ReadConfig(bytes.NewBuffer([]byte(config)))
 		require.NoError(t, err)
 		_, err = deliverservice.LoadOverridesMap()
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "could not unmarshal peer.deliveryclient.addressOverrides:")
+		require.EqualError(t, err, "could not unmarshal peer.deliveryclient.addressOverrides: '': source data must be an array or slice, got string")
 	})
 
 	t.Run("EmptyYaml", func(t *testing.T) {
@@ -229,6 +229,6 @@ func TestLoadOverridesMap(t *testing.T) {
 		require.NoError(t, err)
 		res, err := deliverservice.LoadOverridesMap()
 		require.NoError(t, err)
-		require.Nil(t, res)
+		assert.Nil(t, res)
 	})
 }

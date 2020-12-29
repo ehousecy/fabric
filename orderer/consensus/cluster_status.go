@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package consensus
 
-import "github.com/hyperledger/fabric/orderer/common/types"
+import "github.com/ehousecy/fabric/orderer/common/types"
 
 // StatusReporter is implemented by cluster-type Chain implementations.
 // It allows the node to report its cluster relation and its status within that relation.
@@ -18,15 +18,15 @@ import "github.com/hyperledger/fabric/orderer/common/types"
 type StatusReporter interface {
 	// StatusReport provides the cluster relation and status.
 	// See:  channelparticipation.ChannelInfo for more details.
-	StatusReport() (types.ConsensusRelation, types.Status)
+	StatusReport() (types.ClusterRelation, types.Status)
 }
 
 // StaticStatusReporter is intended for chains that do not implement the StatusReporter interface.
 type StaticStatusReporter struct {
-	ConsensusRelation types.ConsensusRelation
-	Status            types.Status
+	ClusterRelation types.ClusterRelation
+	Status          types.Status
 }
 
-func (s StaticStatusReporter) StatusReport() (types.ConsensusRelation, types.Status) {
-	return s.ConsensusRelation, s.Status
+func (s StaticStatusReporter) StatusReport() (types.ClusterRelation, types.Status) {
+	return s.ClusterRelation, s.Status
 }

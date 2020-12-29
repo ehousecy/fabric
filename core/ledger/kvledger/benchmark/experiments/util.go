@@ -12,7 +12,11 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+
+	"github.com/ehousecy/fabric/common/flogging"
 )
+
+var logger = flogging.MustGetLogger("experiments")
 
 type marbleRecord struct {
 	ID          string `json:"_id,omitempty"`

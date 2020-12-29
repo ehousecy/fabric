@@ -12,9 +12,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/common/policydsl"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/policydsl"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/stretchr/testify/assert"
 )
 
 type testCase struct {
@@ -87,7 +87,7 @@ func TestSatisfiedBy(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			p, err := policydsl.FromString(test.policy)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			ip := NewInquireableSignaturePolicy(p)
 			satisfiedBy := ip.SatisfiedBy()
@@ -101,7 +101,7 @@ func TestSatisfiedBy(t *testing.T) {
 				actual[fmt.Sprintf("%v", principals)] = struct{}{}
 			}
 
-			require.Equal(t, test.expected, actual)
+			assert.Equal(t, test.expected, actual)
 		})
 	}
 }
@@ -115,7 +115,7 @@ func TestSatisfiedByTooManyCombinations(t *testing.T) {
 		" 'G.member', 'H.member', 'I.member', 'J.member', 'K.member', 'L.member', 'M.member', 'N.member', 'O.member', " +
 		"'P.member', 'Q.member', 'R.member', 'S.member', 'T.member', 'U.member', 'V.member', 'W.member', 'X.member', " +
 		"'Y.member', 'Z.member')")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	ip := NewInquireableSignaturePolicy(p)
 	satisfiedBy := ip.SatisfiedBy()
@@ -123,7 +123,7 @@ func TestSatisfiedByTooManyCombinations(t *testing.T) {
 	actual := make(map[string]struct{})
 	for _, ps := range satisfiedBy {
 		// Every subset is of size 15, as needed by the endorsement policy.
-		require.Len(t, ps, 15)
+		assert.Len(t, ps, 15)
 		var principals []string
 		for _, principal := range ps {
 			principals = append(principals, mspId(principal))
@@ -131,5 +131,5 @@ func TestSatisfiedByTooManyCombinations(t *testing.T) {
 		actual[fmt.Sprintf("%v", principals)] = struct{}{}
 	}
 	// Total combinations are capped by the combinationsUpperBound.
-	require.True(t, len(actual) < combinationsUpperBound)
+	assert.True(t, len(actual) < combinationsUpperBound)
 }

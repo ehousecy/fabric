@@ -18,15 +18,16 @@ import (
 	"github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/orderer/common/blockcutter"
-	"github.com/hyperledger/fabric/orderer/common/msgprocessor"
-	mockkafka "github.com/hyperledger/fabric/orderer/consensus/kafka/mock"
-	mockblockcutter "github.com/hyperledger/fabric/orderer/mocks/common/blockcutter"
-	mockmultichannel "github.com/hyperledger/fabric/orderer/mocks/common/multichannel"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/orderer/common/blockcutter"
+	"github.com/ehousecy/fabric/orderer/common/msgprocessor"
+	mockkafka "github.com/ehousecy/fabric/orderer/consensus/kafka/mock"
+	mockblockcutter "github.com/ehousecy/fabric/orderer/mocks/common/blockcutter"
+	mockmultichannel "github.com/ehousecy/fabric/orderer/mocks/common/multichannel"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -116,7 +117,7 @@ func TestChain(t *testing.T) {
 		mockConsenter.(*consenterImpl).metrics.LastOffsetPersisted = fakeLastOffsetPersisted
 		chain, err := newChain(mockConsenter, mockSupport, newestOffset-1, lastOriginalOffsetProcessed, lastResubmittedConfigOffset)
 
-		require.NoError(t, err, "Expected newChain to return without errors")
+		assert.NoError(t, err, "Expected newChain to return without errors")
 		select {
 		case <-chain.Errored():
 			logger.Debug("Errored() returned a closed channel as expected")
@@ -139,9 +140,9 @@ func TestChain(t *testing.T) {
 		}
 
 		require.Equal(t, fakeLastOffsetPersisted.WithCallCount(), 1)
-		require.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(0), []string{"channel", channelNameForTest(t)})
+		assert.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(0), []string{"channel", channelNameForTest(t)})
 		require.Equal(t, fakeLastOffsetPersisted.SetCallCount(), 1)
-		require.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(0), float64(newestOffset-1))
+		assert.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(0), float64(newestOffset-1))
 	})
 
 	t.Run("Start", func(t *testing.T) {
@@ -208,7 +209,7 @@ func TestChain(t *testing.T) {
 
 		chain.Halt()
 
-		require.NotPanics(t, func() { chain.Halt() }, "Calling Halt() more than once shouldn't panic")
+		assert.NotPanics(t, func() { chain.Halt() }, "Calling Halt() more than once shouldn't panic")
 	})
 
 	t.Run("StartWithProducerForChannelError", func(t *testing.T) {
@@ -222,7 +223,7 @@ func TestChain(t *testing.T) {
 
 		// The production path will actually call chain.Start(). This is
 		// functionally equivalent and allows us to run assertions on it.
-		require.Panics(t, func() { startThread(chain) }, "Expected the Start() call to panic")
+		assert.Panics(t, func() { startThread(chain) }, "Expected the Start() call to panic")
 	})
 
 	t.Run("StartWithConnectMessageError", func(t *testing.T) {
@@ -248,7 +249,7 @@ func TestChain(t *testing.T) {
 				SetMessage(mockChannel.topic(), mockChannel.partition(), newestOffset, message),
 		})
 
-		require.Panics(t, func() { startThread(chain) }, "Expected the Start() call to panic")
+		assert.Panics(t, func() { startThread(chain) }, "Expected the Start() call to panic")
 	})
 
 	t.Run("enqueueIfNotStarted", func(t *testing.T) {
@@ -273,7 +274,7 @@ func TestChain(t *testing.T) {
 		})
 
 		// We don't need to create a legit envelope here as it's not inspected during this test
-		require.False(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return false")
+		assert.False(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return false")
 	})
 
 	t.Run("StartWithConsumerForChannelError", func(t *testing.T) {
@@ -301,7 +302,7 @@ func TestChain(t *testing.T) {
 				SetMessage(mockChannel.topic(), mockChannel.partition(), newestOffset, message),
 		})
 
-		require.Panics(t, func() { startThread(chain) }, "Expected the Start() call to panic")
+		assert.Panics(t, func() { startThread(chain) }, "Expected the Start() call to panic")
 	})
 
 	t.Run("enqueueProper", func(t *testing.T) {
@@ -332,7 +333,7 @@ func TestChain(t *testing.T) {
 
 		// enqueue should have access to the post path, and its ProduceRequest should go by without error.
 		// We don't need to create a legit envelope here as it's not inspected during this test
-		require.True(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return true")
+		assert.True(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return true")
 
 		chain.Halt()
 	})
@@ -366,7 +367,7 @@ func TestChain(t *testing.T) {
 
 		// haltChan should close access to the post path.
 		// We don't need to create a legit envelope here as it's not inspected during this test
-		require.False(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return false")
+		assert.False(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return false")
 	})
 
 	t.Run("enqueueError", func(t *testing.T) {
@@ -405,7 +406,7 @@ func TestChain(t *testing.T) {
 		})
 
 		// We don't need to create a legit envelope here as it's not inspected during this test
-		require.False(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return false")
+		assert.False(t, chain.enqueue(newRegularMessage([]byte("fooMessage"))), "Expected enqueue call to return false")
 	})
 
 	t.Run("Order", func(t *testing.T) {
@@ -415,7 +416,7 @@ func TestChain(t *testing.T) {
 			chain, _ := newChain(mockConsenter, mockSupport, newestOffset-1, lastOriginalOffsetProcessed, lastResubmittedConfigOffset)
 
 			// We don't need to create a legit envelope here as it's not inspected during this test
-			require.Error(t, chain.Order(&cb.Envelope{}, uint64(0)))
+			assert.Error(t, chain.Order(&cb.Envelope{}, uint64(0)))
 		})
 
 		t.Run("Proper", func(t *testing.T) {
@@ -447,7 +448,7 @@ func TestChain(t *testing.T) {
 			}
 
 			// We don't need to create a legit envelope here as it's not inspected during this test
-			require.NoError(t, chain.Order(&cb.Envelope{}, uint64(0)), "Expect Order successfully")
+			assert.NoError(t, chain.Order(&cb.Envelope{}, uint64(0)), "Expect Order successfully")
 		})
 	})
 
@@ -458,7 +459,7 @@ func TestChain(t *testing.T) {
 			chain, _ := newChain(mockConsenter, mockSupport, newestOffset-1, lastOriginalOffsetProcessed, lastResubmittedConfigOffset)
 
 			// We don't need to create a legit envelope here as it's not inspected during this test
-			require.Error(t, chain.Configure(&cb.Envelope{}, uint64(0)))
+			assert.Error(t, chain.Configure(&cb.Envelope{}, uint64(0)))
 		})
 
 		t.Run("Proper", func(t *testing.T) {
@@ -490,7 +491,7 @@ func TestChain(t *testing.T) {
 			}
 
 			// We don't need to create a legit envelope here as it's not inspected during this test
-			require.NoError(t, chain.Configure(&cb.Envelope{}, uint64(0)), "Expect Configure successfully")
+			assert.NoError(t, chain.Configure(&cb.Envelope{}, uint64(0)), "Expect Configure successfully")
 		})
 	})
 }
@@ -641,9 +642,9 @@ func TestSetupTopicForChannel(t *testing.T) {
 					ReplicationFactor: 2},
 				mockChannel)
 			if test.expectErr {
-				require.Contains(t, err.Error(), test.errorMsg)
+				assert.Contains(t, err.Error(), test.errorMsg)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -669,13 +670,13 @@ func TestSetupProducerForChannel(t *testing.T) {
 		mockBroker.Returns(metadataResponse)
 
 		producer, err := setupProducerForChannel(mockConsenter.retryOptions(), haltChan, []string{mockBroker.Addr()}, mockBrokerConfig, mockChannel)
-		require.NoError(t, err, "Expected the setupProducerForChannel call to return without errors")
-		require.NoError(t, producer.Close(), "Expected to close the producer without errors")
+		assert.NoError(t, err, "Expected the setupProducerForChannel call to return without errors")
+		assert.NoError(t, producer.Close(), "Expected to close the producer without errors")
 	})
 
 	t.Run("WithError", func(t *testing.T) {
 		_, err := setupProducerForChannel(mockConsenter.retryOptions(), haltChan, []string{}, mockBrokerConfig, mockChannel)
-		require.Error(t, err, "Expected the setupProducerForChannel call to return an error")
+		assert.Error(t, err, "Expected the setupProducerForChannel call to return an error")
 	})
 }
 
@@ -695,13 +696,13 @@ func TestGetHealthyClusterReplicaInfo(t *testing.T) {
 		mockBroker.Returns(metadataResponse)
 
 		replicaIDs, err := getHealthyClusterReplicaInfo(mockConsenter.retryOptions(), haltChan, []string{mockBroker.Addr()}, mockBrokerConfig, mockChannel)
-		require.NoError(t, err, "Expected the getHealthyClusterReplicaInfo call to return without errors")
-		require.Equal(t, replicaIDs, ids)
+		assert.NoError(t, err, "Expected the getHealthyClusterReplicaInfo call to return without errors")
+		assert.Equal(t, replicaIDs, ids)
 	})
 
 	t.Run("WithError", func(t *testing.T) {
 		_, err := getHealthyClusterReplicaInfo(mockConsenter.retryOptions(), haltChan, []string{}, mockBrokerConfig, mockChannel)
-		require.Error(t, err, "Expected the getHealthyClusterReplicaInfo call to return an error")
+		assert.Error(t, err, "Expected the getHealthyClusterReplicaInfo call to return an error")
 	})
 }
 
@@ -732,22 +733,22 @@ func TestSetupConsumerForChannel(t *testing.T) {
 
 	t.Run("ProperParent", func(t *testing.T) {
 		parentConsumer, err := setupParentConsumerForChannel(mockConsenter.retryOptions(), haltChan, []string{mockBroker.Addr()}, mockBrokerConfig, mockChannel)
-		require.NoError(t, err, "Expected the setupParentConsumerForChannel call to return without errors")
-		require.NoError(t, parentConsumer.Close(), "Expected to close the parentConsumer without errors")
+		assert.NoError(t, err, "Expected the setupParentConsumerForChannel call to return without errors")
+		assert.NoError(t, parentConsumer.Close(), "Expected to close the parentConsumer without errors")
 	})
 
 	t.Run("ProperChannel", func(t *testing.T) {
 		parentConsumer, _ := setupParentConsumerForChannel(mockConsenter.retryOptions(), haltChan, []string{mockBroker.Addr()}, mockBrokerConfig, mockChannel)
 		defer func() { parentConsumer.Close() }()
 		channelConsumer, err := setupChannelConsumerForChannel(mockConsenter.retryOptions(), haltChan, parentConsumer, mockChannel, newestOffset)
-		require.NoError(t, err, "Expected the setupChannelConsumerForChannel call to return without errors")
-		require.NoError(t, channelConsumer.Close(), "Expected to close the channelConsumer without errors")
+		assert.NoError(t, err, "Expected the setupChannelConsumerForChannel call to return without errors")
+		assert.NoError(t, channelConsumer.Close(), "Expected to close the channelConsumer without errors")
 	})
 
 	t.Run("WithParentConsumerError", func(t *testing.T) {
 		// Provide an empty brokers list
 		_, err := setupParentConsumerForChannel(mockConsenter.retryOptions(), haltChan, []string{}, mockBrokerConfig, mockChannel)
-		require.Error(t, err, "Expected the setupParentConsumerForChannel call to return an error")
+		assert.Error(t, err, "Expected the setupParentConsumerForChannel call to return an error")
 	})
 
 	t.Run("WithChannelConsumerError", func(t *testing.T) {
@@ -755,7 +756,7 @@ func TestSetupConsumerForChannel(t *testing.T) {
 		parentConsumer, _ := setupParentConsumerForChannel(mockConsenter.retryOptions(), haltChan, []string{mockBroker.Addr()}, mockBrokerConfig, mockChannel)
 		_, err := setupChannelConsumerForChannel(mockConsenter.retryOptions(), haltChan, parentConsumer, mockChannel, newestOffset+1)
 		defer func() { parentConsumer.Close() }()
-		require.Error(t, err, "Expected the setupChannelConsumerForChannel call to return an error")
+		assert.Error(t, err, "Expected the setupChannelConsumerForChannel call to return an error")
 	})
 }
 
@@ -804,13 +805,13 @@ func TestCloseKafkaObjects(t *testing.T) {
 
 		errs := bareMinimumChain.closeKafkaObjects()
 
-		require.Len(t, errs, 0, "Expected zero errors")
+		assert.Len(t, errs, 0, "Expected zero errors")
 
-		require.NotPanics(t, func() {
+		assert.NotPanics(t, func() {
 			channelConsumer.Close()
 		})
 
-		require.NotPanics(t, func() {
+		assert.NotPanics(t, func() {
 			parentConsumer.Close()
 		})
 
@@ -832,7 +833,7 @@ func TestCloseKafkaObjects(t *testing.T) {
 		mockParentConsumer := mocks.NewConsumer(t, nil)
 		mockParentConsumer.ExpectConsumePartition(mockChannel.topic(), mockChannel.partition(), startFrom).YieldError(sarama.ErrOutOfBrokers)
 		mockChannelConsumer, err := mockParentConsumer.ConsumePartition(mockChannel.topic(), mockChannel.partition(), startFrom)
-		require.NoError(t, err, "Expected no error when setting up the mock partition consumer")
+		assert.NoError(t, err, "Expected no error when setting up the mock partition consumer")
 
 		bareMinimumChain := &chainImpl{
 			ConsenterSupport: mockSupport,
@@ -843,13 +844,13 @@ func TestCloseKafkaObjects(t *testing.T) {
 
 		errs := bareMinimumChain.closeKafkaObjects()
 
-		require.Len(t, errs, 1, "Expected 1 error returned")
+		assert.Len(t, errs, 1, "Expected 1 error returned")
 
-		require.NotPanics(t, func() {
+		assert.NotPanics(t, func() {
 			mockChannelConsumer.Close()
 		})
 
-		require.NotPanics(t, func() {
+		assert.NotPanics(t, func() {
 			mockParentConsumer.Close()
 		})
 	})
@@ -866,7 +867,7 @@ func TestGetLastCutBlockNumber(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, getLastCutBlockNumber(tc.input))
+			assert.Equal(t, tc.expected, getLastCutBlockNumber(tc.input))
 		})
 	}
 }
@@ -896,11 +897,11 @@ func TestGetLastOffsetPersisted(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if !tc.panics {
 				persisted, processed, resubmitted := getOffsets(tc.md, mockChannel.String())
-				require.Equal(t, tc.expectedPersisted, persisted)
-				require.Equal(t, tc.expectedProcessed, processed)
-				require.Equal(t, tc.expectedResubmitted, resubmitted)
+				assert.Equal(t, tc.expectedPersisted, persisted)
+				assert.Equal(t, tc.expectedProcessed, processed)
+				assert.Equal(t, tc.expectedResubmitted, resubmitted)
 			} else {
-				require.Panics(t, func() {
+				assert.Panics(t, func() {
 					getOffsets(tc.md, mockChannel.String())
 				}, "Expected getOffsets call to panic")
 			}
@@ -929,7 +930,7 @@ func TestSendConnectMessage(t *testing.T) {
 		successResponse.AddTopicPartition(mockChannel.topic(), mockChannel.partition(), sarama.ErrNoError)
 		mockBroker.Returns(successResponse)
 
-		require.NoError(t, sendConnectMessage(mockConsenter.retryOptions(), haltChan, producer, mockChannel), "Expected the sendConnectMessage call to return without errors")
+		assert.NoError(t, sendConnectMessage(mockConsenter.retryOptions(), haltChan, producer, mockChannel), "Expected the sendConnectMessage call to return without errors")
 	})
 
 	t.Run("WithError", func(t *testing.T) {
@@ -943,7 +944,7 @@ func TestSendConnectMessage(t *testing.T) {
 		failureResponse.AddTopicPartition(mockChannel.topic(), mockChannel.partition(), sarama.ErrNotEnoughReplicas)
 		mockBroker.Returns(failureResponse)
 
-		require.Error(t, sendConnectMessage(mockConsenter.retryOptions(), haltChan, producer, mockChannel), "Expected the sendConnectMessage call to return an error")
+		assert.Error(t, sendConnectMessage(mockConsenter.retryOptions(), haltChan, producer, mockChannel), "Expected the sendConnectMessage call to return an error")
 	})
 }
 
@@ -959,7 +960,7 @@ func TestSendTimeToCut(t *testing.T) {
 	mockBroker.Returns(metadataResponse)
 
 	producer, err := sarama.NewSyncProducer([]string{mockBroker.Addr()}, mockBrokerConfig)
-	require.NoError(t, err, "Expected no error when setting up the sarama SyncProducer")
+	assert.NoError(t, err, "Expected no error when setting up the sarama SyncProducer")
 	defer func() { producer.Close() }()
 
 	timeToCutBlockNumber := uint64(3)
@@ -972,8 +973,8 @@ func TestSendTimeToCut(t *testing.T) {
 
 		timer = time.After(longTimeout)
 
-		require.NoError(t, sendTimeToCut(producer, mockChannel, timeToCutBlockNumber, &timer), "Expected the sendTimeToCut call to return without errors")
-		require.Nil(t, timer, "Expected the sendTimeToCut call to nil the timer")
+		assert.NoError(t, sendTimeToCut(producer, mockChannel, timeToCutBlockNumber, &timer), "Expected the sendTimeToCut call to return without errors")
+		assert.Nil(t, timer, "Expected the sendTimeToCut call to nil the timer")
 	})
 
 	t.Run("WithError", func(t *testing.T) {
@@ -987,8 +988,8 @@ func TestSendTimeToCut(t *testing.T) {
 
 		timer = time.After(longTimeout)
 
-		require.Error(t, sendTimeToCut(producer, mockChannel, timeToCutBlockNumber, &timer), "Expected the sendTimeToCut call to return an error")
-		require.Nil(t, timer, "Expected the sendTimeToCut call to nil the timer")
+		assert.Error(t, sendTimeToCut(producer, mockChannel, timeToCutBlockNumber, &timer), "Expected the sendTimeToCut call to return an error")
+		assert.Nil(t, timer, "Expected the sendTimeToCut call to nil the timer")
 	})
 }
 
@@ -1011,7 +1012,7 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 	mockParentConsumer := mocks.NewConsumer(t, &mockBrokerConfigCopy)
 	mpc := mockParentConsumer.ExpectConsumePartition(mockChannel.topic(), mockChannel.partition(), int64(0))
 	mockChannelConsumer, err := mockParentConsumer.ConsumePartition(mockChannel.topic(), mockChannel.partition(), int64(0))
-	require.NoError(t, err, "Expected no error when setting up the mock partition consumer")
+	assert.NoError(t, err, "Expected no error when setting up the mock partition consumer")
 
 	t.Run("TimeToCut", func(t *testing.T) {
 		t.Run("PendingMsgToCutProper", func(t *testing.T) {
@@ -1084,8 +1085,8 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				}()
 			}
 
-			require.NotEmpty(t, mockSupport.BlockCutterVal.CurBatch, "Expected the blockCutter to be non-empty")
-			require.NotNil(t, bareMinimumChain.timer, "Expected the cutTimer to be non-nil when there are pending envelopes")
+			assert.NotEmpty(t, mockSupport.BlockCutterVal.CurBatch, "Expected the blockCutter to be non-empty")
+			assert.NotNil(t, bareMinimumChain.timer, "Expected the cutTimer to be non-nil when there are pending envelopes")
 
 		})
 
@@ -1144,10 +1145,10 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessTimeToCutPass], "Expected 1 TIMETOCUT message processed")
-			require.Equal(t, lastCutBlockNumber+1, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by one")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessTimeToCutPass], "Expected 1 TIMETOCUT message processed")
+			assert.Equal(t, lastCutBlockNumber+1, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by one")
 		})
 
 		t.Run("ReceiveTimeToCutZeroBatch", func(t *testing.T) {
@@ -1194,10 +1195,10 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.Error(t, err, "Expected the processMessagesToBlocks call to return an error")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessTimeToCutError], "Expected 1 faulty TIMETOCUT message processed")
-			require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
+			assert.Error(t, err, "Expected the processMessagesToBlocks call to return an error")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessTimeToCutError], "Expected 1 faulty TIMETOCUT message processed")
+			assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
 		})
 
 		t.Run("ReceiveTimeToCutLargerThanExpected", func(t *testing.T) {
@@ -1244,10 +1245,10 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.Error(t, err, "Expected the processMessagesToBlocks call to return an error")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessTimeToCutError], "Expected 1 faulty TIMETOCUT message processed")
-			require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
+			assert.Error(t, err, "Expected the processMessagesToBlocks call to return an error")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessTimeToCutError], "Expected 1 faulty TIMETOCUT message processed")
+			assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
 		})
 
 		t.Run("ReceiveTimeToCutStale", func(t *testing.T) {
@@ -1294,10 +1295,10 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessTimeToCutPass], "Expected 1 TIMETOCUT message processed")
-			require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessTimeToCutPass], "Expected 1 TIMETOCUT message processed")
+			assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
 		})
 	})
 
@@ -1339,9 +1340,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessConnectPass], "Expected 1 CONNECT message processed")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessConnectPass], "Expected 1 CONNECT message processed")
 		})
 	})
 
@@ -1383,9 +1384,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 damaged REGULAR message processed")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 damaged REGULAR message processed")
 		})
 
 		// This ensures regular kafka messages of type UNKNOWN are handled properly
@@ -1439,9 +1440,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
 			})
 
 			t.Run("CutBlock", func(t *testing.T) {
@@ -1499,15 +1500,15 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
-				require.Equal(t, lastCutBlockNumber+1, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by one")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.Equal(t, lastCutBlockNumber+1, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by one")
 
 				require.Equal(t, fakeLastOffsetPersisted.WithCallCount(), 1)
-				require.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(0), []string{"channel", "mockChannelFoo"})
+				assert.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(0), []string{"channel", "mockChannelFoo"})
 				require.Equal(t, fakeLastOffsetPersisted.SetCallCount(), 1)
-				require.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(0), float64(9))
+				assert.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(0), float64(9))
 			})
 
 			// This test ensures the corner case in FAB-5709 is taken care of
@@ -1588,12 +1589,12 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(3), counts[indexRecvPass], "Expected 2 messages received and unmarshaled")
-				require.Equal(t, uint64(3), counts[indexProcessRegularPass], "Expected 2 REGULAR messages processed")
-				require.Equal(t, lastCutBlockNumber+2, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by two")
-				require.Equal(t, block1LastOffset, extractEncodedOffset(block1.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in first block to be %d", block1LastOffset)
-				require.Equal(t, block2LastOffset, extractEncodedOffset(block2.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", block2LastOffset)
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(3), counts[indexRecvPass], "Expected 2 messages received and unmarshaled")
+				assert.Equal(t, uint64(3), counts[indexProcessRegularPass], "Expected 2 REGULAR messages processed")
+				assert.Equal(t, lastCutBlockNumber+2, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by two")
+				assert.Equal(t, block1LastOffset, extractEncodedOffset(block1.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in first block to be %d", block1LastOffset)
+				assert.Equal(t, block2LastOffset, extractEncodedOffset(block2.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", block2LastOffset)
 			})
 
 			t.Run("InvalidConfigEnv", func(t *testing.T) {
@@ -1644,10 +1645,10 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
-				require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber not to be incremented")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
+				assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber not to be incremented")
 			})
 
 			t.Run("InvalidOrdererTxEnv", func(t *testing.T) {
@@ -1698,10 +1699,10 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
-				require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber not to be incremented")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
+				assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber not to be incremented")
 			})
 
 			t.Run("InvalidNormalEnv", func(t *testing.T) {
@@ -1748,9 +1749,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				close(haltChan) // Identical to chain.Halt()
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message processed")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message processed")
 			})
 
 			t.Run("CutConfigEnv", func(t *testing.T) {
@@ -1806,11 +1807,11 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				close(haltChan) // Identical to chain.Halt()
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
-				require.Equal(t, lastCutBlockNumber+1, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be incremented by 1")
-				require.Equal(t, configBlkOffset, extractEncodedOffset(configBlk.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", configBlkOffset)
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.Equal(t, lastCutBlockNumber+1, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be incremented by 1")
+				assert.Equal(t, configBlkOffset, extractEncodedOffset(configBlk.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", configBlkOffset)
 			})
 
 			// We are not expecting this type of message from Kafka
@@ -1857,9 +1858,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				close(haltChan) // Identical to chain.Halt()
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message processed")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message processed")
 			})
 
 			t.Run("SendTimeToCut", func(t *testing.T) {
@@ -1923,11 +1924,11 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
-				require.Equal(t, uint64(1), counts[indexSendTimeToCutPass], "Expected 1 TIMER event processed")
-				require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.Equal(t, uint64(1), counts[indexSendTimeToCutPass], "Expected 1 TIMER event processed")
+				assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
 			})
 
 			t.Run("SendTimeToCutError", func(t *testing.T) {
@@ -1997,11 +1998,11 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
-				require.Equal(t, uint64(1), counts[indexSendTimeToCutError], "Expected 1 faulty TIMER event processed")
-				require.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.Equal(t, uint64(1), counts[indexSendTimeToCutError], "Expected 1 faulty TIMER event processed")
+				assert.Equal(t, lastCutBlockNumber, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to stay the same")
 			})
 		})
 
@@ -2086,12 +2087,12 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 messages received and unmarshaled")
-				require.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR messages processed")
-				require.Equal(t, lastCutBlockNumber+2, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by two")
-				require.Equal(t, block1LastOffset, extractEncodedOffset(block1.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in first block to be %d", block1LastOffset)
-				require.Equal(t, block2LastOffset, extractEncodedOffset(block2.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", block2LastOffset)
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 messages received and unmarshaled")
+				assert.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR messages processed")
+				assert.Equal(t, lastCutBlockNumber+2, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be bumped up by two")
+				assert.Equal(t, block1LastOffset, extractEncodedOffset(block1.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in first block to be %d", block1LastOffset)
+				assert.Equal(t, block2LastOffset, extractEncodedOffset(block2.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", block2LastOffset)
 			})
 
 			t.Run("ReceiveRegularAndQueue", func(t *testing.T) {
@@ -2147,9 +2148,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				logger.Debug("haltChan closed")
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
 			})
 		})
 
@@ -2226,19 +2227,19 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				close(haltChan) // Identical to chain.Halt()
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(2), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
-				require.Equal(t, lastCutBlockNumber+2, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be incremented by 2")
-				require.Equal(t, normalBlkOffset, extractEncodedOffset(normalBlk.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in first block to be %d", normalBlkOffset)
-				require.Equal(t, configBlkOffset, extractEncodedOffset(configBlk.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", configBlkOffset)
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(2), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+				assert.Equal(t, lastCutBlockNumber+2, bareMinimumChain.lastCutBlockNumber, "Expected lastCutBlockNumber to be incremented by 2")
+				assert.Equal(t, normalBlkOffset, extractEncodedOffset(normalBlk.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in first block to be %d", normalBlkOffset)
+				assert.Equal(t, configBlkOffset, extractEncodedOffset(configBlk.GetMetadata().Metadata[cb.BlockMetadataIndex_ORDERER]), "Expected encoded offset in second block to be %d", configBlkOffset)
 
 				require.Equal(t, fakeLastOffsetPersisted.WithCallCount(), 2)
-				require.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(0), []string{"channel", "mockChannelFoo"})
-				require.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(1), []string{"channel", "mockChannelFoo"})
+				assert.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(0), []string{"channel", "mockChannelFoo"})
+				assert.Equal(t, fakeLastOffsetPersisted.WithArgsForCall(1), []string{"channel", "mockChannelFoo"})
 				require.Equal(t, fakeLastOffsetPersisted.SetCallCount(), 2)
-				require.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(0), float64(normalBlkOffset))
-				require.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(1), float64(configBlkOffset))
+				assert.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(0), float64(normalBlkOffset))
+				assert.Equal(t, fakeLastOffsetPersisted.SetArgsForCall(1), float64(configBlkOffset))
 			})
 
 			// This ensures config message is re-validated if config seq has advanced
@@ -2299,9 +2300,9 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 				close(haltChan) // Identical to chain.Halt()
 				<-done
 
-				require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-				require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-				require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
+				assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+				assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+				assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
 			})
 		})
 	})
@@ -2361,8 +2362,8 @@ func TestProcessMessagesToBlocks(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvError], "Expected 1 Kafka error received")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvError], "Expected 1 Kafka error received")
 
 			select {
 			case <-bareMinimumChain.errorChan:
@@ -2490,7 +2491,7 @@ func TestResubmission(t *testing.T) {
 	mockParentConsumer := mocks.NewConsumer(t, &mockBrokerConfigCopy)
 	mpc := mockParentConsumer.ExpectConsumePartition(mockChannel.topic(), mockChannel.partition(), int64(0))
 	mockChannelConsumer, err := mockParentConsumer.ConsumePartition(mockChannel.topic(), mockChannel.partition(), int64(0))
-	require.NoError(t, err, "Expected no error when setting up the mock partition consumer")
+	assert.NoError(t, err, "Expected no error when setting up the mock partition consumer")
 
 	t.Run("Normal", func(t *testing.T) {
 		// This test lets kafka emit a mock re-submitted message that does not require reprocessing
@@ -2552,9 +2553,9 @@ func TestResubmission(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
 		})
 
 		// This test lets kafka emit a mock re-submitted message that requires reprocessing
@@ -2628,7 +2629,7 @@ func TestResubmission(t *testing.T) {
 				proto.Unmarshal(block.Metadata.Metadata[cb.BlockMetadataIndex_ORDERER], metadata)
 				kafkaMetadata := &ab.KafkaMetadata{}
 				proto.Unmarshal(metadata.Value, kafkaMetadata)
-				require.Equal(t, kafkaMetadata.LastOriginalOffsetProcessed, int64(4))
+				assert.Equal(t, kafkaMetadata.LastOriginalOffsetProcessed, int64(4))
 			case <-time.After(shortTimeout):
 				t.Fatalf("Expected one block being cut")
 			}
@@ -2637,9 +2638,9 @@ func TestResubmission(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-			require.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR message processed")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+			assert.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR message processed")
 		})
 
 		t.Run("InvalidDiscard", func(t *testing.T) {
@@ -2698,9 +2699,9 @@ func TestResubmission(t *testing.T) {
 			close(haltChan) // Identical to chain.Halt()
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
 		})
 
 		// This tests resubmission path with following steps:
@@ -2833,9 +2834,9 @@ func TestResubmission(t *testing.T) {
 			close(haltChan) // Identical to chain.Halt()
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-			require.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR message error")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+			assert.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR message error")
 		})
 	})
 
@@ -2897,9 +2898,9 @@ func TestResubmission(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
 		})
 
 		// This test simulated the non-deterministic case, where somebody resubmitted message at offset X,
@@ -2989,13 +2990,13 @@ func TestResubmission(t *testing.T) {
 			select {
 			case block := <-mockSupport.Blocks:
 				metadata, err := protoutil.GetMetadataFromBlock(block, cb.BlockMetadataIndex_ORDERER)
-				require.NoError(t, err, "Failed to get metadata from block")
+				assert.NoError(t, err, "Failed to get metadata from block")
 				kafkaMetadata := &ab.KafkaMetadata{}
 				err = proto.Unmarshal(metadata.Value, kafkaMetadata)
-				require.NoError(t, err, "Failed to unmarshal metadata")
+				assert.NoError(t, err, "Failed to unmarshal metadata")
 
-				require.Equal(t, kafkaMetadata.LastResubmittedConfigOffset, int64(5), "LastResubmittedConfigOffset didn't catch up")
-				require.Equal(t, kafkaMetadata.LastOriginalOffsetProcessed, int64(5), "LastOriginalOffsetProcessed doesn't match")
+				assert.Equal(t, kafkaMetadata.LastResubmittedConfigOffset, int64(5), "LastResubmittedConfigOffset didn't catch up")
+				assert.Equal(t, kafkaMetadata.LastOriginalOffsetProcessed, int64(5), "LastOriginalOffsetProcessed doesn't match")
 			case <-time.After(shortTimeout):
 				t.Fatalf("Expected one block being cut")
 			}
@@ -3003,9 +3004,9 @@ func TestResubmission(t *testing.T) {
 			close(haltChan) // Identical to chain.Halt()
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 2 REGULAR message error")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 2 REGULAR message error")
 		})
 
 		// This test lets kafka emit a mock re-submitted message whose config seq is still behind
@@ -3082,9 +3083,9 @@ func TestResubmission(t *testing.T) {
 			logger.Debug("haltChan closed")
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularPass], "Expected 1 REGULAR message processed")
 		})
 
 		t.Run("InvalidDiscard", func(t *testing.T) {
@@ -3143,9 +3144,9 @@ func TestResubmission(t *testing.T) {
 			close(haltChan) // Identical to chain.Halt()
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
-			require.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(1), counts[indexRecvPass], "Expected 1 message received and unmarshaled")
+			assert.Equal(t, uint64(1), counts[indexProcessRegularError], "Expected 1 REGULAR message error")
 		})
 
 		// This tests resubmission path with following steps:
@@ -3274,9 +3275,9 @@ func TestResubmission(t *testing.T) {
 			close(haltChan) // Identical to chain.Halt()
 			<-done
 
-			require.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
-			require.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
-			require.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR message error")
+			assert.NoError(t, err, "Expected the processMessagesToBlocks call to return without errors")
+			assert.Equal(t, uint64(2), counts[indexRecvPass], "Expected 2 message received and unmarshaled")
+			assert.Equal(t, uint64(2), counts[indexProcessRegularPass], "Expected 2 REGULAR message error")
 		})
 	})
 }

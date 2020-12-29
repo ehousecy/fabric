@@ -9,9 +9,9 @@ package privacyenabledstate
 import (
 	"testing"
 
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/mock"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/bookkeeping"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +31,7 @@ func TestMetadataHintCorrectness(t *testing.T) {
 	updates.HashUpdates.PutValAndMetadata("ns1_pvt", "key", "coll", []byte("value"), []byte("metadata"), version.NewHeight(1, 1))
 	updates.HashUpdates.PutValAndMetadata("ns2_pvt", "key", "coll", []byte("value"), []byte("metadata"), version.NewHeight(1, 3))
 	updates.HashUpdates.PutValAndMetadata("ns3_pvt", "key", "coll", []byte("value"), nil, version.NewHeight(1, 3))
-	require.NoError(t, metadataHint.setMetadataUsedFlag(updates))
+	metadataHint.setMetadataUsedFlag(updates)
 
 	t.Run("MetadataAddedInCurrentSession", func(t *testing.T) {
 		require.True(t, metadataHint.metadataEverUsedFor("ns1"))
@@ -74,24 +74,18 @@ func TestMetadataHintOptimizationSkippingGoingToDB(t *testing.T) {
 	updates := NewUpdateBatch()
 	updates.PubUpdates.PutValAndMetadata("ns1", "key", []byte("value"), []byte("metadata"), version.NewHeight(1, 1))
 	updates.PubUpdates.PutValAndMetadata("ns2", "key", []byte("value"), nil, version.NewHeight(1, 2))
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updates, version.NewHeight(1, 3)))
+	db.ApplyPrivacyAwareUpdates(updates, version.NewHeight(1, 3))
 
-	_, err = db.GetStateMetadata("ns1", "randomkey")
-	require.NoError(t, err)
+	db.GetStateMetadata("ns1", "randomkey")
 	require.Equal(t, 1, mockVersionedDB.GetStateCallCount())
-	_, err = db.GetPrivateDataMetadataByHash("ns1", "randomColl", []byte("randomKeyhash"))
-	require.NoError(t, err)
+	db.GetPrivateDataMetadataByHash("ns1", "randomColl", []byte("randomKeyhash"))
 	require.Equal(t, 2, mockVersionedDB.GetStateCallCount())
 
-	_, err = db.GetStateMetadata("ns2", "randomkey")
-	require.NoError(t, err)
-	_, err = db.GetPrivateDataMetadataByHash("ns2", "randomColl", []byte("randomKeyhash"))
-	require.NoError(t, err)
+	db.GetStateMetadata("ns2", "randomkey")
+	db.GetPrivateDataMetadataByHash("ns2", "randomColl", []byte("randomKeyhash"))
 	require.Equal(t, 2, mockVersionedDB.GetStateCallCount())
 
-	_, err = db.GetStateMetadata("randomeNs", "randomkey")
-	require.NoError(t, err)
-	_, err = db.GetPrivateDataMetadataByHash("randomeNs", "randomColl", []byte("randomKeyhash"))
-	require.NoError(t, err)
+	db.GetStateMetadata("randomeNs", "randomkey")
+	db.GetPrivateDataMetadataByHash("randomeNs", "randomColl", []byte("randomKeyhash"))
 	require.Equal(t, 2, mockVersionedDB.GetStateCallCount())
 }

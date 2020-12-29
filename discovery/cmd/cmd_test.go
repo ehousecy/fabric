@@ -9,10 +9,10 @@ package discovery_test
 import (
 	"testing"
 
-	discovery "github.com/hyperledger/fabric/discovery/cmd"
-	"github.com/hyperledger/fabric/discovery/cmd/mocks"
+	discovery "github.com/ehousecy/fabric/discovery/cmd"
+	"github.com/ehousecy/fabric/discovery/cmd/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -26,10 +26,10 @@ func TestAddCommands(t *testing.T) {
 	discovery.AddCommands(cli)
 	// Ensure that serve and channel flags are were configured for the sub-commands
 	for _, cmd := range []string{discovery.PeersCommand, discovery.ConfigCommand, discovery.EndorsersCommand} {
-		require.NotNil(t, app.GetCommand(cmd).GetFlag("server"))
-		require.NotNil(t, app.GetCommand(cmd).GetFlag("channel"))
+		assert.NotNil(t, app.GetCommand(cmd).GetFlag("server"))
+		assert.NotNil(t, app.GetCommand(cmd).GetFlag("channel"))
 	}
 	// Ensure that chaincode and collection flags were called for the endorsers
-	require.NotNil(t, app.GetCommand(discovery.EndorsersCommand).GetFlag("chaincode"))
-	require.NotNil(t, app.GetCommand(discovery.EndorsersCommand).GetFlag("collection"))
+	assert.NotNil(t, app.GetCommand(discovery.EndorsersCommand).GetFlag("chaincode"))
+	assert.NotNil(t, app.GetCommand(discovery.EndorsersCommand).GetFlag("collection"))
 }

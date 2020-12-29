@@ -1,4 +1,4 @@
-module github.com/hyperledger/fabric/core/chaincode/platforms/golang/testdata/src/chaincodes/noop
+module github.com/ehousecy/fabric/core/chaincode/platforms/golang/testdata/src/chaincodes/noop
 
 go 1.13
 

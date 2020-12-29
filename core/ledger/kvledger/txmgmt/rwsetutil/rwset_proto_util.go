@@ -20,8 +20,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/util"
 )
 
 /////////////////////////////////////////////////////////////////
@@ -128,7 +128,7 @@ func (txRwSet *TxRwSet) FromProtoBytes(protoBytes []byte) error {
 func (txPvtRwSet *TxPvtRwSet) ToProtoBytes() ([]byte, error) {
 	var protoMsg *rwset.TxPvtReadWriteSet
 	var err error
-	if protoMsg, err = txPvtRwSet.ToProtoMsg(); err != nil {
+	if protoMsg, err = txPvtRwSet.toProtoMsg(); err != nil {
 		return nil, err
 	}
 	return proto.Marshal(protoMsg)
@@ -162,7 +162,6 @@ func (txRwSet *TxRwSet) toProtoMsg() (*rwset.TxReadWriteSet, error) {
 	return protoMsg, nil
 }
 
-// TxRwSetFromProtoMsg transforms the proto message into a struct for ease of use
 func TxRwSetFromProtoMsg(protoMsg *rwset.TxReadWriteSet) (*TxRwSet, error) {
 	txRwSet := &TxRwSet{}
 	var nsRwSet *NsRwSet
@@ -233,7 +232,6 @@ func collHashedRwSetFromProtoMsg(protoMsg *rwset.CollectionHashedReadWriteSet) (
 	return colHashedRwSet, nil
 }
 
-// NumCollections returns the number of collections present in the TxRwSet
 func (txRwSet *TxRwSet) NumCollections() int {
 	if txRwSet == nil {
 		return 0
@@ -251,8 +249,7 @@ func (txRwSet *TxRwSet) NumCollections() int {
 // functions for private read-write set
 ///////////////////////////////////////////////////////////////////////////////
 
-// ToToProtoMsg transforms the struct into equivalent proto message
-func (txPvtRwSet *TxPvtRwSet) ToProtoMsg() (*rwset.TxPvtReadWriteSet, error) {
+func (txPvtRwSet *TxPvtRwSet) toProtoMsg() (*rwset.TxPvtReadWriteSet, error) {
 	protoMsg := &rwset.TxPvtReadWriteSet{DataModel: rwset.TxReadWriteSet_KV}
 	var nsProtoMsg *rwset.NsPvtReadWriteSet
 	var err error
@@ -265,7 +262,6 @@ func (txPvtRwSet *TxPvtRwSet) ToProtoMsg() (*rwset.TxPvtReadWriteSet, error) {
 	return protoMsg, nil
 }
 
-// TxPvtRwSetFromProtoMsg transforms the proto message into a struct for ease of use
 func TxPvtRwSetFromProtoMsg(protoMsg *rwset.TxPvtReadWriteSet) (*TxPvtRwSet, error) {
 	txPvtRwset := &TxPvtRwSet{}
 	var nsPvtRwSet *NsPvtRwSet

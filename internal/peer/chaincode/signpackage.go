@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/core/common/ccpackage"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/core/common/ccpackage"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/spf13/cobra"
 )
 

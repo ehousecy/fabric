@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/common/flogging/fabenc"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/flogging/fabenc"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
@@ -40,7 +40,7 @@ func TestEncodeEntry(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			formatters, err := fabenc.ParseFormat(tc.spec)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			enc := fabenc.NewFormatEncoder(formatters...)
 
@@ -57,8 +57,8 @@ func TestEncodeEntry(t *testing.T) {
 				},
 				tc.fields,
 			)
-			require.NoError(t, err)
-			require.Equal(t, tc.expected, line.String())
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expected, line.String())
 		})
 	}
 }
@@ -74,11 +74,11 @@ func TestEncodeFieldsFailed(t *testing.T) {
 	enc.Encoder = &brokenEncoder{}
 
 	_, err := enc.EncodeEntry(zapcore.Entry{}, nil)
-	require.EqualError(t, err, "broken encoder")
+	assert.EqualError(t, err, "broken encoder")
 }
 
 func TestFormatEncoderClone(t *testing.T) {
 	enc := fabenc.NewFormatEncoder()
 	cloned := enc.Clone()
-	require.Equal(t, enc, cloned)
+	assert.Equal(t, enc, cloned)
 }

@@ -21,41 +21,41 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewLocalMSPPrincipalGetter(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
-	require.NotNil(t, NewLocalMSPPrincipalGetter(cryptoProvider))
+	assert.NoError(t, err)
+	assert.NotNil(t, NewLocalMSPPrincipalGetter(cryptoProvider))
 }
 
 func TestLocalMSPPrincipalGetter_Get(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	m := NewDeserializersManager(cryptoProvider)
 	g := NewLocalMSPPrincipalGetter(cryptoProvider)
 
 	_, err = g.Get("")
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	p, err := g.Get(Admins)
-	require.NoError(t, err)
-	require.NotNil(t, p)
-	require.Equal(t, msp.MSPPrincipal_ROLE, p.PrincipalClassification)
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+	assert.Equal(t, msp.MSPPrincipal_ROLE, p.PrincipalClassification)
 	role := &msp.MSPRole{}
 	proto.Unmarshal(p.Principal, role)
-	require.Equal(t, m.GetLocalMSPIdentifier(), role.MspIdentifier)
-	require.Equal(t, msp.MSPRole_ADMIN, role.Role)
+	assert.Equal(t, m.GetLocalMSPIdentifier(), role.MspIdentifier)
+	assert.Equal(t, msp.MSPRole_ADMIN, role.Role)
 
 	p, err = g.Get(Members)
-	require.NoError(t, err)
-	require.NotNil(t, p)
-	require.Equal(t, msp.MSPPrincipal_ROLE, p.PrincipalClassification)
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+	assert.Equal(t, msp.MSPPrincipal_ROLE, p.PrincipalClassification)
 	role = &msp.MSPRole{}
 	proto.Unmarshal(p.Principal, role)
-	require.Equal(t, m.GetLocalMSPIdentifier(), role.MspIdentifier)
-	require.Equal(t, msp.MSPRole_MEMBER, role.Role)
+	assert.Equal(t, m.GetLocalMSPIdentifier(), role.MspIdentifier)
+	assert.Equal(t, msp.MSPRole_MEMBER, role.Role)
 }

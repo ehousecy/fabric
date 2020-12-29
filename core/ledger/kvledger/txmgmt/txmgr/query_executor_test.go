@@ -12,13 +12,13 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	btltestutil "github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/ehousecy/fabric/core/ledger/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,7 +58,7 @@ func TestPvtdataResultsItr(t *testing.T) {
 	putPvtUpdates(t, updates, "ns2", "coll1", "key5", []byte("pvt_value5"), version.NewHeight(1, 5))
 	putPvtUpdates(t, updates, "ns2", "coll1", "key6", []byte("pvt_value6"), version.NewHeight(1, 6))
 	putPvtUpdates(t, updates, "ns3", "coll1", "key7", []byte("pvt_value7"), version.NewHeight(1, 7))
-	require.NoError(t, txMgr.db.ApplyPrivacyAwareUpdates(updates, version.NewHeight(2, 7)))
+	txMgr.db.ApplyPrivacyAwareUpdates(updates, version.NewHeight(2, 7))
 	qe := newQueryExecutor(txMgr, "", nil, true, testHashFunc)
 
 	resItr, err := qe.GetPrivateDataRangeScanIterator("ns1", "coll1", "key1", "key3")
@@ -108,8 +108,8 @@ func testPrivateDataMetadataRetrievalByHash(t *testing.T, env testEnv) {
 	// Simulate and commit tx1 - set val and metadata for key1
 	key1, value1, metadata1 := "key1", []byte("value1"), map[string][]byte{"entry1": []byte("meatadata1-entry1")}
 	s1, _ := txMgr.NewTxSimulator("test_tx1")
-	require.NoError(t, s1.SetPrivateData("ns", "coll", key1, value1))
-	require.NoError(t, s1.SetPrivateDataMetadata("ns", "coll", key1, metadata1))
+	s1.SetPrivateData("ns", "coll", key1, value1)
+	s1.SetPrivateDataMetadata("ns", "coll", key1, metadata1)
 	s1.Done()
 	blkAndPvtdata1 := prepareNextBlockForTestFromSimulator(t, bg, s1)
 	_, _, err := txMgr.ValidateAndPrepare(blkAndPvtdata1, true)

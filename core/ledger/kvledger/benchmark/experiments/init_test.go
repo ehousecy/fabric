@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/flogging"
 )
 
 const chaincodeName = "testChaincode"

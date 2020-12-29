@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/tools/idemixgen/metadata"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/tools/idemixgen/metadata"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetVersionInfo(t *testing.T) {
@@ -22,5 +22,5 @@ func TestGetVersionInfo(t *testing.T) {
 	expected := fmt.Sprintf("%s:\n Version: %s\n Commit SHA: %s\n Go version: %s\n OS/Arch: %s",
 		metadata.ProgramName, metadata.Version, testSHA, runtime.Version(),
 		fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
-	require.Equal(t, expected, metadata.GetVersionInfo())
+	assert.Equal(t, expected, metadata.GetVersionInfo())
 }

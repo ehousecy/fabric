@@ -13,13 +13,12 @@ import (
 	"sync"
 
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/chaincode/implicitcollection"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/core/container/externalbuilder"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/core/container/externalbuilder"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/protoutil"
 
 	"github.com/pkg/errors"
 )
@@ -286,12 +285,13 @@ func (c *Cache) HandleStateUpdates(trigger *ledger.StateUpdateTrigger) error {
 	// if the channel cache does not yet exist, there are no interesting hashes, so skip
 	if ok {
 		for collection, privateUpdates := range updates.CollHashUpdates {
-			isImplicitCollection, mspID := implicitcollection.MspIDIfImplicitCollection(collection)
-			if !isImplicitCollection {
+			matches := ImplicitCollectionMatcher.FindStringSubmatch(collection)
+			if len(matches) != 2 {
+				// This is not an implicit collection
 				continue
 			}
 
-			if mspID != c.MyOrgMSPID {
+			if matches[1] != c.MyOrgMSPID {
 				// This is not our implicit collection
 				continue
 			}
@@ -440,7 +440,7 @@ func (c *Cache) update(initializing bool, channelID string, dirtyChaincodes map[
 
 	orgState := &PrivateQueryExecutorShim{
 		Namespace:  LifecycleNamespace,
-		Collection: implicitcollection.NameForOrg(c.MyOrgMSPID),
+		Collection: ImplicitCollectionNameForOrg(c.MyOrgMSPID),
 		State:      qe,
 	}
 
@@ -588,26 +588,8 @@ func (c *Cache) update(initializing bool, channelID string, dirtyChaincodes map[
 }
 
 // RegisterListener registers an event listener for receiving an event when a chaincode becomes invokable
-func (c *Cache) RegisterListener(
-	channelID string,
-	listener ledger.ChaincodeLifecycleEventListener,
-	needsExistingChaincodesDefinitions bool,
-) error {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	channelChaincodes, ok := c.definedChaincodes[channelID]
-	if !ok {
-		return errors.Errorf("unknown channel '%s'", channelID)
-	}
-
-	if needsExistingChaincodesDefinitions {
-		c.eventBroker.RegisterListener(channelID, listener, channelChaincodes.Chaincodes)
-	} else {
-		c.eventBroker.RegisterListener(channelID, listener, nil)
-	}
-
-	return nil
+func (c *Cache) RegisterListener(channelID string, listener ledger.ChaincodeLifecycleEventListener) {
+	c.eventBroker.RegisterListener(channelID, listener)
 }
 
 func (c *Cache) InitializeMetadata(channel string) {

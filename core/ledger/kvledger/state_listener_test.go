@@ -11,11 +11,11 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,29 +44,27 @@ func TestStateListener(t *testing.T) {
 	}
 
 	bg, gb := testutil.NewBlockGenerator(t, channelid, false)
-	lgr, err := provider.CreateFromGenesisBlock(gb)
+	lgr, err := provider.Create(gb)
 	require.NoError(t, err)
 	// Simulate tx1
 	sim1, err := lgr.NewTxSimulator("test_tx_1")
 	require.NoError(t, err)
-	_, err = sim1.GetState(namespace, "key1")
-	require.NoError(t, err)
-	require.NoError(t, sim1.SetState(namespace, "key1", []byte("value1")))
-	require.NoError(t, sim1.SetState(namespace, "key2", []byte("value2")))
+	sim1.GetState(namespace, "key1")
+	sim1.SetState(namespace, "key1", []byte("value1"))
+	sim1.SetState(namespace, "key2", []byte("value2"))
 	sim1.Done()
 
 	// Simulate tx2 - this has a conflict with tx1 because it reads "key1"
 	sim2, err := lgr.NewTxSimulator("test_tx_2")
 	require.NoError(t, err)
-	_, err = sim2.GetState(namespace, "key1")
-	require.NoError(t, err)
-	require.NoError(t, sim2.SetState(namespace, "key3", []byte("value3")))
+	sim2.GetState(namespace, "key1")
+	sim2.SetState(namespace, "key3", []byte("value3"))
 	sim2.Done()
 
 	// Simulate tx3 - this neighter conflicts with tx1 nor with tx2
 	sim3, err := lgr.NewTxSimulator("test_tx_3")
 	require.NoError(t, err)
-	require.NoError(t, sim3.SetState(namespace, "key4", []byte("value4")))
+	sim3.SetState(namespace, "key4", []byte("value4"))
 	sim3.Done()
 
 	// commit tx1 and this should cause mock listener to receive the state changes made by tx1

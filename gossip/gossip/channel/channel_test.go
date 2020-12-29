@@ -19,20 +19,19 @@ import (
 	gproto "github.com/golang/protobuf/proto"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	proto "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/comm"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/metrics/mocks"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/comm"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/metrics/mocks"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -307,8 +306,8 @@ func TestBadInput(t *testing.T) {
 	adapter.On("DeMultiplex", mock.Anything)
 	gc := NewGossipChannel(pkiIDInOrg1, orgInChannelA, cs, channelA, adapter, &joinChanMsg{},
 		disabledMetrics, nil).(*gossipChannel)
-	require.False(t, gc.verifyMsg(nil))
-	require.False(t, gc.verifyMsg(&receivedMsg{msg: nil, PKIID: nil}))
+	assert.False(t, gc.verifyMsg(nil))
+	assert.False(t, gc.verifyMsg(&receivedMsg{msg: nil, PKIID: nil}))
 }
 
 func TestSelf(t *testing.T) {
@@ -327,9 +326,9 @@ func TestSelf(t *testing.T) {
 	gMsg := gc.Self().GossipMessage
 	env := gc.Self().Envelope
 	sMsg, _ := protoext.EnvelopeToGossipMessage(env)
-	require.True(t, gproto.Equal(gMsg, sMsg.GossipMessage))
-	require.Equal(t, gMsg.GetStateInfo().Properties.LedgerHeight, uint64(1))
-	require.Equal(t, gMsg.GetStateInfo().PkiId, []byte("1"))
+	assert.True(t, gproto.Equal(gMsg, sMsg.GossipMessage))
+	assert.Equal(t, gMsg.GetStateInfo().Properties.LedgerHeight, uint64(1))
+	assert.Equal(t, gMsg.GetStateInfo().PkiId, []byte("1"))
 }
 
 func TestMsgStoreNotExpire(t *testing.T) {
@@ -394,7 +393,7 @@ func TestMsgStoreNotExpire(t *testing.T) {
 		case msg := <-sentMessages:
 			for _, el := range msg.GetStateSnapshot().Elements {
 				sMsg, err := protoext.EnvelopeToGossipMessage(el)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				outChan <- sMsg
 			}
 		}
@@ -402,11 +401,11 @@ func TestMsgStoreNotExpire(t *testing.T) {
 
 	c := make(chan *protoext.SignedGossipMessage, 3)
 	simulateStateInfoRequest(pkiID2, c)
-	require.Len(t, c, 3)
+	assert.Len(t, c, 3)
 
 	c = make(chan *protoext.SignedGossipMessage, 3)
 	simulateStateInfoRequest(pkiID3, c)
-	require.Len(t, c, 3)
+	assert.Len(t, c, 3)
 
 	// Now simulate an expiration of peer 3 in the membership view
 	adapter.On("Lookup", pkiID1).Return(&peer1)
@@ -418,11 +417,11 @@ func TestMsgStoreNotExpire(t *testing.T) {
 
 	c = make(chan *protoext.SignedGossipMessage, 3)
 	simulateStateInfoRequest(pkiID2, c)
-	require.Len(t, c, 2)
+	assert.Len(t, c, 2)
 
 	c = make(chan *protoext.SignedGossipMessage, 3)
 	simulateStateInfoRequest(pkiID3, c)
-	require.Len(t, c, 2)
+	assert.Len(t, c, 2)
 }
 
 func TestLeaveChannel(t *testing.T) {
@@ -458,21 +457,21 @@ func TestLeaveChannel(t *testing.T) {
 		msg := arguments.Get(0).(*protoext.SignedGossipMessage)
 		if protoext.IsPullMsg(msg.GossipMessage) {
 			helloPullWG.Done()
-			require.False(t, gc.(*gossipChannel).hasLeftChannel())
+			assert.False(t, gc.(*gossipChannel).hasLeftChannel())
 		}
 	})
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: createStateInfoMsg(1, pkiIDInOrg1, channelA)})
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDinOrg2, msg: createStateInfoMsg(1, pkiIDinOrg2, channelA)})
 	// Have some peer send a block to us, so we can send some peer a digest when hello is sent to us
 	gc.HandleMessage(&receivedMsg{msg: createDataMsg(2, channelA), PKIID: pkiIDInOrg1})
-	require.Len(t, gc.GetPeers(), 2)
+	assert.Len(t, gc.GetPeers(), 2)
 	// Now, have peer in org2 "leave the channel" by publishing is an update
 	stateInfoMsg := &receivedMsg{PKIID: pkiIDinOrg2, msg: createStateInfoMsg(0, pkiIDinOrg2, channelA)}
 	stateInfoMsg.GetGossipMessage().GetStateInfo().Properties.LeftChannel = true
 	gc.HandleMessage(stateInfoMsg)
-	require.Len(t, gc.GetPeers(), 1)
+	assert.Len(t, gc.GetPeers(), 1)
 	// Ensure peer in org1 remained and peer in org2 is skipped
-	require.Equal(t, pkiIDInOrg1, gc.GetPeers()[0].PKIid)
+	assert.Equal(t, pkiIDInOrg1, gc.GetPeers()[0].PKIid)
 	var digestSendTime int32
 	var DigestSentWg sync.WaitGroup
 	DigestSentWg.Add(1)
@@ -480,7 +479,7 @@ func TestLeaveChannel(t *testing.T) {
 	hello.On("Respond", mock.Anything).Run(func(arguments mock.Arguments) {
 		atomic.AddInt32(&digestSendTime, 1)
 		// Ensure we only respond with digest before we leave the channel
-		require.Equal(t, int32(1), atomic.LoadInt32(&digestSendTime))
+		assert.Equal(t, int32(1), atomic.LoadInt32(&digestSendTime))
 		DigestSentWg.Done()
 	})
 	// Wait until we send a hello pull message
@@ -492,7 +491,7 @@ func TestLeaveChannel(t *testing.T) {
 	// Send another hello. Shouldn't respond
 	go gc.HandleMessage(hello)
 	// Ensure it doesn't know now any other peer
-	require.Len(t, gc.GetPeers(), 0)
+	assert.Len(t, gc.GetPeers(), 0)
 	// Sleep 3 times the pull interval.
 	// we're not supposed to send a pull during this time.
 	time.Sleep(conf.PullInterval * 3)
@@ -538,7 +537,7 @@ func TestChannelPeriodicalPublishStateInfo(t *testing.T) {
 		msg = m
 	}
 
-	require.Equal(t, ledgerHeight, int(msg.GetStateInfo().Properties.LedgerHeight))
+	assert.Equal(t, ledgerHeight, int(msg.GetStateInfo().Properties.LedgerHeight))
 }
 
 func TestChannelMsgStoreEviction(t *testing.T) {
@@ -625,16 +624,16 @@ func TestChannelMsgStoreEviction(t *testing.T) {
 		t.Fatal("Didn't reply with a digest on time")
 	}
 	// Only 1 digest sent
-	require.Len(t, msgSentFromPullMediator, 1)
+	assert.Len(t, msgSentFromPullMediator, 1)
 	msg := <-msgSentFromPullMediator
 	// It's a digest and not anything else, like an update
-	require.True(t, protoext.IsDigestMsg(msg))
-	require.Len(t, msg.GetDataDig().Digests, adapter.GetConf().MaxBlockCountToStore+1)
+	assert.True(t, protoext.IsDigestMsg(msg))
+	assert.Len(t, msg.GetDataDig().Digests, adapter.GetConf().MaxBlockCountToStore+1)
 	// Check that the last sequences are kept.
 	// Since we checked the length, it proves that the old blocks were discarded, since we had much more
 	// total blocks overall than our capacity
 	for seq := range lastPullPhase {
-		require.Contains(t, msg.GetDataDig().Digests, []byte(fmt.Sprintf("%d", seq)))
+		assert.Contains(t, msg.GetDataDig().Digests, []byte(fmt.Sprintf("%d", seq)))
 	}
 }
 
@@ -652,7 +651,7 @@ func TestChannelPull(t *testing.T) {
 			return
 		}
 		// The peer is supposed to de-multiplex 2 ledger blocks
-		require.True(t, protoext.IsDataMsg(msg.GossipMessage))
+		assert.True(t, protoext.IsDataMsg(msg.GossipMessage))
 		receivedBlocksChan <- msg
 	})
 	gc := NewGossipChannel(pkiIDInOrg1, orgInChannelA, cs, channelA, adapter, &joinChanMsg{}, disabledMetrics, nil)
@@ -669,7 +668,7 @@ func TestChannelPull(t *testing.T) {
 		case <-time.After(time.Second * 5):
 			t.Fatal("Haven't received blocks on time")
 		case msg := <-receivedBlocksChan:
-			require.Equal(t, uint64(expectedSeq), msg.GetDataMsg().Payload.SeqNum)
+			assert.Equal(t, uint64(expectedSeq), msg.GetDataMsg().Payload.SeqNum)
 		}
 	}
 }
@@ -716,9 +715,9 @@ func TestChannelPullAccessControl(t *testing.T) {
 		}
 		atomic.StoreInt32(&sentHello, int32(1))
 		peerID := string(arg.Get(1).([]*comm.RemotePeer)[0].PKIID)
-		require.Equal(t, "1", peerID)
-		require.NotEqual(t, "2", peerID, "Sent hello to peer 2 but it's in a different org")
-		require.NotEqual(t, "3", peerID, "Sent hello to peer 3 but it's in a different org")
+		assert.Equal(t, "1", peerID)
+		assert.NotEqual(t, "2", peerID, "Sent hello to peer 2 but it's in a different org")
+		assert.NotEqual(t, "3", peerID, "Sent hello to peer 3 but it's in a different org")
 	})
 
 	jcm := &joinChanMsg{
@@ -747,7 +746,7 @@ func TestChannelPullAccessControl(t *testing.T) {
 	select {
 	case <-respondedChan:
 	case <-time.After(time.Second):
-		require.Fail(t, "Didn't reply to a hello within a timely manner")
+		assert.Fail(t, "Didn't reply to a hello within a timely manner")
 	}
 
 	helloMsg = createHelloMsg(pkiID2)
@@ -755,14 +754,14 @@ func TestChannelPullAccessControl(t *testing.T) {
 	go gc.HandleMessage(helloMsg)
 	select {
 	case <-respondedChan:
-		require.Fail(t, "Shouldn't have replied to a hello, because the peer is from a foreign org")
+		assert.Fail(t, "Shouldn't have replied to a hello, because the peer is from a foreign org")
 	case <-time.After(time.Second):
 	}
 
 	// Sleep a bit to let the gossip channel send out its hello messages
 	time.Sleep(time.Second * 3)
 	// Make sure we sent at least 1 hello message, otherwise the test passed vacuously
-	require.Equal(t, int32(1), atomic.LoadInt32(&sentHello))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&sentHello))
 }
 
 func TestChannelPeerNotInChannel(t *testing.T) {
@@ -780,14 +779,14 @@ func TestChannelPeerNotInChannel(t *testing.T) {
 	// First thing, we test that blocks can only be received from peers that are in an org that's in the channel
 	// Empty PKI-ID, should drop the block
 	gc.HandleMessage(&receivedMsg{msg: dataMsgOfChannel(5, channelA)})
-	require.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
 
 	// Known PKI-ID but not in channel, should drop the block
 	gc.HandleMessage(&receivedMsg{msg: dataMsgOfChannel(5, channelA), PKIID: pkiIDinOrg2})
-	require.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
 	// Known PKI-ID, and in channel, should add the block
 	gc.HandleMessage(&receivedMsg{msg: dataMsgOfChannel(5, channelA), PKIID: pkiIDInOrg1})
-	require.Equal(t, 1, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 1, gc.(*gossipChannel).blockMsgStore.Size())
 
 	// Next, we make sure that the channel doesn't respond to pull messages (hello or requests) from peers that're not in the channel
 	messageRelayer := func(arg mock.Arguments) {
@@ -887,11 +886,11 @@ func TestChannelIsInChannel(t *testing.T) {
 	adapter.On("Send", mock.Anything, mock.Anything)
 	adapter.On("DeMultiplex", mock.Anything)
 
-	require.False(t, gc.IsOrgInChannel(nil))
-	require.True(t, gc.IsOrgInChannel(orgInChannelA))
-	require.False(t, gc.IsOrgInChannel(orgNotInChannelA))
-	require.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.False(t, gc.IsOrgInChannel(nil))
+	assert.True(t, gc.IsOrgInChannel(orgInChannelA))
+	assert.False(t, gc.IsOrgInChannel(orgNotInChannelA))
+	assert.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
 }
 
 func TestChannelIsSubscribed(t *testing.T) {
@@ -905,7 +904,7 @@ func TestChannelIsSubscribed(t *testing.T) {
 	adapter.On("Send", mock.Anything, mock.Anything)
 	adapter.On("DeMultiplex", mock.Anything)
 	gc.HandleMessage(&receivedMsg{msg: createStateInfoMsg(10, pkiIDInOrg1, channelA), PKIID: pkiIDInOrg1})
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
 }
 
 func TestChannelAddToMessageStore(t *testing.T) {
@@ -956,7 +955,7 @@ func TestChannelAddToMessageStore(t *testing.T) {
 	}
 
 	gc.HandleMessage(&receivedMsg{msg: createStateInfoMsg(10, pkiIDInOrg1, channelA), PKIID: pkiIDInOrg1})
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
 }
 
 func TestChannelBlockExpiration(t *testing.T) {
@@ -997,7 +996,7 @@ func TestChannelBlockExpiration(t *testing.T) {
 		t.Fatal("Haven't responded to hello message within a time period")
 	case msg := <-respondedChan:
 		if protoext.IsDigestMsg(msg) {
-			require.Equal(t, 1, len(msg.GetDataDig().Digests), "Number of digests returned by channel blockPuller incorrect")
+			assert.Equal(t, 1, len(msg.GetDataDig().Digests), "Number of digests returned by channel blockPuller incorrect")
 		} else {
 			t.Fatal("Not correct pull msg type in response - expect digest")
 		}
@@ -1041,7 +1040,7 @@ func TestChannelBlockExpiration(t *testing.T) {
 		t.Fatal("Haven't responded to hello message within a time period")
 	case msg := <-respondedChan:
 		if protoext.IsDigestMsg(msg) {
-			require.Equal(t, 1, len(msg.GetDataDig().Digests), "Number of digests returned by channel blockPuller incorrect")
+			assert.Equal(t, 1, len(msg.GetDataDig().Digests), "Number of digests returned by channel blockPuller incorrect")
 		} else {
 			t.Fatal("Not correct pull msg type in response - expect digest")
 		}
@@ -1066,24 +1065,24 @@ func TestChannelBadBlocks(t *testing.T) {
 
 	// Send a valid block
 	gc.HandleMessage(&receivedMsg{msg: createDataMsg(1, channelA), PKIID: pkiIDInOrg1})
-	require.Len(t, receivedMessages, 1)
+	assert.Len(t, receivedMessages, 1)
 	<-receivedMessages // drain
 
 	// Send a block with wrong channel
 	gc.HandleMessage(&receivedMsg{msg: createDataMsg(2, common.ChannelID("B")), PKIID: pkiIDInOrg1})
-	require.Len(t, receivedMessages, 0)
+	assert.Len(t, receivedMessages, 0)
 
 	// Send a block with empty payload
 	dataMsg := createDataMsg(3, channelA)
 	dataMsg.GetDataMsg().Payload = nil
 	gc.HandleMessage(&receivedMsg{msg: dataMsg, PKIID: pkiIDInOrg1})
-	require.Len(t, receivedMessages, 0)
+	assert.Len(t, receivedMessages, 0)
 
 	// Send a block with a bad signature
 	cs.Mock = mock.Mock{}
 	cs.On("VerifyBlock", mock.Anything).Return(errors.New("Bad signature"))
 	gc.HandleMessage(&receivedMsg{msg: createDataMsg(4, channelA), PKIID: pkiIDInOrg1})
-	require.Len(t, receivedMessages, 0)
+	assert.Len(t, receivedMessages, 0)
 }
 
 func TestNoGossipOrSigningWhenEmptyMembership(t *testing.T) {
@@ -1170,7 +1169,7 @@ func TestChannelPulledBadBlocks(t *testing.T) {
 	adapter.On("DeMultiplex", mock.Anything)
 	wg.Wait()
 	gc.Stop()
-	require.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
 
 	// Test a pull with a badly signed block
 	cs = &cryptoService{}
@@ -1191,7 +1190,7 @@ func TestChannelPulledBadBlocks(t *testing.T) {
 	pullPhase2 := simulatePullPhase(gc, t, &wg2, noop, 10, 11)
 	adapter.On("Send", mock.Anything, mock.Anything).Run(pullPhase2)
 	wg2.Wait()
-	require.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
 
 	// Test a pull with an empty block
 	cs = &cryptoService{}
@@ -1215,7 +1214,7 @@ func TestChannelPulledBadBlocks(t *testing.T) {
 	pullPhase3 := simulatePullPhase(gc, t, &wg3, emptyBlock, 10, 11)
 	adapter.On("Send", mock.Anything, mock.Anything).Run(pullPhase3)
 	wg3.Wait()
-	require.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
 
 	// Test a pull with a non-block message
 	cs = &cryptoService{}
@@ -1240,7 +1239,7 @@ func TestChannelPulledBadBlocks(t *testing.T) {
 	pullPhase4 := simulatePullPhase(gc, t, &wg4, nonBlockMsg, 10, 11)
 	adapter.On("Send", mock.Anything, mock.Anything).Run(pullPhase4)
 	wg4.Wait()
-	require.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
+	assert.Equal(t, 0, gc.(*gossipChannel).blockMsgStore.Size())
 }
 
 func TestChannelStateInfoSnapshot(t *testing.T) {
@@ -1258,25 +1257,25 @@ func TestChannelStateInfoSnapshot(t *testing.T) {
 
 	// Ensure we ignore stateInfo snapshots from peers not in the channel
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: stateInfoSnapshotForChannel(common.ChannelID("B"), createStateInfoMsg(4, pkiIDInOrg1, channelA))})
-	require.Empty(t, gc.GetPeers())
+	assert.Empty(t, gc.GetPeers())
 	// Ensure we ignore invalid stateInfo snapshots
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: stateInfoSnapshotForChannel(channelA, createStateInfoMsg(4, pkiIDInOrg1, common.ChannelID("B")))})
-	require.Empty(t, gc.GetPeers())
+	assert.Empty(t, gc.GetPeers())
 
 	// Ensure we ignore stateInfo messages from peers not in the channel
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: stateInfoSnapshotForChannel(channelA, createStateInfoMsg(4, pkiIDinOrg2, channelA))})
-	require.Empty(t, gc.GetPeers())
+	assert.Empty(t, gc.GetPeers())
 
 	// Ensure we ignore stateInfo snapshots from peers not in the org
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDinOrg2, msg: stateInfoSnapshotForChannel(channelA, createStateInfoMsg(4, pkiIDInOrg1, channelA))})
-	require.Empty(t, gc.GetPeers())
+	assert.Empty(t, gc.GetPeers())
 
 	// Ensure we ignore stateInfo snapshots with StateInfo messages with wrong MACs
 	sim := createStateInfoMsg(4, pkiIDInOrg1, channelA)
 	sim.GetStateInfo().Channel_MAC = append(sim.GetStateInfo().Channel_MAC, 1)
 	sim, _ = protoext.NoopSign(sim.GossipMessage)
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: stateInfoSnapshotForChannel(channelA, sim)})
-	require.Empty(t, gc.GetPeers())
+	assert.Empty(t, gc.GetPeers())
 
 	// Ensure we ignore stateInfo snapshots with correct StateInfo messages, BUT with wrong MACs
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: stateInfoSnapshotForChannel(channelA, createStateInfoMsg(4, pkiIDInOrg1, channelA))})
@@ -1284,8 +1283,8 @@ func TestChannelStateInfoSnapshot(t *testing.T) {
 	// Ensure we process stateInfo snapshots that are OK
 	stateInfoMsg := &receivedMsg{PKIID: pkiIDInOrg1, msg: stateInfoSnapshotForChannel(channelA, createStateInfoMsg(4, pkiIDInOrg1, channelA))}
 	gc.HandleMessage(stateInfoMsg)
-	require.NotEmpty(t, gc.GetPeers())
-	require.Equal(t, 4, int(gc.GetPeers()[0].Properties.LedgerHeight))
+	assert.NotEmpty(t, gc.GetPeers())
+	assert.Equal(t, 4, int(gc.GetPeers()[0].Properties.LedgerHeight))
 
 	// Check we don't respond to stateInfoSnapshot requests with wrong MAC
 	sMsg, _ := protoext.NoopSign(&proto.GossipMessage{
@@ -1308,7 +1307,7 @@ func TestChannelStateInfoSnapshot(t *testing.T) {
 	select {
 	case <-time.After(time.Second):
 	case <-sentMessages:
-		require.Fail(t, "Shouldn't have responded to this StateInfoSnapshot request because of bad MAC")
+		assert.Fail(t, "Shouldn't have responded to this StateInfoSnapshot request because of bad MAC")
 	}
 
 	// Ensure we respond to stateInfoSnapshot requests with valid MAC
@@ -1334,10 +1333,10 @@ func TestChannelStateInfoSnapshot(t *testing.T) {
 		t.Fatal("Haven't received a state info snapshot on time")
 	case msg := <-sentMessages:
 		elements := msg.GetStateSnapshot().Elements
-		require.Len(t, elements, 1)
+		assert.Len(t, elements, 1)
 		sMsg, err := protoext.EnvelopeToGossipMessage(elements[0])
-		require.NoError(t, err)
-		require.Equal(t, 4, int(sMsg.GetStateInfo().Properties.LedgerHeight))
+		assert.NoError(t, err)
+		assert.Equal(t, 4, int(sMsg.GetStateInfo().Properties.LedgerHeight))
 	}
 
 	// Ensure we don't crash if we got an invalid state info message
@@ -1400,15 +1399,15 @@ func TestInterOrgExternalEndpointDisclosure(t *testing.T) {
 	go gc.HandleMessage(snapshotReq)
 	select {
 	case <-time.After(time.Second):
-		require.Fail(t, "Should have responded to this StateInfoSnapshot, but didn't")
+		assert.Fail(t, "Should have responded to this StateInfoSnapshot, but didn't")
 	case msg := <-sentMessages:
 		elements := msg.GetStateSnapshot().Elements
-		require.Len(t, elements, 2)
+		assert.Len(t, elements, 2)
 		m1, _ := protoext.EnvelopeToGossipMessage(elements[0])
 		m2, _ := protoext.EnvelopeToGossipMessage(elements[1])
 		pkiIDs := [][]byte{m1.GetStateInfo().PkiId, m2.GetStateInfo().PkiId}
-		require.Contains(t, pkiIDs, []byte(pkiID1))
-		require.Contains(t, pkiIDs, []byte(pkiID3))
+		assert.Contains(t, pkiIDs, []byte(pkiID1))
+		assert.Contains(t, pkiIDs, []byte(pkiID3))
 	}
 
 	// Check that we return all StateInfo messages to peers in our organization, regardless
@@ -1432,17 +1431,17 @@ func TestInterOrgExternalEndpointDisclosure(t *testing.T) {
 	go gc.HandleMessage(snapshotReq)
 	select {
 	case <-time.After(time.Second):
-		require.Fail(t, "Should have responded to this StateInfoSnapshot, but didn't")
+		assert.Fail(t, "Should have responded to this StateInfoSnapshot, but didn't")
 	case msg := <-sentMessages:
 		elements := msg.GetStateSnapshot().Elements
-		require.Len(t, elements, 3)
+		assert.Len(t, elements, 3)
 		m1, _ := protoext.EnvelopeToGossipMessage(elements[0])
 		m2, _ := protoext.EnvelopeToGossipMessage(elements[1])
 		m3, _ := protoext.EnvelopeToGossipMessage(elements[2])
 		pkiIDs := [][]byte{m1.GetStateInfo().PkiId, m2.GetStateInfo().PkiId, m3.GetStateInfo().PkiId}
-		require.Contains(t, pkiIDs, []byte(pkiID1))
-		require.Contains(t, pkiIDs, []byte(pkiID2))
-		require.Contains(t, pkiIDs, []byte(pkiID3))
+		assert.Contains(t, pkiIDs, []byte(pkiID1))
+		assert.Contains(t, pkiIDs, []byte(pkiID2))
+		assert.Contains(t, pkiIDs, []byte(pkiID3))
 	}
 }
 
@@ -1530,23 +1529,23 @@ func TestChannelReconfigureChannel(t *testing.T) {
 	adapter.On("Send", mock.Anything, mock.Anything)
 	adapter.On("DeMultiplex", mock.Anything)
 
-	require.True(t, gc.IsOrgInChannel(orgInChannelA))
-	require.False(t, gc.IsOrgInChannel(orgNotInChannelA))
-	require.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.True(t, gc.IsOrgInChannel(orgInChannelA))
+	assert.False(t, gc.IsOrgInChannel(orgNotInChannelA))
+	assert.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
 
 	gc.ConfigureChannel(outdatedJoinChanMsg)
-	require.True(t, gc.IsOrgInChannel(orgInChannelA))
-	require.False(t, gc.IsOrgInChannel(orgNotInChannelA))
-	require.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.True(t, gc.IsOrgInChannel(orgInChannelA))
+	assert.False(t, gc.IsOrgInChannel(orgNotInChannelA))
+	assert.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
 
 	gc.ConfigureChannel(updatedJoinChanMsg)
 	gc.ConfigureChannel(updatedJoinChanMsg)
-	require.False(t, gc.IsOrgInChannel(orgInChannelA))
-	require.True(t, gc.IsOrgInChannel(orgNotInChannelA))
-	require.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.False(t, gc.IsOrgInChannel(orgInChannelA))
+	assert.True(t, gc.IsOrgInChannel(orgNotInChannelA))
+	assert.False(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.True(t, gc.IsMemberInChan(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
 
 	// Ensure we don't respond to a StateInfoRequest from a peer in the wrong org
 	sMsg, _ := gc.(*gossipChannel).createStateInfoRequest()
@@ -1590,7 +1589,7 @@ func TestChannelNoAnchorPeers(t *testing.T) {
 
 	gc := NewGossipChannel(pkiIDInOrg1, orgInChannelA, cs, channelA, adapter, api.JoinChannelMessage(jcm),
 		disabledMetrics, nil)
-	require.True(t, gc.IsOrgInChannel(orgInChannelA))
+	assert.True(t, gc.IsOrgInChannel(orgInChannelA))
 }
 
 func TestGossipChannelEligibility(t *testing.T) {
@@ -1640,29 +1639,29 @@ func TestGossipChannelEligibility(t *testing.T) {
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1ButNotEligible, msg: createStateInfoMsg(1, pkiIDInOrg1ButNotEligible, channelA)})
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDinOrg3, msg: createStateInfoMsg(1, pkiIDinOrg3, channelA)})
 
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
 
 	// Ensure peers from the channel are returned
-	require.True(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
+	assert.True(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
 		return true
 	})(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.True(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
+	assert.True(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
 		return true
 	})(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
 	// But not peers which aren't in the channel
-	require.False(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
+	assert.False(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
 		return true
 	})(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
 
 	// Ensure the given predicate is considered
-	require.True(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
+	assert.True(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
 		return bytes.Equal(signature.PeerIdentity, []byte("pkiIDinOrg2"))
 	})(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
 
-	require.False(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
+	assert.False(t, gc.PeerFilter(func(signature api.PeerSignature) bool {
 		return bytes.Equal(signature.PeerIdentity, []byte("pkiIDinOrg2"))
 	})(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
 
@@ -1673,10 +1672,10 @@ func TestGossipChannelEligibility(t *testing.T) {
 		},
 	})
 
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
 
 	// Now simulate a config update that removed pkiIDInOrg1ButNotEligible from the channel readers
 	cs.mocked = true
@@ -1687,10 +1686,10 @@ func TestGossipChannelEligibility(t *testing.T) {
 			string(org1): {},
 		},
 	})
-	require.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
+	assert.True(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
 
 	// Now Simulate a certificate expiration of pkiIDInOrg1.
 	// This is done by asking the adapter to lookup the identity by PKI-ID, but if the certificate
@@ -1700,10 +1699,10 @@ func TestGossipChannelEligibility(t *testing.T) {
 	adapter.On("GetIdentityByPKIID", pkiIDInOrg1ButNotEligible).Return(api.PeerIdentityType(pkiIDInOrg1ButNotEligible))
 	adapter.On("GetIdentityByPKIID", pkiIDinOrg3).Return(api.PeerIdentityType(pkiIDinOrg3))
 
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
 
 	// Now make another update of StateInfo messages, this time with updated ledger height (to overwrite earlier messages)
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: createStateInfoMsg(2, pkiIDInOrg1, channelA)})
@@ -1712,10 +1711,10 @@ func TestGossipChannelEligibility(t *testing.T) {
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: createStateInfoMsg(2, pkiIDinOrg3, channelA)})
 
 	// Ensure the access control resolution hasn't changed
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
-	require.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg2}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDInOrg1ButNotEligible}))
+	assert.False(t, gc.EligibleForChannel(discovery.NetworkMember{PKIid: pkiIDinOrg3}))
 }
 
 func TestChannelGetPeers(t *testing.T) {
@@ -1741,19 +1740,19 @@ func TestChannelGetPeers(t *testing.T) {
 		disabledMetrics, nil)
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: createStateInfoMsg(1, pkiIDInOrg1, channelA)})
 	gc.HandleMessage(&receivedMsg{PKIID: pkiIDInOrg1, msg: createStateInfoMsg(1, pkiIDinOrg2, channelA)})
-	require.Len(t, gc.GetPeers(), 1)
-	require.Equal(t, pkiIDInOrg1, gc.GetPeers()[0].PKIid)
+	assert.Len(t, gc.GetPeers(), 1)
+	assert.Equal(t, pkiIDInOrg1, gc.GetPeers()[0].PKIid)
 
 	// Ensure envelope from GetPeers is valid
 	gMsg, _ := protoext.EnvelopeToGossipMessage(gc.GetPeers()[0].Envelope)
-	require.Equal(t, []byte(pkiIDInOrg1), gMsg.GetStateInfo().PkiId)
+	assert.Equal(t, []byte(pkiIDInOrg1), gMsg.GetStateInfo().PkiId)
 
 	gc.HandleMessage(&receivedMsg{msg: createStateInfoMsg(10, pkiIDInOrg1ButNotEligible, channelA), PKIID: pkiIDInOrg1ButNotEligible})
 	cs.On("VerifyByChannel", mock.Anything).Return(errors.New("Not eligible"))
 	cs.mocked = true
 	// Simulate a config update
 	gc.ConfigureChannel(&joinChanMsg{})
-	require.Len(t, gc.GetPeers(), 0)
+	assert.Len(t, gc.GetPeers(), 0)
 
 	// Now recreate gc and corrupt the MAC
 	// and ensure that the StateInfo message doesn't count
@@ -1761,7 +1760,7 @@ func TestChannelGetPeers(t *testing.T) {
 	msg := &receivedMsg{PKIID: pkiIDInOrg1, msg: createStateInfoMsg(1, pkiIDInOrg1, channelA)}
 	msg.GetGossipMessage().GetStateInfo().Channel_MAC = GenerateMAC(pkiIDinOrg2, channelA)
 	gc.HandleMessage(msg)
-	require.Len(t, gc.GetPeers(), 0)
+	assert.Len(t, gc.GetPeers(), 0)
 }
 
 func TestOnDemandGossip(t *testing.T) {
@@ -1807,7 +1806,7 @@ func TestOnDemandGossip(t *testing.T) {
 	defer gc.Stop()
 	select {
 	case <-gossipedEvents:
-		require.Fail(t, "Should not have gossiped because metadata has not been updated yet")
+		assert.Fail(t, "Should not have gossiped because metadata has not been updated yet")
 	case <-time.After(time.Millisecond * 500):
 	}
 
@@ -1819,7 +1818,7 @@ func TestOnDemandGossip(t *testing.T) {
 	select {
 	case <-gossipedEvents:
 	case <-time.After(time.Second):
-		require.Fail(t, "Didn't gossip within a timely manner")
+		assert.Fail(t, "Didn't gossip within a timely manner")
 	}
 	gc.UpdateLedgerHeight(2)
 	adapter.On("Gossip", mock.Anything).Run(func(mock.Arguments) {
@@ -1830,18 +1829,18 @@ func TestOnDemandGossip(t *testing.T) {
 	select {
 	case <-gossipedEvents:
 	case <-time.After(time.Second):
-		require.Fail(t, "Should have gossiped a third time")
+		assert.Fail(t, "Should have gossiped a third time")
 	}
 	select {
 	case <-gossipedEvents:
-		require.Fail(t, "Should not have gossiped a fourth time, because dirty flag should have been turned off")
+		assert.Fail(t, "Should not have gossiped a fourth time, because dirty flag should have been turned off")
 	case <-time.After(time.Millisecond * 500):
 	}
 	gc.UpdateLedgerHeight(3)
 	select {
 	case <-gossipedEvents:
 	case <-time.After(time.Second):
-		require.Fail(t, "Should have gossiped a block now, because got a new StateInfo message")
+		assert.Fail(t, "Should have gossiped a block now, because got a new StateInfo message")
 	}
 }
 
@@ -1859,7 +1858,7 @@ func TestChannelPullWithDigestsFilter(t *testing.T) {
 			return
 		}
 		// The peer is supposed to de-multiplex 1 ledger block
-		require.True(t, protoext.IsDataMsg(msg.GossipMessage))
+		assert.True(t, protoext.IsDataMsg(msg.GossipMessage))
 		receivedBlocksChan <- msg
 	})
 	gc := NewGossipChannel(pkiIDInOrg1, orgInChannelA, cs, channelA, adapter, &joinChanMsg{}, disabledMetrics, nil)
@@ -1878,7 +1877,7 @@ func TestChannelPullWithDigestsFilter(t *testing.T) {
 	case <-time.After(time.Second * 5):
 		t.Fatal("Haven't received blocks on time")
 	case msg := <-receivedBlocksChan:
-		require.Equal(t, uint64(11), msg.GetDataMsg().Payload.SeqNum)
+		assert.Equal(t, uint64(11), msg.GetDataMsg().Payload.SeqNum)
 	}
 
 }
@@ -1917,9 +1916,9 @@ func TestFilterForeignOrgLeadershipMessages(t *testing.T) {
 		return nil
 	}))
 	assertLogged := func(s string) {
-		require.Len(t, loggedEntries, 1)
+		assert.Len(t, loggedEntries, 1)
 		loggedEntry := <-loggedEntries
-		require.Contains(t, loggedEntry, s)
+		assert.Contains(t, loggedEntry, s)
 	}
 
 	gc := NewGossipChannel(pkiIDInOrg1, org1, cs, channelA, adapter, joinMsg, disabledMetrics, logger)
@@ -1940,15 +1939,15 @@ func TestFilterForeignOrgLeadershipMessages(t *testing.T) {
 	}
 
 	gc.HandleMessage(leadershipMsg(p1, p1))
-	require.Len(t, relayedLeadershipMsgs, 1, "should have relayed a message from p1 (same org)")
-	require.Len(t, loggedEntries, 0)
+	assert.Len(t, relayedLeadershipMsgs, 1, "should have relayed a message from p1 (same org)")
+	assert.Len(t, loggedEntries, 0)
 
 	gc.HandleMessage(leadershipMsg(p2, p1))
-	require.Len(t, relayedLeadershipMsgs, 1, "should not have relayed a message from p2 (foreign org)")
+	assert.Len(t, relayedLeadershipMsgs, 1, "should not have relayed a message from p2 (foreign org)")
 	assertLogged("Received leadership message from  that belongs to a foreign organization org2")
 
 	gc.HandleMessage(leadershipMsg(p1, p2))
-	require.Len(t, relayedLeadershipMsgs, 1, "should not have relayed a message from p2 (foreign org)")
+	assert.Len(t, relayedLeadershipMsgs, 1, "should not have relayed a message from p2 (foreign org)")
 	assertLogged("Received leadership message created by a foreign organization org2")
 }
 
@@ -2093,9 +2092,9 @@ func simulatePullPhaseWithVariableDigest(gc GossipChannel, t *testing.T, wg *syn
 			sentReq = true
 			dataReq := msg.GetDataReq()
 			for _, expectedDigest := range util.StringsToBytes(resultDigestSeqs) {
-				require.Contains(t, dataReq.Digests, expectedDigest)
+				assert.Contains(t, dataReq.Digests, expectedDigest)
 			}
-			require.Equal(t, len(resultDigestSeqs), len(dataReq.Digests))
+			assert.Equal(t, len(resultDigestSeqs), len(dataReq.Digests))
 			// When we send a data request, simulate a response of a data update
 			// from the imaginary peer that got the request
 			dataUpdateMsg := new(receivedMsg)
@@ -2270,7 +2269,7 @@ func TestChangesInPeers(t *testing.T) {
 			actual := <-chForString
 
 			// setup complete, start testing
-			require.Contains(t, test.expected, actual)
+			assert.Contains(t, test.expected, actual)
 
 			// mt needs to have received a tick before it was closed
 			wgMT.Wait()
@@ -2280,8 +2279,8 @@ func TestChangesInPeers(t *testing.T) {
 			if testMetricProvider.FakeTotalGauge.SetCallCount() < 1 {
 				t.Fatal("did not get Set() call")
 			}
-			require.Equal(t, []string{"channel", "test"}, testMetricProvider.FakeTotalGauge.WithArgsForCall(0))
-			require.EqualValues(t, test.expectedTotal, testMetricProvider.FakeTotalGauge.SetArgsForCall(0))
+			assert.Equal(t, []string{"channel", "test"}, testMetricProvider.FakeTotalGauge.WithArgsForCall(0))
+			assert.EqualValues(t, test.expectedTotal, testMetricProvider.FakeTotalGauge.SetArgsForCall(0))
 		})
 	}
 }

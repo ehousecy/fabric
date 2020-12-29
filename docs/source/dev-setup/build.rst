@@ -20,15 +20,18 @@ of your changes using your web browser before you open a pull request.
 You need to download the following prerequisites before you can build the
 documentation:
 
-- `Docker <https://docs.docker.com/get-docker/>`__
+- `Python 3.7 <https://wiki.python.org/moin/BeginnersGuide/Download>`__
+- `Pipenv <https://pipenv.readthedocs.io/en/latest/#install-pipenv-today>`__
 
 After you make your updates to the documentation source files, you can generate
 a build that includes your changes by running the following commands:
 
 ::
 
-    cd fabric
-    make docs
+    cd fabric/docs
+    pipenv install
+    pipenv shell
+    make html
 
 This will generate all the html files in the ``docs/build/html`` folder. You can
 open any file to start browsing the updated documentation using your browser. If you
@@ -49,7 +52,7 @@ Specify a list of packages (separated by space), for example:
 
 ::
 
-    export TEST_PKGS="github.com/hyperledger/fabric/core/ledger/..."
+    export TEST_PKGS="github.com/ehousecy/fabric/core/ledger/..."
     make unit-test
 
 To run a specific test use the ``-run RE`` flag where RE is a regular

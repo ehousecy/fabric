@@ -11,14 +11,14 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/discovery"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/common/chaincode"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/graph"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/policies/inquire"
-	"github.com/hyperledger/fabric/gossip/api"
-	"github.com/hyperledger/fabric/gossip/common"
-	. "github.com/hyperledger/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/common/chaincode"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/graph"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/policies/inquire"
+	"github.com/ehousecy/fabric/gossip/api"
+	"github.com/ehousecy/fabric/gossip/common"
+	. "github.com/ehousecy/fabric/gossip/discovery"
 	"github.com/pkg/errors"
 )
 

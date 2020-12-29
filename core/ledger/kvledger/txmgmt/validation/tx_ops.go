@@ -8,13 +8,15 @@ package validation
 
 import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statemetadata"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statemetadata"
 )
 
-func prepareTxOps(rwset *rwsetutil.TxRwSet, precedingUpdates *publicAndHashUpdates, db *privacyenabledstate.DB) (txOps, error) {
+func prepareTxOps(rwset *rwsetutil.TxRwSet, txht *version.Height,
+	precedingUpdates *publicAndHashUpdates, db *privacyenabledstate.DB) (txOps, error) {
 	txops := txOps{}
 	if err := txops.applyTxRwset(rwset); err != nil {
 		return nil, err

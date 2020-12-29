@@ -20,8 +20,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hyperledger/fabric/internal/cryptogen/csp"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/internal/cryptogen/csp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadPrivateKey(t *testing.T) {
@@ -35,12 +35,12 @@ func TestLoadPrivateKey(t *testing.T) {
 		t.Fatalf("Failed to generate private key: %s", err)
 	}
 	pkFile := filepath.Join(testDir, "priv_sk")
-	require.Equal(t, true, checkForFile(pkFile),
+	assert.Equal(t, true, checkForFile(pkFile),
 		"Expected to find private key file")
 	loadedPriv, err := csp.LoadPrivateKey(testDir)
-	require.NoError(t, err, "Failed to load private key")
-	require.NotNil(t, loadedPriv, "Should have returned an *ecdsa.PrivateKey")
-	require.Equal(t, priv, loadedPriv, "Expected private keys to match")
+	assert.NoError(t, err, "Failed to load private key")
+	assert.NotNil(t, loadedPriv, "Should have returned an *ecdsa.PrivateKey")
+	assert.Equal(t, priv, loadedPriv, "Expected private keys to match")
 }
 
 func TestLoadPrivateKey_BadPEM(t *testing.T) {
@@ -100,7 +100,7 @@ func TestLoadPrivateKey_BadPEM(t *testing.T) {
 				t.Fatalf("failed to write to wrong encoding file: %s", err)
 			}
 			_, err = csp.LoadPrivateKey(badPEMFile)
-			require.Contains(t, err.Error(), test.errMsg)
+			assert.Contains(t, err.Error(), test.errMsg)
 			os.Remove(badPEMFile)
 		})
 	}
@@ -115,13 +115,13 @@ func TestGeneratePrivateKey(t *testing.T) {
 
 	expectedFile := filepath.Join(testDir, "priv_sk")
 	priv, err := csp.GeneratePrivateKey(testDir)
-	require.NoError(t, err, "Failed to generate private key")
-	require.NotNil(t, priv, "Should have returned an *ecdsa.Key")
-	require.Equal(t, true, checkForFile(expectedFile),
+	assert.NoError(t, err, "Failed to generate private key")
+	assert.NotNil(t, priv, "Should have returned an *ecdsa.Key")
+	assert.Equal(t, true, checkForFile(expectedFile),
 		"Expected to find private key file")
 
 	_, err = csp.GeneratePrivateKey("notExist")
-	require.Contains(t, err.Error(), "no such file or directory")
+	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
 func TestECDSASigner(t *testing.T) {
@@ -133,7 +133,7 @@ func TestECDSASigner(t *testing.T) {
 	signer := csp.ECDSASigner{
 		PrivateKey: priv,
 	}
-	require.Equal(t, priv.Public(), signer.Public().(*ecdsa.PublicKey))
+	assert.Equal(t, priv.Public(), signer.Public().(*ecdsa.PublicKey))
 	digest := []byte{1}
 	sig, err := signer.Sign(rand.Reader, digest, nil)
 	if err != nil {
@@ -155,7 +155,7 @@ func TestECDSASigner(t *testing.T) {
 
 	// ensure signature is valid by using standard verify function
 	ok := ecdsa.Verify(&priv.PublicKey, digest, ecdsaSig.R, ecdsaSig.S)
-	require.True(t, ok, "Expected valid signature")
+	assert.True(t, ok, "Expected valid signature")
 }
 
 func checkForFile(file string) bool {

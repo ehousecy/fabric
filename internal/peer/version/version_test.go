@@ -9,17 +9,17 @@ package version
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCmd(t *testing.T) {
 	cmd := Cmd()
-	require.NoError(t, cmd.Execute(), "expected version command to succeed")
+	assert.NoError(t, cmd.Execute(), "expected version command to succeed")
 }
 
 func TestCmdWithTrailingArgs(t *testing.T) {
 	cmd := Cmd()
 	args := []string{"trailingargs"}
 	cmd.SetArgs(args)
-	require.EqualError(t, cmd.Execute(), "trailing args detected")
+	assert.EqualError(t, cmd.Execute(), "trailing args detected")
 }

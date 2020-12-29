@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
 	"github.com/pkg/errors"
 )
 
@@ -112,6 +112,19 @@ func (d *db) getNamespaceIterator(ns string) (*leveldbhelper.Iterator, error) {
 	nsEndKey := []byte(keyPrefix + ns)
 	nsEndKey = append(nsEndKey, nsStopper)
 	return d.GetIterator(nsStartKey, nsEndKey)
+}
+
+func (d *db) isEmpty() (bool, error) {
+	itr, err := d.GetIterator(nil, nil)
+	if err != nil {
+		return false, err
+	}
+	defer itr.Release()
+	entryExist := itr.Next()
+	if err := itr.Error(); err != nil {
+		return false, errors.WithMessagef(err, "internal leveldb error while obtaining next entry from iterator")
+	}
+	return !entryExist, nil
 }
 
 func encodeCompositeKey(ns, key string, blockNum uint64) []byte {

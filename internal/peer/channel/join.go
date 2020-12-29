@@ -14,9 +14,9 @@ import (
 
 	pcommon "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/scc/cscc"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/core/scc/cscc"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/spf13/cobra"
 )
 
@@ -75,7 +75,12 @@ func getJoinCCSpec() (*pb.ChaincodeSpec, error) {
 	return spec, nil
 }
 
-func executeJoin(cf *ChannelCmdFactory, spec *pb.ChaincodeSpec) (err error) {
+func executeJoin(cf *ChannelCmdFactory) (err error) {
+	spec, err := getJoinCCSpec()
+	if err != nil {
+		return err
+	}
+
 	// Build the ChaincodeInvocationSpec message
 	invocation := &pb.ChaincodeInvocationSpec{ChaincodeSpec: spec}
 
@@ -127,11 +132,5 @@ func join(cmd *cobra.Command, args []string, cf *ChannelCmdFactory) error {
 			return err
 		}
 	}
-
-	spec, err := getJoinCCSpec()
-	if err != nil {
-		return err
-	}
-
-	return executeJoin(cf, spec)
+	return executeJoin(cf)
 }

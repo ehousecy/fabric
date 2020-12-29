@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,14 +49,12 @@ func TestCCEventMgmt(t *testing.T) {
 	eventMgr.Register("channel1", handler3)
 	eventMgr.Register("channel2", handler3)
 
-	cc1ExpectedEvent := &mockEvent{cc1Def, cc1DBArtifactsTar}
 	cc2ExpectedEvent := &mockEvent{cc2Def, cc2DBArtifactsTar}
+	_ = cc2ExpectedEvent
 	cc3ExpectedEvent := &mockEvent{cc3Def, cc3DBArtifactsTar}
 
 	// Deploy cc3 on chain1 - handler1 and handler3 should receive event because cc3 is being deployed only on chain1
-	require.NoError(t,
-		eventMgr.HandleChaincodeDeploy("channel1", []*ChaincodeDefinition{cc3Def}),
-	)
+	eventMgr.HandleChaincodeDeploy("channel1", []*ChaincodeDefinition{cc3Def})
 	eventMgr.ChaincodeDeployDone("channel1")
 	require.Contains(t, handler1.eventsRecieved, cc3ExpectedEvent)
 	require.NotContains(t, handler2.eventsRecieved, cc3ExpectedEvent)
@@ -66,9 +64,7 @@ func TestCCEventMgmt(t *testing.T) {
 	require.Equal(t, 1, handler3.doneRecievedCount)
 
 	// Deploy cc3 on chain2 as well and this time handler2 should also receive event
-	require.NoError(t,
-		eventMgr.HandleChaincodeDeploy("channel2", []*ChaincodeDefinition{cc3Def}),
-	)
+	eventMgr.HandleChaincodeDeploy("channel2", []*ChaincodeDefinition{cc3Def})
 	eventMgr.ChaincodeDeployDone("channel2")
 	require.Contains(t, handler2.eventsRecieved, cc3ExpectedEvent)
 	require.Equal(t, 1, handler1.doneRecievedCount)
@@ -76,9 +72,7 @@ func TestCCEventMgmt(t *testing.T) {
 	require.Equal(t, 2, handler3.doneRecievedCount)
 
 	// Install CC2 - handler1 and handler 3 should receive event because cc2 is deployed only on chain1 and not on chain2
-	require.NoError(t,
-		eventMgr.HandleChaincodeInstall(cc2Def, cc2DBArtifactsTar),
-	)
+	eventMgr.HandleChaincodeInstall(cc2Def, cc2DBArtifactsTar)
 	eventMgr.ChaincodeInstallDone(true)
 	require.Contains(t, handler1.eventsRecieved, cc2ExpectedEvent)
 	require.NotContains(t, handler2.eventsRecieved, cc2ExpectedEvent)
@@ -90,23 +84,9 @@ func TestCCEventMgmt(t *testing.T) {
 	// setting cc2Def as a new lifecycle definition should cause install not to trigger event
 	mockProvider.setChaincodeDeployed("channel1", cc2Def, false)
 	handler1.eventsRecieved = []*mockEvent{}
-	require.NoError(t,
-		eventMgr.HandleChaincodeInstall(cc2Def, cc2DBArtifactsTar),
-	)
+	eventMgr.HandleChaincodeInstall(cc2Def, cc2DBArtifactsTar)
 	eventMgr.ChaincodeInstallDone(true)
 	require.NotContains(t, handler1.eventsRecieved, cc2ExpectedEvent)
-
-	mockListener := &mockHandler{}
-	require.NoError(t,
-		mgr.RegisterAndInvokeFor([]*ChaincodeDefinition{cc1Def, cc2Def, cc3Def},
-			"test-ledger", mockListener,
-		),
-	)
-	require.Contains(t, mockListener.eventsRecieved, cc1ExpectedEvent)
-	require.Contains(t, mockListener.eventsRecieved, cc3ExpectedEvent)
-	require.NotContains(t, mockListener.eventsRecieved, cc2ExpectedEvent)
-	require.Equal(t, 2, mockListener.doneRecievedCount)
-	require.Contains(t, mgr.ccLifecycleListeners["test-ledger"], mockListener)
 }
 
 func TestLSCCListener(t *testing.T) {
@@ -159,12 +139,10 @@ func TestLSCCListener(t *testing.T) {
 
 	// test1 regular deploy lscc event gets sent to handler
 	t.Run("DeployEvent", func(t *testing.T) {
-		require.NoError(t,
-			lsccStateListener.HandleStateUpdates(
-				&ledger.StateUpdateTrigger{
-					LedgerID: channelName,
-				},
-			),
+		lsccStateListener.HandleStateUpdates(
+			&ledger.StateUpdateTrigger{
+				LedgerID: channelName,
+			},
 		)
 		// processes legacy event
 		require.Contains(t, handler1.eventsRecieved, &mockEvent{cc1Def, ccDBArtifactsTar})

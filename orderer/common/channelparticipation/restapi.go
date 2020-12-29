@@ -13,15 +13,16 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/mux"
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/orderer/common/types"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/orderer/common/types"
 	"github.com/pkg/errors"
 )
 
@@ -29,6 +30,7 @@ const (
 	URLBaseV1              = "/participation/v1/"
 	URLBaseV1Channels      = URLBaseV1 + "channels"
 	FormDataConfigBlockKey = "config-block"
+	RemoveStorageQueryKey  = "removeStorage"
 
 	channelIDKey        = "channelID"
 	urlWithChannelIDKey = URLBaseV1Channels + "/{" + channelIDKey + "}"
@@ -47,11 +49,11 @@ type ChannelManagement interface {
 	ChannelInfo(channelID string) (types.ChannelInfo, error)
 
 	// JoinChannel instructs the orderer to create a channel and join it with the provided config block.
-	// The URL field is empty, and is to be completed by the caller.
 	JoinChannel(channelID string, configBlock *cb.Block, isAppChannel bool) (types.ChannelInfo, error)
 
 	// RemoveChannel instructs the orderer to remove a channel.
-	RemoveChannel(channelID string) error
+	// Depending on the removeStorage parameter, the storage resources are either removed or archived.
+	RemoveChannel(channelID string, removeStorage bool) error
 }
 
 // HTTPHandler handles all the HTTP requests to the channel participation API.
@@ -60,6 +62,7 @@ type HTTPHandler struct {
 	config    localconfig.ChannelParticipation
 	registrar ChannelManagement
 	router    *mux.Router
+	// TODO skeleton
 }
 
 func NewHTTPHandler(config localconfig.ChannelParticipation, registrar ChannelManagement) *HTTPHandler {
@@ -72,15 +75,14 @@ func NewHTTPHandler(config localconfig.ChannelParticipation, registrar ChannelMa
 
 	handler.router.HandleFunc(urlWithChannelIDKey, handler.serveListOne).Methods(http.MethodGet)
 
+	handler.router.HandleFunc(urlWithChannelIDKey, handler.serveJoin).Methods(http.MethodPost).HeadersRegexp(
+		"Content-Type", "multipart/form-data*")
+	handler.router.HandleFunc(urlWithChannelIDKey, handler.serveBadContentType).Methods(http.MethodPost)
+
 	handler.router.HandleFunc(urlWithChannelIDKey, handler.serveRemove).Methods(http.MethodDelete)
 	handler.router.HandleFunc(urlWithChannelIDKey, handler.serveNotAllowed)
 
 	handler.router.HandleFunc(URLBaseV1Channels, handler.serveListAll).Methods(http.MethodGet)
-
-	handler.router.HandleFunc(URLBaseV1Channels, handler.serveJoin).Methods(http.MethodPost).HeadersRegexp(
-		"Content-Type", "multipart/form-data*")
-	handler.router.HandleFunc(URLBaseV1Channels, handler.serveBadContentType).Methods(http.MethodPost)
-
 	handler.router.HandleFunc(URLBaseV1Channels, handler.serveNotAllowed)
 
 	handler.router.HandleFunc(URLBaseV1, handler.redirectBaseV1).Methods(http.MethodGet)
@@ -134,8 +136,6 @@ func (h *HTTPHandler) serveListOne(resp http.ResponseWriter, req *http.Request) 
 		h.sendResponseJsonError(resp, http.StatusNotFound, err)
 		return
 	}
-	infoFull.URL = path.Join(URLBaseV1Channels, infoFull.Name)
-
 	resp.Header().Set("Cache-Control", "no-store")
 	h.sendResponseOK(resp, infoFull)
 }
@@ -153,6 +153,11 @@ func (h *HTTPHandler) serveJoin(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	channelID, err := h.extractChannelID(req, resp)
+	if err != nil {
+		return
+	}
+
 	_, params, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
 		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.Wrap(err, "cannot parse Mime media type"))
@@ -164,31 +169,28 @@ func (h *HTTPHandler) serveJoin(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	channelID, isAppChannel, err := ValidateJoinBlock(block)
+	isAppChannel, err := ValidateJoinBlock(channelID, block)
 	if err != nil {
-		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.WithMessage(err, "invalid join block"))
+		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.Wrap(err, "invalid join block"))
 		return
 	}
 
 	info, err := h.registrar.JoinChannel(channelID, block, isAppChannel)
-	if err != nil {
-		h.sendJoinError(err, resp)
+	if err == nil {
+		info.URL = path.Join(URLBaseV1Channels, info.Name)
+		h.logger.Debugf("Successfully joined channel: %s", info)
+		h.sendResponseCreated(resp, info.URL, info)
 		return
 	}
-	info.URL = path.Join(URLBaseV1Channels, info.Name)
 
-	h.logger.Debugf("Successfully joined channel: %s", info.URL)
-	h.sendResponseCreated(resp, info.URL, info)
+	h.sendJoinError(err, resp)
 }
 
 // Expect a multipart/form-data with a single part, of type file, with key FormDataConfigBlockKey.
 func (h *HTTPHandler) multipartFormDataBodyToBlock(params map[string]string, req *http.Request, resp http.ResponseWriter) *cb.Block {
 	boundary := params["boundary"]
-	reader := multipart.NewReader(
-		http.MaxBytesReader(resp, req.Body, int64(h.config.MaxRequestBodySize)),
-		boundary,
-	)
-	form, err := reader.ReadForm(2 * int64(h.config.MaxRequestBodySize))
+	reader := multipart.NewReader(req.Body, boundary)
+	form, err := reader.ReadForm(100 * 1024 * 1024)
 	if err != nil {
 		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.Wrap(err, "cannot read form from request body"))
 		return nil
@@ -237,7 +239,7 @@ func (h *HTTPHandler) extractChannelID(req *http.Request, resp http.ResponseWrit
 	}
 
 	if err := configtx.ValidateChannelID(channelID); err != nil {
-		err = errors.WithMessage(err, "invalid channel ID")
+		err = errors.Wrap(err, "invalid channel ID")
 		h.sendResponseJsonError(resp, http.StatusBadRequest, err)
 		return "", err
 	}
@@ -249,25 +251,21 @@ func (h *HTTPHandler) sendJoinError(err error, resp http.ResponseWriter) {
 	switch err {
 	case types.ErrSystemChannelExists:
 		// The client is trying to join an app-channel, but the system channel exists: only GET is allowed on app channels.
-		h.sendResponseNotAllowed(resp, errors.WithMessage(err, "cannot join"), http.MethodGet)
+		h.sendResponseNotAllowed(resp, errors.Wrap(err, "cannot join"), http.MethodGet)
 	case types.ErrChannelAlreadyExists:
 		// The client is trying to join an app-channel that exists, but the system channel does not;
 		// The client is trying to join the system-channel, and it exists. GET & DELETE are allowed on the channel.
-		h.sendResponseNotAllowed(resp, errors.WithMessage(err, "cannot join"), http.MethodGet, http.MethodDelete)
+		h.sendResponseNotAllowed(resp, errors.Wrap(err, "cannot join"), http.MethodGet, http.MethodDelete)
 	case types.ErrAppChannelsAlreadyExists:
 		// The client is trying to join the system-channel that does not exist, but app channels exist.
-		h.sendResponseJsonError(resp, http.StatusForbidden, errors.WithMessage(err, "cannot join"))
-	case types.ErrChannelPendingRemoval:
-		// The client is trying to join a channel that is currently being removed.
-		h.sendResponseJsonError(resp, http.StatusConflict, errors.WithMessage(err, "cannot join"))
-	case types.ErrChannelRemovalFailure:
-		h.sendResponseJsonError(resp, http.StatusInternalServerError, errors.WithMessage(err, "cannot join"))
+		h.sendResponseJsonError(resp, http.StatusForbidden, errors.Wrap(err, "cannot join"))
 	default:
-		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.WithMessage(err, "cannot join"))
+		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.Wrap(err, "cannot join"))
 	}
 }
 
 // Remove a channel
+// Expecting an optional query: "removeStorage=true" or "removeStorage=false".
 func (h *HTTPHandler) serveRemove(resp http.ResponseWriter, req *http.Request) {
 	_, err := negotiateContentType(req) // Only application/json responses for now
 	if err != nil {
@@ -280,7 +278,12 @@ func (h *HTTPHandler) serveRemove(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = h.registrar.RemoveChannel(channelID)
+	removeStorage, err := h.extractRemoveStorageQuery(req, resp)
+	if err != nil {
+		return
+	}
+
+	err = h.registrar.RemoveChannel(channelID, removeStorage)
 	if err == nil {
 		h.logger.Debugf("Successfully removed channel: %s", channelID)
 		resp.WriteHeader(http.StatusNoContent)
@@ -291,14 +294,41 @@ func (h *HTTPHandler) serveRemove(resp http.ResponseWriter, req *http.Request) {
 
 	switch err {
 	case types.ErrSystemChannelExists:
-		h.sendResponseNotAllowed(resp, errors.WithMessage(err, "cannot remove"), http.MethodGet)
+		h.sendResponseNotAllowed(resp, errors.Wrap(err, "cannot remove"), http.MethodGet)
 	case types.ErrChannelNotExist:
-		h.sendResponseJsonError(resp, http.StatusNotFound, errors.WithMessage(err, "cannot remove"))
-	case types.ErrChannelPendingRemoval:
-		h.sendResponseJsonError(resp, http.StatusConflict, errors.WithMessage(err, "cannot remove"))
+		h.sendResponseJsonError(resp, http.StatusNotFound, errors.Wrap(err, "cannot remove"))
 	default:
-		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.WithMessage(err, "cannot remove"))
+		h.sendResponseJsonError(resp, http.StatusBadRequest, errors.Wrap(err, "cannot remove"))
 	}
+}
+
+func (h *HTTPHandler) extractRemoveStorageQuery(req *http.Request, resp http.ResponseWriter) (bool, error) {
+	removeStorage := h.config.RemoveStorage
+	queryVal := req.URL.Query()
+	if len(queryVal) > 1 {
+		err := errors.New("cannot remove: too many query keys")
+		h.sendResponseJsonError(resp, http.StatusBadRequest, err)
+		return false, err
+	}
+	if values, ok := queryVal[RemoveStorageQueryKey]; ok {
+		var err error
+		if len(values) != 1 {
+			err = errors.New("cannot remove: too many query parameters")
+			h.sendResponseJsonError(resp, http.StatusBadRequest, err)
+			return false, err
+		}
+
+		removeStorage, err = strconv.ParseBool(values[0])
+		if err != nil {
+			h.sendResponseJsonError(resp, http.StatusBadRequest, errors.Wrap(err, "cannot remove: invalid query parameter"))
+			return false, err
+		}
+	} else if len(queryVal) > 0 {
+		err := errors.New("cannot remove: invalid query key")
+		h.sendResponseJsonError(resp, http.StatusBadRequest, err)
+		return false, err
+	}
+	return removeStorage, nil
 }
 
 func (h *HTTPHandler) serveBadContentType(resp http.ResponseWriter, req *http.Request) {
@@ -310,11 +340,11 @@ func (h *HTTPHandler) serveNotAllowed(resp http.ResponseWriter, req *http.Reques
 	err := errors.Errorf("invalid request method: %s", req.Method)
 
 	if _, ok := mux.Vars(req)[channelIDKey]; ok {
-		h.sendResponseNotAllowed(resp, err, http.MethodGet, http.MethodDelete)
+		h.sendResponseNotAllowed(resp, err, http.MethodGet, http.MethodPost, http.MethodDelete)
 		return
 	}
 
-	h.sendResponseNotAllowed(resp, err, http.MethodGet, http.MethodPost)
+	h.sendResponseNotAllowed(resp, err, http.MethodGet)
 }
 
 func negotiateContentType(req *http.Request) (string, error) {

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -62,14 +62,14 @@ func TestNewCredentialSupport(t *testing.T) {
 	expected := &CredentialSupport{
 		appRootCAsByChain: make(map[string][][]byte),
 	}
-	require.Equal(t, expected, NewCredentialSupport())
+	assert.Equal(t, expected, NewCredentialSupport())
 
 	rootCAs := [][]byte{
 		[]byte("certificate-one"),
 		[]byte("certificate-two"),
 	}
 	expected.serverRootCAs = rootCAs[:]
-	require.Equal(t, expected, NewCredentialSupport(rootCAs...))
+	assert.Equal(t, expected, NewCredentialSupport(rootCAs...))
 }
 
 func TestCredentialSupport(t *testing.T) {
@@ -85,8 +85,8 @@ func TestCredentialSupport(t *testing.T) {
 	}
 	cert := tls.Certificate{Certificate: [][]byte{}}
 	cs.SetClientCertificate(cert)
-	require.Equal(t, cert, cs.clientCert)
-	require.Equal(t, cert, cs.GetClientCertificate())
+	assert.Equal(t, cert, cs.clientCert)
+	assert.Equal(t, cert, cs.GetClientCertificate())
 
 	cs.appRootCAsByChain["channel1"] = [][]byte{rootCAs[0]}
 	cs.appRootCAsByChain["channel2"] = [][]byte{rootCAs[1]}
@@ -94,13 +94,13 @@ func TestCredentialSupport(t *testing.T) {
 	cs.serverRootCAs = [][]byte{rootCAs[5]}
 
 	creds := cs.GetPeerCredentials()
-	require.Equal(t, "1.2", creds.Info().SecurityVersion,
+	assert.Equal(t, "1.2", creds.Info().SecurityVersion,
 		"Expected Security version to be 1.2")
 
 	// append some bad certs and make sure things still work
 	cs.serverRootCAs = append(cs.serverRootCAs, []byte("badcert"))
 	cs.serverRootCAs = append(cs.serverRootCAs, []byte(badPEM))
 	creds = cs.GetPeerCredentials()
-	require.Equal(t, "1.2", creds.Info().SecurityVersion,
+	assert.Equal(t, "1.2", creds.Info().SecurityVersion,
 		"Expected Security version to be 1.2")
 }

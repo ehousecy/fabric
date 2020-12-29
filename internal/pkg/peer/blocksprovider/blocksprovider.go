@@ -8,18 +8,18 @@ package blocksprovider
 
 import (
 	"context"
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"math"
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/gossip"
 	"github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/flogging"
-	gossipcommon "github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/internal/pkg/peer/orderers"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/flogging"
+	gossipcommon "github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/internal/pkg/peer/orderers"
+	"github.com/ehousecy/fabric/protoutil"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -74,7 +74,7 @@ type OrdererConnectionSource interface {
 
 //go:generate counterfeiter -o fake/dialer.go --fake-name Dialer . Dialer
 type Dialer interface {
-	Dial(address string, certPool *x509.CertPool) (*grpc.ClientConn, error)
+	Dial(address string, certPool *sm2.CertPool) (*grpc.ClientConn, error)
 }
 
 //go:generate counterfeiter -o fake/deliver_streamer.go --fake-name DeliverStreamer . DeliverStreamer

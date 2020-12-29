@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -194,7 +194,7 @@ func (r *Replicator) PullChannel(channel string) error {
 		r.Logger.Panicf("Failed to create a ledger for channel %s: %v", channel, err)
 	}
 
-	endpoint, latestHeight, _ := LatestHeightAndEndpoint(puller)
+	endpoint, latestHeight, _ := latestHeightAndEndpoint(puller)
 	if endpoint == "" {
 		return errors.Errorf("failed obtaining the latest block for channel %s", channel)
 	}
@@ -400,7 +400,6 @@ func BlockPullerFromConfigBlock(conf PullerConfig, block *common.Block, verifier
 		FetchTimeout:        conf.Timeout,
 		Channel:             conf.Channel,
 		Signer:              conf.Signer,
-		StopChannel:         make(chan struct{}),
 	}, nil
 }
 
@@ -469,7 +468,7 @@ func Participant(puller ChainPuller, analyzeLastConfBlock SelfMembershipPredicat
 
 // PullLastConfigBlock pulls the last configuration block, or returns an error on failure.
 func PullLastConfigBlock(puller ChainPuller) (*common.Block, error) {
-	endpoint, latestHeight, err := LatestHeightAndEndpoint(puller)
+	endpoint, latestHeight, err := latestHeightAndEndpoint(puller)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +494,7 @@ func PullLastConfigBlock(puller ChainPuller) (*common.Block, error) {
 	return lastConfigBlock, nil
 }
 
-func LatestHeightAndEndpoint(puller ChainPuller) (string, uint64, error) {
+func latestHeightAndEndpoint(puller ChainPuller) (string, uint64, error) {
 	var maxHeight uint64
 	var mostUpToDateEndpoint string
 	heightsByEndpoints, err := puller.HeightsByEndpoints()

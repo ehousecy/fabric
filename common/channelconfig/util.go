@@ -17,9 +17,9 @@ import (
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 )
 
@@ -33,7 +33,7 @@ const (
 	// AdminsPolicyKey is the key used for the read policy
 	AdminsPolicyKey = "Admins"
 
-	defaultHashingAlgorithm = bccsp.SHA256
+	defaultHashingAlgorithm = bccsp.GMSM3
 
 	defaultBlockDataHashingStructureWidth = math.MaxUint32
 )

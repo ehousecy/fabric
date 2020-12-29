@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,7 +63,7 @@ func gopathDevConfigDir() (string, error) {
 
 	gopath := strings.TrimSpace(buf.String())
 	for _, p := range filepath.SplitList(gopath) {
-		devPath := filepath.Join(p, "src/github.com/hyperledger/fabric/sampleconfig")
+		devPath := filepath.Join(p, "src/github.com/ehousecy/fabric/sampleconfig")
 		if dirExists(devPath) {
 			return devPath, nil
 		}
@@ -112,12 +113,12 @@ func SetDevFabricConfigPath(t *testing.T) (cleanup func()) {
 	if resetFabricCfgPath {
 		return func() {
 			err := os.Setenv("FABRIC_CFG_PATH", oldFabricCfgPath)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 		}
 	}
 
 	return func() {
 		err := os.Unsetenv("FABRIC_CFG_PATH")
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}
 }

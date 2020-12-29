@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statemetadata"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statemetadata"
+	"github.com/ehousecy/fabric/core/ledger/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,7 +65,7 @@ func TestTxOpsPreparationValueUpdate(t *testing.T) {
 		testutilSerializedMetadata(t, map[string][]byte{"metadata2": []byte("metadata2")}),
 		version.NewHeight(1, 2))
 
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2))) //write the above initial state to db
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2)) //write the above initial state to db
 	precedingUpdates := newPubAndHashUpdates()
 
 	rwset := testutilBuildRwset( // A sample rwset {upsert key1, key2, key3}
@@ -78,7 +78,7 @@ func TestTxOpsPreparationValueUpdate(t *testing.T) {
 		nil,
 	)
 
-	txOps, err := prepareTxOps(rwset, precedingUpdates, db)
+	txOps, err := prepareTxOps(rwset, version.NewHeight(1, 2), precedingUpdates, db)
 	require.NoError(t, err)
 	require.Len(t, txOps, 3)
 
@@ -122,7 +122,7 @@ func TestTxOpsPreparationMetadataUpdates(t *testing.T) {
 		testutilSerializedMetadata(t, map[string][]byte{"metadata2": []byte("metadata2")}),
 		version.NewHeight(1, 2))
 
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2))) //write the above initial state to db
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2)) //write the above initial state to db
 	precedingUpdates := newPubAndHashUpdates()
 
 	rwset := testutilBuildRwset( // A sample rwset {update metadta for the three keys}
@@ -135,7 +135,7 @@ func TestTxOpsPreparationMetadataUpdates(t *testing.T) {
 		},
 	)
 
-	txOps, err := prepareTxOps(rwset, precedingUpdates, db)
+	txOps, err := prepareTxOps(rwset, version.NewHeight(1, 2), precedingUpdates, db)
 	require.NoError(t, err)
 	require.Len(t, txOps, 2) // key3 should have been removed from the txOps because, the key3 does not exist and only metadata is being updated
 
@@ -174,7 +174,7 @@ func TestTxOpsPreparationMetadataDelete(t *testing.T) {
 		testutilSerializedMetadata(t, map[string][]byte{"metadata2": []byte("metadata2")}),
 		version.NewHeight(1, 2))
 
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2))) //write the above initial state to db
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2)) //write the above initial state to db
 	precedingUpdates := newPubAndHashUpdates()
 
 	rwset := testutilBuildRwset( // A sample rwset {delete metadata for the three keys}
@@ -187,7 +187,7 @@ func TestTxOpsPreparationMetadataDelete(t *testing.T) {
 		},
 	)
 
-	txOps, err := prepareTxOps(rwset, precedingUpdates, db)
+	txOps, err := prepareTxOps(rwset, version.NewHeight(1, 2), precedingUpdates, db)
 	require.NoError(t, err)
 	require.Len(t, txOps, 2) // key3 should have been removed from the txOps because, the key3 does not exist and only metadata is being updated
 
@@ -231,7 +231,7 @@ func TestTxOpsPreparationMixedUpdates(t *testing.T) {
 		testutilSerializedMetadata(t, map[string][]byte{"metadata4": []byte("metadata4")}),
 		version.NewHeight(1, 4))
 
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2))) //write the above initial state to db
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2)) //write the above initial state to db
 
 	precedingUpdates := newPubAndHashUpdates()
 
@@ -248,7 +248,7 @@ func TestTxOpsPreparationMixedUpdates(t *testing.T) {
 		},
 	)
 
-	txOps, err := prepareTxOps(rwset, precedingUpdates, db)
+	txOps, err := prepareTxOps(rwset, version.NewHeight(1, 2), precedingUpdates, db)
 	require.NoError(t, err)
 	require.Len(t, txOps, 4)
 
@@ -319,7 +319,7 @@ func TestTxOpsPreparationPvtdataHashes(t *testing.T) {
 		testutilSerializedMetadata(t, map[string][]byte{"metadata4": []byte("metadata4")}),
 		version.NewHeight(1, 4))
 
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2))) //write the above initial state to db
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2)) //write the above initial state to db
 
 	precedingUpdates := newPubAndHashUpdates()
 	rwset := testutilBuildRwset( // A sample rwset {key1:only value update, key2: value and metadata update, key3: only metadata update, key4: only value update}
@@ -335,7 +335,7 @@ func TestTxOpsPreparationPvtdataHashes(t *testing.T) {
 		},
 	)
 
-	txOps, err := prepareTxOps(rwset, precedingUpdates, db)
+	txOps, err := prepareTxOps(rwset, version.NewHeight(1, 2), precedingUpdates, db)
 	require.NoError(t, err)
 	require.Len(t, txOps, 4)
 

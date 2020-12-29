@@ -9,15 +9,15 @@ package filter
 import (
 	"testing"
 
-	"github.com/hyperledger/fabric/gossip/comm"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/gossip/comm"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSelectPolicies(t *testing.T) {
-	require.True(t, SelectAllPolicy(discovery.NetworkMember{}))
-	require.False(t, SelectNonePolicy(discovery.NetworkMember{}))
+	assert.True(t, SelectAllPolicy(discovery.NetworkMember{}))
+	assert.False(t, SelectNonePolicy(discovery.NetworkMember{}))
 }
 
 func TestCombineRoutingFilters(t *testing.T) {
@@ -32,9 +32,9 @@ func TestCombineRoutingFilters(t *testing.T) {
 	b := func(nm discovery.NetworkMember) bool {
 		return nm.InternalEndpoint == "b"
 	}
-	require.True(t, CombineRoutingFilters(a, b)(nm))
-	require.False(t, CombineRoutingFilters(CombineRoutingFilters(a, b), SelectNonePolicy)(nm))
-	require.False(t, CombineRoutingFilters(a, b)(discovery.NetworkMember{InternalEndpoint: "b"}))
+	assert.True(t, CombineRoutingFilters(a, b)(nm))
+	assert.False(t, CombineRoutingFilters(CombineRoutingFilters(a, b), SelectNonePolicy)(nm))
+	assert.False(t, CombineRoutingFilters(a, b)(discovery.NetworkMember{InternalEndpoint: "b"}))
 }
 
 func TestAnyMatch(t *testing.T) {
@@ -53,28 +53,28 @@ func TestAnyMatch(t *testing.T) {
 	}
 
 	matched := AnyMatch(peers, matchB, matchC)
-	require.Len(t, matched, 2)
-	require.Contains(t, matched, peerB)
-	require.Contains(t, matched, peerC)
+	assert.Len(t, matched, 2)
+	assert.Contains(t, matched, peerB)
+	assert.Contains(t, matched, peerC)
 }
 
 func TestFirst(t *testing.T) {
 	var peers []discovery.NetworkMember
 	// nil slice
-	require.Nil(t, First(nil, SelectAllPolicy))
+	assert.Nil(t, First(nil, SelectAllPolicy))
 
 	// empty slice
 	peers = []discovery.NetworkMember{}
-	require.Nil(t, First(peers, SelectAllPolicy))
+	assert.Nil(t, First(peers, SelectAllPolicy))
 
 	// first in slice with any marcher
 	peerA := discovery.NetworkMember{Endpoint: "a"}
 	peerB := discovery.NetworkMember{Endpoint: "b"}
 	peers = []discovery.NetworkMember{peerA, peerB}
-	require.Equal(t, &comm.RemotePeer{Endpoint: "a"}, First(peers, SelectAllPolicy))
+	assert.Equal(t, &comm.RemotePeer{Endpoint: "a"}, First(peers, SelectAllPolicy))
 
 	// second in slice with matcher that checks for a specific peer
-	require.Equal(t, &comm.RemotePeer{Endpoint: "b"}, First(peers, func(nm discovery.NetworkMember) bool {
+	assert.Equal(t, &comm.RemotePeer{Endpoint: "b"}, First(peers, func(nm discovery.NetworkMember) bool {
 		return nm.PreferredEndpoint() == "b"
 	}))
 }
@@ -103,12 +103,12 @@ func TestSelectPeers(t *testing.T) {
 	}
 
 	// individual filters
-	require.Len(t, SelectPeers(3, []discovery.NetworkMember{nm1, nm2, nm3}, a), 2)
-	require.Len(t, SelectPeers(3, []discovery.NetworkMember{nm1, nm2, nm3}, b), 3)
+	assert.Len(t, SelectPeers(3, []discovery.NetworkMember{nm1, nm2, nm3}, a), 2)
+	assert.Len(t, SelectPeers(3, []discovery.NetworkMember{nm1, nm2, nm3}, b), 3)
 	// combined filters
 	crf := CombineRoutingFilters(a, b)
-	require.Len(t, SelectPeers(3, []discovery.NetworkMember{nm1, nm2, nm3}, crf), 2)
-	require.Len(t, SelectPeers(1, []discovery.NetworkMember{nm1, nm2, nm3}, crf), 1)
+	assert.Len(t, SelectPeers(3, []discovery.NetworkMember{nm1, nm2, nm3}, crf), 2)
+	assert.Len(t, SelectPeers(1, []discovery.NetworkMember{nm1, nm2, nm3}, crf), 1)
 }
 
 func BenchmarkSelectPeers(t *testing.B) {
@@ -148,8 +148,8 @@ func BenchmarkSelectPeers(t *testing.B) {
 	}
 	t.StopTimer()
 
-	require.Equal(t, l1, 2)
-	require.Equal(t, l2, 3)
-	require.Equal(t, l3, 2)
-	require.Equal(t, l4, 1)
+	assert.Equal(t, l1, 2)
+	assert.Equal(t, l2, 3)
+	assert.Equal(t, l3, 2)
+	assert.Equal(t, l4, 1)
 }

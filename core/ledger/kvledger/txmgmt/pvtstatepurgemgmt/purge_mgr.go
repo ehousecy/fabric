@@ -10,16 +10,14 @@ import (
 	"math"
 	"sync"
 
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/bookkeeping"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy"
+	"github.com/ehousecy/fabric/core/ledger/util"
 )
 
-// PurgeMgr keeps track of the expiry of private data and the private data hashes based on block-to-live
-// parameter specified in the corresponding collection config
 type PurgeMgr struct {
 	btlPolicy pvtdatapolicy.BTLPolicy
 	db        *privacyenabledstate.DB
@@ -47,7 +45,7 @@ type keyAndVersion struct {
 }
 
 // InstantiatePurgeMgr instantiates a PurgeMgr.
-func InstantiatePurgeMgr(ledgerid string, db *privacyenabledstate.DB, btlPolicy pvtdatapolicy.BTLPolicy, bookkeepingProvider *bookkeeping.Provider) (*PurgeMgr, error) {
+func InstantiatePurgeMgr(ledgerid string, db *privacyenabledstate.DB, btlPolicy pvtdatapolicy.BTLPolicy, bookkeepingProvider bookkeeping.Provider) (*PurgeMgr, error) {
 	return &PurgeMgr{
 		btlPolicy: btlPolicy,
 		db:        db,
@@ -75,7 +73,7 @@ func (p *PurgeMgr) WaitForPrepareToFinish() {
 	p.lock.Unlock()
 }
 
-// UpdateExpiryInfoOfPvtDataOfOldBlocks updates the existing expiry entries in the expiryKeeper with the given pvtUpdates
+// UpdateExpirtyInfoPvtDataOfOldBlocks updates the existing expiry entries in the expiryKeeper with the given pvtUpdates
 func (p *PurgeMgr) UpdateExpiryInfoOfPvtDataOfOldBlocks(pvtUpdates *privacyenabledstate.PvtUpdateBatch) error {
 	builder := newExpiryScheduleBuilder(p.btlPolicy)
 	pvtUpdateCompositeKeyMap := pvtUpdates.ToCompositeKeyMap()
@@ -141,9 +139,6 @@ func (p *PurgeMgr) addMissingPvtDataToWorkingSet(pvtKeys privacyenabledstate.Pvt
 	}
 }
 
-// UpdateExpiryInfo persists the expiry information for the private data and private data hashes
-// This function is expected to be invoked before the updates are applied to the statedb for the block
-// commit
 func (p *PurgeMgr) UpdateExpiryInfo(
 	pvtUpdates *privacyenabledstate.PvtUpdateBatch,
 	hashedUpdates *privacyenabledstate.HashedUpdateBatch) error {

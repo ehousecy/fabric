@@ -17,11 +17,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/common"
 	etcdraftproto "github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +46,7 @@ func TestIsConsenterOfChannel(t *testing.T) {
 		"BQUFBQUFBQUFBQUFBQUFBQUFBQUFCTUFvR0NDcUdTTTQ5QkFNQ0EwY0FNRVFDCklFckJZRFVzV0JwOHB0ZVFSaTZyNjNVelhJQi81Sn" +
 		"YxK0RlTkRIUHc3aDljQWlCakYrM3V5TzBvMEdRclB4MEUKUWptYlI5T3BVREN2LzlEUkNXWU9GZitkVlE9PQotLS0tLUVORCBDRVJUSU" +
 		"ZJQ0FURS0tLS0tCg==")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	ca, err := tlsgen.NewCA()
 	require.NoError(t, err)
@@ -56,10 +56,10 @@ func TestIsConsenterOfChannel(t *testing.T) {
 
 	validBlock := func() *common.Block {
 		b, err := ioutil.ReadFile(filepath.Join("testdata", "etcdraftgenesis.block"))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		block := &common.Block{}
 		err = proto.Unmarshal(b, block)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		return block
 	}
 	for _, testCase := range []struct {
@@ -109,7 +109,7 @@ func TestIsConsenterOfChannel(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			consenterCertificate := &ConsenterCertificate{
 				Logger:               flogging.MustGetLogger("test"),
@@ -118,9 +118,9 @@ func TestIsConsenterOfChannel(t *testing.T) {
 			}
 			err = consenterCertificate.IsConsenterOfChannel(testCase.configBlock)
 			if testCase.expectedError != "" {
-				require.EqualError(t, err, testCase.expectedError)
+				assert.EqualError(t, err, testCase.expectedError)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -386,19 +386,19 @@ func TestVerifyConfigMetadata(t *testing.T) {
 	} {
 		t.Run(testCase.description, func(t *testing.T) {
 			err := VerifyConfigMetadata(testCase.metadata, testCase.verifyOpts)
-			require.NotNil(t, err, testCase.description)
-			require.Regexp(t, testCase.errRegex, err)
+			assert.NotNil(t, err)
+			assert.Regexp(t, testCase.errRegex, err)
 		})
 	}
 
 	//test use case when consenter has expired certificates
 	tlsCaCertBytes, err := ioutil.ReadFile(filepath.Join(ca1Dir, "ca.pem"))
-	require.Nil(t, err)
+	assert.Nil(t, err)
 	tlsCaCert, err := parseCertificateFromBytes(tlsCaCertBytes)
-	require.Nil(t, err)
+	assert.Nil(t, err)
 
-	tlsClientCert, err := ioutil.ReadFile(filepath.Join(ca1Dir, "client3.pem"))
-	require.Nil(t, err)
+	tlsClientCert, err := ioutil.ReadFile(filepath.Join(ca1Dir, "expired-client.pem"))
+	assert.Nil(t, err)
 
 	expiredCertVerifyOpts := goodVerifyingOpts
 	expiredCertVerifyOpts.Roots.AddCert(tlsCaCert)
@@ -416,5 +416,5 @@ func TestVerifyConfigMetadata(t *testing.T) {
 		},
 	}
 
-	require.Nil(t, VerifyConfigMetadata(metadataWithExpiredConsenter, expiredCertVerifyOpts))
+	assert.Nil(t, VerifyConfigMetadata(metadataWithExpiredConsenter, expiredCertVerifyOpts))
 }

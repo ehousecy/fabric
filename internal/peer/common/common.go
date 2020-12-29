@@ -8,26 +8,26 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
+	tls "github.com/tjfoc/gmtls"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	pcommon "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/core/scc/cscc"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/core/scc/cscc"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	"github.com/ehousecy/fabric/protoutil"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -73,8 +73,8 @@ var (
 	GetOrdererEndpointOfChainFnc func(chainID string, signer Signer,
 		endorserClient pb.EndorserClient, cryptoProvider bccsp.BCCSP) ([]string, error)
 
-	// GetClientCertificateFnc is a function that returns the client TLS certificate
-	GetClientCertificateFnc func() (tls.Certificate, error)
+	// GetCertificateFnc is a function that returns the client TLS certificate
+	GetCertificateFnc func() (tls.Certificate, error)
 )
 
 type CommonClient struct {
@@ -90,11 +90,12 @@ func init() {
 	GetOrdererEndpointOfChainFnc = GetOrdererEndpointOfChain
 	GetDeliverClientFnc = GetDeliverClient
 	GetPeerDeliverClientFnc = GetPeerDeliverClient
-	GetClientCertificateFnc = GetClientCertificate
+	GetCertificateFnc = GetCertificate
 }
 
 // InitConfig initializes viper config
 func InitConfig(cmdRoot string) error {
+
 	err := config.InitViper(nil, cmdRoot)
 	if err != nil {
 		return err
@@ -133,8 +134,11 @@ func InitCrypto(mspMgrConfigDir, localMSPID, localMSPType string) error {
 	// Init the BCCSP
 	SetBCCSPKeystorePath()
 	bccspConfig := factory.GetDefaultOpts()
-	if err := viper.UnmarshalKey("peer.BCCSP", &bccspConfig); err != nil {
-		return errors.WithMessage(err, "could not decode peer BCCSP configuration")
+	if config := viper.Get("peer.BCCSP"); config != nil {
+		err = mapstructure.WeakDecode(config, bccspConfig)
+		if err != nil {
+			return errors.WithMessage(err, "could not decode peer BCCSP configuration")
+		}
 	}
 
 	err = mspmgmt.LoadLocalMspWithType(mspMgrConfigDir, bccspConfig, localMSPID, localMSPType)
@@ -146,12 +150,10 @@ func InitCrypto(mspMgrConfigDir, localMSPID, localMSPType string) error {
 }
 
 // SetBCCSPKeystorePath sets the file keystore path for the SW BCCSP provider
-// to an absolute path relative to the config file.
+// to an absolute path relative to the config file
 func SetBCCSPKeystorePath() {
-	key := "peer.BCCSP.SW.FileKeyStore.KeyStore"
-	if ksPath := config.GetPath(key); ksPath != "" {
-		viper.Set(key, ksPath)
-	}
+	viper.Set("peer.BCCSP.SW.FileKeyStore.KeyStore",
+		config.GetPath("peer.BCCSP.SW.FileKeyStore.KeyStore"))
 }
 
 // GetDefaultSigner return a default Signer(Default/PEER) for cli
@@ -177,7 +179,7 @@ func GetOrdererEndpointOfChain(chainID string, signer Signer, endorserClient pb.
 		ChaincodeSpec: &pb.ChaincodeSpec{
 			Type:        pb.ChaincodeSpec_Type(pb.ChaincodeSpec_Type_value["GOLANG"]),
 			ChaincodeId: &pb.ChaincodeID{Name: "cscc"},
-			Input:       &pb.ChaincodeInput{Args: [][]byte{[]byte(cscc.GetChannelConfig), []byte(chainID)}},
+			Input:       &pb.ChaincodeInput{Args: [][]byte{[]byte(cscc.GetConfigBlock), []byte(chainID)}},
 		},
 	}
 
@@ -188,36 +190,40 @@ func GetOrdererEndpointOfChain(chainID string, signer Signer, endorserClient pb.
 
 	prop, _, err := protoutil.CreateProposalFromCIS(pcommon.HeaderType_CONFIG, "", invocation, creator)
 	if err != nil {
-		return nil, errors.WithMessage(err, "error creating GetChannelConfig proposal")
+		return nil, errors.WithMessage(err, "error creating GetConfigBlock proposal")
 	}
 
 	signedProp, err := protoutil.GetSignedProposal(prop, signer)
 	if err != nil {
-		return nil, errors.WithMessage(err, "error creating signed GetChannelConfig proposal")
+		return nil, errors.WithMessage(err, "error creating signed GetConfigBlock proposal")
 	}
 
 	proposalResp, err := endorserClient.ProcessProposal(context.Background(), signedProp)
 	if err != nil {
-		return nil, errors.WithMessage(err, "error endorsing GetChannelConfig")
+		return nil, errors.WithMessage(err, "error endorsing GetConfigBlock")
 	}
 
 	if proposalResp == nil {
-		return nil, errors.New("received nil proposal response")
+		return nil, errors.WithMessage(err, "error nil proposal response")
 	}
 
 	if proposalResp.Response.Status != 0 && proposalResp.Response.Status != 200 {
 		return nil, errors.Errorf("error bad proposal response %d: %s", proposalResp.Response.Status, proposalResp.Response.Message)
 	}
 
-	// parse config
-	channelConfig := &pcommon.Config{}
-	if err := proto.Unmarshal(proposalResp.Response.Payload, channelConfig); err != nil {
-		return nil, errors.WithMessage(err, "error unmarshaling channel config")
+	// parse config block
+	block, err := protoutil.UnmarshalBlock(proposalResp.Response.Payload)
+	if err != nil {
+		return nil, errors.WithMessage(err, "error unmarshaling config block")
 	}
 
-	bundle, err := channelconfig.NewBundle(chainID, channelConfig, cryptoProvider)
+	envelopeConfig, err := protoutil.ExtractEnvelope(block, 0)
 	if err != nil {
-		return nil, errors.WithMessage(err, "error loading channel config")
+		return nil, errors.WithMessage(err, "error extracting config block envelope")
+	}
+	bundle, err := channelconfig.NewBundleFromEnvelope(envelopeConfig, cryptoProvider)
+	if err != nil {
+		return nil, errors.WithMessage(err, "error loading config block")
 	}
 
 	return bundle.ChannelConfig().OrdererAddresses(), nil
@@ -255,27 +261,23 @@ func configFromEnv(prefix string) (address, override string, clientConfig comm.C
 		secOpts.ServerRootCAs = [][]byte{caPEM}
 	}
 	if secOpts.RequireClientCert {
-		secOpts.Key, secOpts.Certificate, err = getClientAuthInfoFromEnv(prefix)
-		if err != nil {
+		keyPEM, res := ioutil.ReadFile(config.GetPath(prefix + ".tls.clientKey.file"))
+		if res != nil {
+			err = errors.WithMessage(res,
+				fmt.Sprintf("unable to load %s.tls.clientKey.file", prefix))
 			return
 		}
+		secOpts.Key = keyPEM
+		certPEM, res := ioutil.ReadFile(config.GetPath(prefix + ".tls.clientCert.file"))
+		if res != nil {
+			err = errors.WithMessage(res,
+				fmt.Sprintf("unable to load %s.tls.clientCert.file", prefix))
+			return
+		}
+		secOpts.Certificate = certPEM
 	}
 	clientConfig.SecOpts = secOpts
 	return
-}
-
-// getClientAuthInfoFromEnv reads client tls key file and cert file and returns the bytes for the files
-func getClientAuthInfoFromEnv(prefix string) ([]byte, []byte, error) {
-	keyPEM, err := ioutil.ReadFile(config.GetPath(prefix + ".tls.clientKey.file"))
-	if err != nil {
-		return nil, nil, errors.WithMessagef(err, "unable to load %s.tls.clientKey.file", prefix)
-	}
-	certPEM, err := ioutil.ReadFile(config.GetPath(prefix + ".tls.clientCert.file"))
-	if err != nil {
-		return nil, nil, errors.WithMessagef(err, "unable to load %s.tls.clientCert.file", prefix)
-	}
-
-	return keyPEM, certPEM, nil
 }
 
 func InitCmd(cmd *cobra.Command, args []string) {

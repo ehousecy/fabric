@@ -19,9 +19,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-config/configtx"
 	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/ordererclient"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
 	"github.com/tedsuo/ifrit"
 
 	. "github.com/onsi/ginkgo"
@@ -38,7 +37,7 @@ var _ = Describe("ConfigTx", func() {
 
 	BeforeEach(func() {
 		var err error
-		testDir, err = ioutil.TempDir("", "configtx")
+		testDir, err = ioutil.TempDir("", "config")
 		Expect(err).NotTo(HaveOccurred())
 
 		client, err = docker.NewClientFromEnv()
@@ -164,8 +163,8 @@ var _ = Describe("ConfigTx", func() {
 
 		By("creating a detached signature for the orderer")
 		signingIdentity := configtx.SigningIdentity{
-			Certificate: parseCertificate(network.OrdererUserCert(orderer, "Admin")),
-			PrivateKey:  parsePrivateKey(network.OrdererUserKey(orderer, "Admin")),
+			Certificate: parseOrdererAdminX509Certificate(network, orderer),
+			PrivateKey:  parseOrdererAdminPrivateKey(network, orderer),
 			MSPID:       network.Organization(orderer.Organization).MSPID,
 		}
 		signature, err := signingIdentity.CreateConfigSignature(configUpdate)
@@ -180,7 +179,7 @@ var _ = Describe("ConfigTx", func() {
 		currentBlockNumber := nwo.CurrentConfigBlockNumber(network, org2peer0, orderer, "testchannel")
 
 		By("submitting the channel config update")
-		resp, err := ordererclient.Broadcast(network, orderer, configUpdateEnvelope)
+		resp, err := nwo.Broadcast(network, orderer, configUpdateEnvelope)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -218,8 +217,8 @@ var _ = Describe("ConfigTx", func() {
 		signatures := make([]*common.ConfigSignature, len(testPeers))
 		for i, p := range testPeers {
 			signingIdentity := configtx.SigningIdentity{
-				Certificate: parseCertificate(network.PeerUserCert(p, "Admin")),
-				PrivateKey:  parsePrivateKey(network.PeerUserKey(p, "Admin")),
+				Certificate: parsePeerAdminX509Certificate(network, p),
+				PrivateKey:  parsePeerAdminPrivateKey(network, p),
 				MSPID:       network.Organization(p.Organization).MSPID,
 			}
 			signingIdentities[i] = signingIdentity
@@ -237,7 +236,7 @@ var _ = Describe("ConfigTx", func() {
 		currentBlockNumber = nwo.CurrentConfigBlockNumber(network, org2peer0, orderer, "testchannel")
 
 		By("submitting the channel config update")
-		resp, err = ordererclient.Broadcast(network, orderer, configUpdateEnvelope)
+		resp, err = nwo.Broadcast(network, orderer, configUpdateEnvelope)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -266,8 +265,8 @@ var _ = Describe("ConfigTx", func() {
 
 			By("creating a detached signature")
 			signingIdentity := configtx.SigningIdentity{
-				Certificate: parseCertificate(network.PeerUserCert(peer, "Admin")),
-				PrivateKey:  parsePrivateKey(network.PeerUserKey(peer, "Admin")),
+				Certificate: parsePeerAdminX509Certificate(network, peer),
+				PrivateKey:  parsePeerAdminPrivateKey(network, peer),
 				MSPID:       network.Organization(peer.Organization).MSPID,
 			}
 			signature, err := signingIdentity.CreateConfigSignature(configUpdate)
@@ -282,7 +281,7 @@ var _ = Describe("ConfigTx", func() {
 			currentBlockNumber = nwo.CurrentConfigBlockNumber(network, peer, orderer, "testchannel")
 
 			By("submitting the channel config update for " + peer.Organization)
-			resp, err = ordererclient.Broadcast(network, orderer, configUpdateEnvelope)
+			resp, err = nwo.Broadcast(network, orderer, configUpdateEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(common.Status_SUCCESS))
 
@@ -296,23 +295,36 @@ var _ = Describe("ConfigTx", func() {
 	})
 })
 
-// parsePrivateKey loads the PEM-encoded private key at the specified path.
-func parsePrivateKey(path string) crypto.PrivateKey {
-	pkBytes, err := ioutil.ReadFile(path)
-	Expect(err).NotTo(HaveOccurred())
-	pemBlock, _ := pem.Decode(pkBytes)
-	privateKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
-	Expect(err).NotTo(HaveOccurred())
-	return privateKey
+func parsePeerAdminX509Certificate(n *nwo.Network, p *nwo.Peer) *x509.Certificate {
+	return parseCertificate(n.PeerUserCert(p, "Admin"))
 }
 
-// parseCertificate loads the PEM-encoded x509 certificate at the specified
-// path.
-func parseCertificate(path string) *x509.Certificate {
-	certBytes, err := ioutil.ReadFile(path)
+func parseOrdererAdminX509Certificate(n *nwo.Network, o *nwo.Orderer) *x509.Certificate {
+	return parseCertificate(n.OrdererUserCert(o, "Admin"))
+}
+
+func parseCertificate(filename string) *x509.Certificate {
+	certBytes, err := ioutil.ReadFile(filename)
 	Expect(err).NotTo(HaveOccurred())
 	pemBlock, _ := pem.Decode(certBytes)
 	cert, err := x509.ParseCertificate(pemBlock.Bytes)
 	Expect(err).NotTo(HaveOccurred())
 	return cert
+}
+
+func parsePeerAdminPrivateKey(n *nwo.Network, p *nwo.Peer) crypto.PrivateKey {
+	return parsePrivateKey(n.PeerUserKey(p, "Admin"))
+}
+
+func parseOrdererAdminPrivateKey(n *nwo.Network, o *nwo.Orderer) crypto.PrivateKey {
+	return parsePrivateKey(n.OrdererUserKey(o, "Admin"))
+}
+
+func parsePrivateKey(filename string) crypto.PrivateKey {
+	pkBytes, err := ioutil.ReadFile(filename)
+	Expect(err).NotTo(HaveOccurred())
+	pemBlock, _ := pem.Decode(pkBytes)
+	privateKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
+	Expect(err).NotTo(HaveOccurred())
+	return privateKey
 }

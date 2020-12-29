@@ -16,15 +16,15 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	vsccErrors "github.com/hyperledger/fabric/common/errors"
-	"github.com/hyperledger/fabric/common/metrics"
-	commonutil "github.com/hyperledger/fabric/common/util"
-	pvtdatasc "github.com/hyperledger/fabric/core/common/privdata"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/transientstore"
-	pvtdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/hyperledger/fabric/protoutil"
+	vsccErrors "github.com/ehousecy/fabric/common/errors"
+	"github.com/ehousecy/fabric/common/metrics"
+	commonutil "github.com/ehousecy/fabric/common/util"
+	pvtdatasc "github.com/ehousecy/fabric/core/common/privdata"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/transientstore"
+	pvtdatacommon "github.com/ehousecy/fabric/gossip/privdata/common"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 type sleeper struct {
@@ -445,7 +445,7 @@ func (pdp *PvtdataProvider) populateFromRemotePeers(pvtdata rwsetByKeys, pvtdata
 func (pdp *PvtdataProvider) prepareBlockPvtdata(pvtdata rwsetByKeys, pvtdataRetrievalInfo *pvtdataRetrievalInfo) *ledger.BlockPvtdata {
 	blockPvtdata := &ledger.BlockPvtdata{
 		PvtData:        make(ledger.TxPvtDataMap),
-		MissingPvtData: make(ledger.TxMissingPvtData),
+		MissingPvtData: make(ledger.TxMissingPvtDataMap),
 	}
 
 	for seqInBlock, nsRWS := range pvtdata.bySeqsInBlock() {

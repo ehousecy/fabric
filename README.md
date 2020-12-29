@@ -7,7 +7,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/955/badge)](https://bestpractices.coreinfrastructure.org/projects/955)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hyperledger/fabric)](https://goreportcard.com/report/github.com/hyperledger/fabric)
 [![GoDoc](https://godoc.org/github.com/hyperledger/fabric?status.svg)](https://godoc.org/github.com/hyperledger/fabric)
-[![Documentation Status](https://readthedocs.org/projects/hyperledger-fabric/badge/?version=latest)](http://hyperledger-fabric.readthedocs.io/en/latest)
+[![Documentation Status](https://readthedocs.org/projects/hyperledger-fabric/badge/?version=master)](http://hyperledger-fabric.readthedocs.io/en/master/?badge=master)
 
 This project is an _Active_ Hyperledger project. For more information on the history of this project see the [Fabric wiki page](https://wiki.hyperledger.org/display/fabric). Information on what _Active_ entails can be found in
 the [Hyperledger Project Lifecycle document](https://wiki.hyperledger.org/display/HYP/Project+Lifecycle).
@@ -48,7 +48,6 @@ Follow the release discussion on the [#fabric-release](https://chat.hyperledger.
 Please visit our
 online documentation for
 information on getting started using and developing with the fabric, SDK and chaincode:
-- [v2.3](http://hyperledger-fabric.readthedocs.io/en/release-2.3/)
 - [v2.2](http://hyperledger-fabric.readthedocs.io/en/release-2.2/)
 - [v2.1](http://hyperledger-fabric.readthedocs.io/en/release-2.1/)
 - [v2.0](http://hyperledger-fabric.readthedocs.io/en/release-2.0/)
@@ -56,7 +55,8 @@ information on getting started using and developing with the fabric, SDK and cha
 - [v1.3](http://hyperledger-fabric.readthedocs.io/en/release-1.3/)
 - [v1.2](http://hyperledger-fabric.readthedocs.io/en/release-1.2/)
 - [v1.1](http://hyperledger-fabric.readthedocs.io/en/release-1.1/)
-- [master branch (development)](http://hyperledger-fabric.readthedocs.io/en/latest/)
+- [v1.0](http://hyperledger-fabric.readthedocs.io/en/release-1.0/)
+- [master branch (development)](http://hyperledger-fabric.readthedocs.io/en/master/)
 
 It's recommended for first-time users to begin by going through the Getting Started section of the documentation in order to gain familiarity with the Hyperledger Fabric components and the basic transaction flow.
 

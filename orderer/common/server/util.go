@@ -7,23 +7,28 @@ SPDX-License-Identifier: Apache-2.0
 package server
 
 import (
-	"github.com/hyperledger/fabric/common/ledger/blockledger"
-	"github.com/hyperledger/fabric/common/ledger/blockledger/fileledger"
-	"github.com/hyperledger/fabric/common/metrics"
-	config "github.com/hyperledger/fabric/orderer/common/localconfig"
+	"io/ioutil"
+
+	"github.com/ehousecy/fabric/common/ledger/blockledger"
+	"github.com/ehousecy/fabric/common/ledger/blockledger/fileledger"
+	"github.com/ehousecy/fabric/common/metrics"
+	config "github.com/ehousecy/fabric/orderer/common/localconfig"
 	"github.com/pkg/errors"
 )
 
-func createLedgerFactory(conf *config.TopLevel, metricsProvider metrics.Provider) (blockledger.Factory, error) {
+func createLedgerFactory(conf *config.TopLevel, metricsProvider metrics.Provider) (blockledger.Factory, string, error) {
 	ld := conf.FileLedger.Location
+	var err error
 	if ld == "" {
-		logger.Panic("Orderer.FileLedger.Location must be set")
+		if ld, err = ioutil.TempDir("", conf.FileLedger.Prefix); err != nil {
+			logger.Panic("Error creating temp dir:", err)
+		}
 	}
 
 	logger.Debug("Ledger dir:", ld)
 	lf, err := fileledger.New(ld, metricsProvider)
 	if err != nil {
-		return nil, errors.WithMessage(err, "Error in opening ledger factory")
+		return nil, "", errors.WithMessage(err, "Error in opening ledger factory")
 	}
-	return lf, nil
+	return lf, ld, nil
 }

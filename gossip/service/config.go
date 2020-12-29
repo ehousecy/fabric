@@ -8,8 +8,8 @@ package service
 import (
 	"time"
 
-	"github.com/hyperledger/fabric/gossip/election"
-	"github.com/hyperledger/fabric/gossip/util"
+	"github.com/ehousecy/fabric/gossip/election"
+	"github.com/ehousecy/fabric/gossip/util"
 	"github.com/spf13/viper"
 )
 

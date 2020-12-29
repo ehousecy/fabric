@@ -18,14 +18,14 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/common/ledger/blkstorage"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -202,7 +202,7 @@ func TestGetAllMSPIDs_NegativeTests(t *testing.T) {
 	configBlock = newBlock(nil, lastBlockNum, lastBlockNum+1, protoutil.BlockHeaderHash(configBlock.Header))
 	require.NoError(t, blkStore.AddBlock(configBlock))
 	_, err = channelInfoProvider.getAllMSPIDs()
-	require.EqualError(t, err, "no such block number [3] in index")
+	require.EqualError(t, err, "Entry not found in index")
 
 	// test GetLastConfigIndexFromBlock error by using invalid bytes for LastConfig metadata value
 	lastBlockNum++
@@ -291,7 +291,7 @@ func createTestOrgGroups(t *testing.T) map[string]*cb.ConfigGroup {
 	blockData, err := ioutil.ReadFile("testdata/test_configblock.json")
 	require.NoError(t, err)
 	block := &common.Block{}
-	require.NoError(t, protolator.DeepUnmarshalJSON(bytes.NewBuffer(blockData), block))
+	protolator.DeepUnmarshalJSON(bytes.NewBuffer(blockData), block)
 	config := getConfigFromBlock(block)
 	return config.ChannelGroup.Groups[channelconfig.ApplicationGroupKey].Groups
 }

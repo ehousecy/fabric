@@ -14,10 +14,11 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/viperutil"
-	cf "github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/viperutil"
+	cf "github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -51,14 +52,6 @@ const (
 	// SampleDevModeEtcdRaftProfile references the sample profile used for testing
 	// the etcd/raft-based ordering service.
 	SampleDevModeEtcdRaftProfile = "SampleDevModeEtcdRaft"
-
-	// SampleAppChannelInsecureSoloProfile references the sample profile which
-	// does not include any MSPs and uses solo for ordering.
-	SampleAppChannelInsecureSoloProfile = "SampleAppChannelInsecureSolo"
-	// SampleApppChannelEtcdRaftProfile references the sample profile used for
-	// testing the etcd/raft-based ordering service using the channel
-	// participation API.
-	SampleAppChannelEtcdRaftProfile = "SampleAppChannelEtcdRaft"
 
 	// SampleSingleMSPChannelProfile references the sample profile which
 	// includes only the sample MSP and is used to create a channel
@@ -205,9 +198,15 @@ var genesisDefaults = TopLevel{
 // Note, for environment overrides to work properly within a profile, Load
 // should be used instead.
 func LoadTopLevel(configPaths ...string) *TopLevel {
-	config := viperutil.New()
-	config.AddConfigPaths(configPaths...)
-	config.SetConfigName("configtx")
+	config := viper.New()
+	if len(configPaths) > 0 {
+		for _, p := range configPaths {
+			config.AddConfigPath(p)
+		}
+		config.SetConfigName("configtx")
+	} else {
+		cf.InitViper(config, "configtx")
+	}
 
 	err := config.ReadInConfig()
 	if err != nil {
@@ -229,9 +228,15 @@ func LoadTopLevel(configPaths ...string) *TopLevel {
 // a given profile. Config paths may optionally be provided and will be used
 // in place of the FABRIC_CFG_PATH env variable.
 func Load(profile string, configPaths ...string) *Profile {
-	config := viperutil.New()
-	config.AddConfigPaths(configPaths...)
-	config.SetConfigName("configtx")
+	config := viper.New()
+	if len(configPaths) > 0 {
+		for _, p := range configPaths {
+			config.AddConfigPath(p)
+		}
+		config.SetConfigName("configtx")
+	} else {
+		cf.InitViper(config, "configtx")
+	}
 
 	err := config.ReadInConfig()
 	if err != nil {
@@ -428,15 +433,15 @@ var cache = &configCache{
 // load loads the TopLevel config structure from configCache.
 // if not successful, it unmarshal a config file, and populate configCache
 // with marshaled TopLevel struct.
-func (c *configCache) load(config *viperutil.ConfigParser, configPath string) (*TopLevel, error) {
+func (c *configCache) load(config *viper.Viper, configPath string) (*TopLevel, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	conf := &TopLevel{}
 	serializedConf, ok := c.cache[configPath]
-	logger.Debugf("Loading configuration from cache: %t", ok)
+	logger.Debug("Loading configuration from cache :%v", ok)
 	if !ok {
-		err := config.EnhancedExactUnmarshal(conf)
+		err := viperutil.EnhancedExactUnmarshal(config, conf)
 		if err != nil {
 			return nil, fmt.Errorf("Error unmarshaling config into struct: %s", err)
 		}

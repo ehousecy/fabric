@@ -15,24 +15,14 @@ import (
 	"strings"
 	"testing"
 
-	cb "github.com/hyperledger/fabric-protos-go/common"
-	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/msp"
-	msptesttools "github.com/hyperledger/fabric/msp/mgmt/testtools"
-	"github.com/hyperledger/fabric/protoutil"
-	"github.com/pkg/errors"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/msp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInitConfig(t *testing.T) {
@@ -75,62 +65,58 @@ func TestInitConfig(t *testing.T) {
 func TestInitCryptoMissingDir(t *testing.T) {
 	dir := path.Join(os.TempDir(), util.GenerateUUID())
 	err := common.InitCrypto(dir, "SampleOrg", msp.ProviderTypeToString(msp.FABRIC))
-	require.Error(t, err, "Should not be able to initialize crypto with non-existing directory")
-	require.Contains(t, err.Error(), fmt.Sprintf("specified path \"%s\" does not exist", dir))
+	assert.Error(t, err, "Should not be able to initialize crypto with non-existing directory")
+	assert.Contains(t, err.Error(), fmt.Sprintf("specified path \"%s\" does not exist", dir))
 }
 
 func TestInitCryptoFileNotDir(t *testing.T) {
 	file := path.Join(os.TempDir(), util.GenerateUUID())
 	err := ioutil.WriteFile(file, []byte{}, 0644)
-	require.Nil(t, err, "Failed to create test file")
+	assert.Nil(t, err, "Failed to create test file")
 	defer os.Remove(file)
 	err = common.InitCrypto(file, "SampleOrg", msp.ProviderTypeToString(msp.FABRIC))
-	require.Error(t, err, "Should not be able to initialize crypto with a file instead of a directory")
-	require.Contains(t, err.Error(), fmt.Sprintf("specified path \"%s\" is not a directory", file))
+	assert.Error(t, err, "Should not be able to initialize crypto with a file instead of a directory")
+	assert.Contains(t, err.Error(), fmt.Sprintf("specified path \"%s\" is not a directory", file))
 }
 
 func TestInitCrypto(t *testing.T) {
 	mspConfigPath := configtest.GetDevMspDir()
 	localMspId := "SampleOrg"
 	err := common.InitCrypto(mspConfigPath, localMspId, msp.ProviderTypeToString(msp.FABRIC))
-	require.NoError(t, err, "Unexpected error [%s] calling InitCrypto()", err)
+	assert.NoError(t, err, "Unexpected error [%s] calling InitCrypto()", err)
 	localMspId = ""
 	err = common.InitCrypto(mspConfigPath, localMspId, msp.ProviderTypeToString(msp.FABRIC))
-	require.Error(t, err, fmt.Sprintf("Expected error [%s] calling InitCrypto()", err))
+	assert.Error(t, err, fmt.Sprintf("Expected error [%s] calling InitCrypto()", err))
 }
 
 func TestSetBCCSPKeystorePath(t *testing.T) {
 	cfgKey := "peer.BCCSP.SW.FileKeyStore.KeyStore"
 	cfgPath := "./testdata"
-	absPath, err := filepath.Abs(cfgPath)
-	require.NoError(t, err)
-
+	absPath, _ := filepath.Abs(cfgPath)
 	keystorePath := "/msp/keystore"
-	defer os.Unsetenv("FABRIC_CFG_PATH")
 
 	os.Setenv("FABRIC_CFG_PATH", cfgPath)
 	viper.Reset()
-	err = common.InitConfig("notset")
+	_ = common.InitConfig("notset")
 	common.SetBCCSPKeystorePath()
 	t.Log(viper.GetString(cfgKey))
-	require.Equal(t, "", viper.GetString(cfgKey))
-	require.Nil(t, viper.Get(cfgKey))
+	assert.Equal(t, "", viper.GetString(cfgKey))
 
 	viper.Reset()
-	err = common.InitConfig("absolute")
-	require.NoError(t, err)
+	_ = common.InitConfig("absolute")
 	common.SetBCCSPKeystorePath()
 	t.Log(viper.GetString(cfgKey))
-	require.Equal(t, keystorePath, viper.GetString(cfgKey))
+	assert.Equal(t, keystorePath, viper.GetString(cfgKey))
 
 	viper.Reset()
-	err = common.InitConfig("relative")
-	require.NoError(t, err)
+	_ = common.InitConfig("relative")
 	common.SetBCCSPKeystorePath()
 	t.Log(viper.GetString(cfgKey))
-	require.Equal(t, filepath.Join(absPath, keystorePath), viper.GetString(cfgKey))
+	assert.Equal(t, filepath.Join(absPath, keystorePath),
+		viper.GetString(cfgKey))
 
 	viper.Reset()
+	os.Unsetenv("FABRIC_CFG_PATH")
 }
 
 func TestCheckLogLevel(t *testing.T) {
@@ -208,20 +194,20 @@ func TestInitCmd(t *testing.T) {
 	// test that InitCmd doesn't remove existing loggers from the logger levels map
 	flogging.MustGetLogger("test")
 	flogging.ActivateSpec("test=error")
-	require.Equal(t, "error", flogging.LoggerLevel("test"))
+	assert.Equal(t, "error", flogging.LoggerLevel("test"))
 	flogging.MustGetLogger("chaincode")
-	require.Equal(t, flogging.DefaultLevel(), flogging.LoggerLevel("chaincode"))
+	assert.Equal(t, flogging.DefaultLevel(), flogging.LoggerLevel("chaincode"))
 	flogging.MustGetLogger("test.test2")
 	flogging.ActivateSpec("test.test2=warn")
-	require.Equal(t, "warn", flogging.LoggerLevel("test.test2"))
+	assert.Equal(t, "warn", flogging.LoggerLevel("test.test2"))
 
 	origEnvValue := os.Getenv("FABRIC_LOGGING_SPEC")
 	os.Setenv("FABRIC_LOGGING_SPEC", "chaincode=debug:test.test2=fatal:abc=error")
 	common.InitCmd(&cobra.Command{}, nil)
-	require.Equal(t, "debug", flogging.LoggerLevel("chaincode"))
-	require.Equal(t, "info", flogging.LoggerLevel("test"))
-	require.Equal(t, "fatal", flogging.LoggerLevel("test.test2"))
-	require.Equal(t, "error", flogging.LoggerLevel("abc"))
+	assert.Equal(t, "debug", flogging.LoggerLevel("chaincode"))
+	assert.Equal(t, "info", flogging.LoggerLevel("test"))
+	assert.Equal(t, "fatal", flogging.LoggerLevel("test.test2"))
+	assert.Equal(t, "error", flogging.LoggerLevel("abc"))
 	os.Setenv("FABRIC_LOGGING_SPEC", origEnvValue)
 }
 
@@ -260,91 +246,4 @@ func TestInitCmdWithoutInitCrypto(t *testing.T) {
 	os.Setenv("CORE_PEER_MSPCONFIGPATH", dir)
 
 	common.InitCmd(packageCmd, nil)
-}
-
-func TestGetOrdererEndpointFromConfigTx(t *testing.T) {
-	require.NoError(t, msptesttools.LoadMSPSetupForTesting())
-	signer, err := common.GetDefaultSigner()
-	require.NoError(t, err)
-	factory.InitFactories(nil)
-	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
-
-	t.Run("green-path", func(t *testing.T) {
-		profile := genesisconfig.Load(genesisconfig.SampleInsecureSoloProfile, configtest.GetDevConfigDir())
-		channelGroup, err := encoder.NewChannelGroup(profile)
-		require.NoError(t, err)
-		channelConfig := &cb.Config{ChannelGroup: channelGroup}
-
-		ordererAddresses := channelconfig.OrdererAddressesValue([]string{"order-1-endpoint", "order-2-end-point"})
-		channelConfig.ChannelGroup.Values[ordererAddresses.Key()] = &cb.ConfigValue{
-			Value: protoutil.MarshalOrPanic(ordererAddresses.Value()),
-		}
-
-		mockEndorserClient := common.GetMockEndorserClient(
-			&pb.ProposalResponse{
-				Response:    &pb.Response{Status: 200, Payload: protoutil.MarshalOrPanic(channelConfig)},
-				Endorsement: &pb.Endorsement{},
-			},
-			nil,
-		)
-
-		ordererEndpoints, err := common.GetOrdererEndpointOfChain("test-channel", signer, mockEndorserClient, cryptoProvider)
-		require.NoError(t, err)
-		require.Equal(t, []string{"order-1-endpoint", "order-2-end-point"}, ordererEndpoints)
-	})
-
-	t.Run("error-invoking-CSCC", func(t *testing.T) {
-		mockEndorserClient := common.GetMockEndorserClient(
-			nil,
-			errors.Errorf("cscc-invocation-error"),
-		)
-		_, err := common.GetOrdererEndpointOfChain("test-channel", signer, mockEndorserClient, cryptoProvider)
-		require.EqualError(t, err, "error endorsing GetChannelConfig: cscc-invocation-error")
-	})
-
-	t.Run("nil-response", func(t *testing.T) {
-		mockEndorserClient := common.GetMockEndorserClient(
-			nil,
-			nil,
-		)
-		_, err := common.GetOrdererEndpointOfChain("test-channel", signer, mockEndorserClient, cryptoProvider)
-		require.EqualError(t, err, "received nil proposal response")
-	})
-
-	t.Run("bad-status-code-from-cscc", func(t *testing.T) {
-		mockEndorserClient := common.GetMockEndorserClient(
-			&pb.ProposalResponse{
-				Response:    &pb.Response{Status: 404, Payload: []byte{}},
-				Endorsement: &pb.Endorsement{},
-			},
-			nil,
-		)
-		_, err := common.GetOrdererEndpointOfChain("test-channel", signer, mockEndorserClient, cryptoProvider)
-		require.EqualError(t, err, "error bad proposal response 404: ")
-	})
-
-	t.Run("unmarshalable-config", func(t *testing.T) {
-		mockEndorserClient := common.GetMockEndorserClient(
-			&pb.ProposalResponse{
-				Response:    &pb.Response{Status: 200, Payload: []byte("unmarshalable-config")},
-				Endorsement: &pb.Endorsement{},
-			},
-			nil,
-		)
-		_, err := common.GetOrdererEndpointOfChain("test-channel", signer, mockEndorserClient, cryptoProvider)
-		require.EqualError(t, err, "error unmarshaling channel config: unexpected EOF")
-	})
-
-	t.Run("unloadable-config", func(t *testing.T) {
-		mockEndorserClient := common.GetMockEndorserClient(
-			&pb.ProposalResponse{
-				Response:    &pb.Response{Status: 200, Payload: []byte{}},
-				Endorsement: &pb.Endorsement{},
-			},
-			nil,
-		)
-		_, err := common.GetOrdererEndpointOfChain("test-channel", signer, mockEndorserClient, cryptoProvider)
-		require.EqualError(t, err, "error loading channel config: config must contain a channel group")
-	})
 }

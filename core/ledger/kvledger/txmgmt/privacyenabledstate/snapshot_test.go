@@ -8,7 +8,6 @@ package privacyenabledstate
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"hash"
 	"io/ioutil"
@@ -17,11 +16,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric/common/ledger/snapshot"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate/mock"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/common/ledger/snapshot"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,6 +30,9 @@ var (
 
 func TestSnapshot(t *testing.T) {
 	for _, env := range testEnvs {
+		if _, ok := env.(*LevelDBTestEnv); !ok {
+			continue
+		}
 		t.Run(env.GetName(), func(t *testing.T) {
 			testSanpshot(t, env)
 		})
@@ -46,11 +46,11 @@ func testSanpshot(t *testing.T, env TestEnv) {
 		for _, ns := range namespaces {
 			for i := 0; i < 5; i++ {
 				sampleKV := &statedb.VersionedKV{
-					CompositeKey: &statedb.CompositeKey{
+					CompositeKey: statedb.CompositeKey{
 						Namespace: ns,
 						Key:       fmt.Sprintf("key-%d", i),
 					},
-					VersionedValue: &statedb.VersionedValue{
+					VersionedValue: statedb.VersionedValue{
 						Value:    []byte(fmt.Sprintf("value-for-key-%d-for-%s", i, ns)),
 						Version:  version.NewHeight(1, 1),
 						Metadata: []byte(fmt.Sprintf("metadata-for-key-%d-for-%s", i, ns)),
@@ -84,55 +84,11 @@ func testSanpshot(t *testing.T, env TestEnv) {
 		derivePvtDataNs("ns3", "coll1"),
 	)
 
-	testCases := []struct {
-		description    string
-		publicState    []*statedb.VersionedKV
-		pvtStateHashes []*statedb.VersionedKV
-		pvtState       []*statedb.VersionedKV
-	}{
-		{
-			description:    "no-data",
-			publicState:    nil,
-			pvtStateHashes: nil,
-			pvtState:       nil,
-		},
-		{
-			description:    "only-public-data",
-			publicState:    samplePublicState,
-			pvtStateHashes: nil,
-			pvtState:       nil,
-		},
-		{
-			description:    "only-pvtdatahashes",
-			publicState:    nil,
-			pvtStateHashes: samplePvtStateHashes,
-			pvtState:       nil,
-		},
-		{
-			description:    "public-and-pvtdatahashes",
-			publicState:    samplePublicState,
-			pvtStateHashes: samplePvtStateHashes,
-			pvtState:       nil,
-		},
-		{
-			description:    "public-and-pvtdatahashes-and-pvtdata",
-			publicState:    samplePublicState,
-			pvtStateHashes: samplePvtStateHashes,
-			pvtState:       samplePvtState,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.description, func(t *testing.T) {
-			testSnapshotWithSampleData(
-				t,
-				env,
-				testCase.publicState,
-				testCase.pvtStateHashes,
-				testCase.pvtState,
-			)
-		})
-	}
+	testSnapshotWithSampleData(t, env, nil, nil, nil)                                           // no data
+	testSnapshotWithSampleData(t, env, samplePublicState, nil, nil)                             // test with only public data
+	testSnapshotWithSampleData(t, env, nil, samplePvtStateHashes, nil)                          // test with only pvtdata hashes
+	testSnapshotWithSampleData(t, env, samplePublicState, samplePvtStateHashes, nil)            // test with public data and pvtdata hashes
+	testSnapshotWithSampleData(t, env, samplePublicState, samplePvtStateHashes, samplePvtState) // test with public data, pvtdata hashes, and pvt data
 }
 
 func testSnapshotWithSampleData(t *testing.T, env TestEnv,
@@ -142,8 +98,9 @@ func testSnapshotWithSampleData(t *testing.T, env TestEnv,
 ) {
 	env.Init(t)
 	defer env.Cleanup()
-	// load data into source statedb
-	sourceDB := env.GetDBHandle(generateLedgerID(t))
+	db := env.GetDBHandle(generateLedgerID(t))
+
+	// load data into statedb
 	updateBatch := NewUpdateBatch()
 	for _, s := range publicState {
 		updateBatch.PubUpdates.PutValAndMetadata(s.Namespace, s.Key, s.Value, s.Metadata, s.Version)
@@ -160,67 +117,18 @@ func testSnapshotWithSampleData(t *testing.T, env TestEnv,
 		coll := nsColl[1]
 		updateBatch.PvtUpdates.Put(ns, coll, s.Key, s.Value, s.Version)
 	}
-	err := sourceDB.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 2))
+	err := db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 2))
 	require.NoError(t, err)
 
-	// export snapshot files from statedb
-	snapshotDirSrcDB, err := ioutil.TempDir("", "testsnapshot")
-	require.NoError(t, err)
-	defer func() {
-		os.RemoveAll(snapshotDirSrcDB)
-	}()
-
-	// verify exported snapshot files
-	filesAndHashesSrcDB, err := sourceDB.ExportPubStateAndPvtStateHashes(snapshotDirSrcDB, testNewHashFunc)
-	require.NoError(t, err)
-	verifyExportedSnapshot(t,
-		snapshotDirSrcDB,
-		filesAndHashesSrcDB,
-		publicState != nil,
-		pvtStateHashes != nil,
-	)
-
-	// import snapshot in a fresh db and verify the imported state
-	destinationDBName := generateLedgerID(t)
-	err = env.GetProvider().ImportFromSnapshot(
-		destinationDBName, version.NewHeight(10, 10), snapshotDirSrcDB)
-	require.NoError(t, err)
-	destinationDB := env.GetDBHandle(destinationDBName)
-	verifyImportedSnapshot(t, destinationDB,
-		version.NewHeight(10, 10),
-		publicState, pvtStateHashes, pvtState)
-
-	// export snapshot from the destination db
-	snapshotDirDestDB, err := ioutil.TempDir("", "testsnapshot")
+	// export snapshot files for statedb
+	snapshotDir, err := ioutil.TempDir("", "testsnapshot")
 	require.NoError(t, err)
 	defer func() {
-		os.RemoveAll(snapshotDirDestDB)
+		os.RemoveAll(snapshotDir)
 	}()
-	filesAndHashesDestDB, err := destinationDB.ExportPubStateAndPvtStateHashes(snapshotDirDestDB, testNewHashFunc)
+
+	filesAndHashes, err := db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
 	require.NoError(t, err)
-	require.Equal(t, filesAndHashesSrcDB, filesAndHashesDestDB)
-}
-
-func verifyExportedSnapshot(
-	t *testing.T,
-	snapshotDir string,
-	filesAndHashes map[string][]byte,
-	publicStateFilesExpected bool,
-	pvtdataHashesFilesExpected bool,
-) {
-
-	numFilesExpected := 0
-	if publicStateFilesExpected {
-		numFilesExpected += 2
-		require.Contains(t, filesAndHashes, pubStateDataFileName)
-		require.Contains(t, filesAndHashes, pubStateMetadataFileName)
-	}
-
-	if pvtdataHashesFilesExpected {
-		numFilesExpected += 2
-		require.Contains(t, filesAndHashes, pvtStateHashesFileName)
-		require.Contains(t, filesAndHashes, pvtStateHashesMetadataFileName)
-	}
 
 	for f, h := range filesAndHashes {
 		expectedFile := filepath.Join(snapshotDir, f)
@@ -228,104 +136,34 @@ func verifyExportedSnapshot(
 		require.Equal(t, sha256ForFileForTest(t, expectedFile), h)
 	}
 
+	numFilesExpected := 0
+	if len(publicState) != 0 {
+		numFilesExpected += 2
+		require.Contains(t, filesAndHashes, pubStateDataFileName)
+		require.Contains(t, filesAndHashes, pubStateMetadataFileName)
+		// verify snapshot files contents
+		pubStateFromSnapshot := loadSnapshotDataForTest(t,
+			env,
+			filepath.Join(snapshotDir, pubStateDataFileName),
+			filepath.Join(snapshotDir, pubStateMetadataFileName),
+		)
+		require.Equal(t, publicState, pubStateFromSnapshot)
+	}
+
+	if len(pvtStateHashes) != 0 {
+		numFilesExpected += 2
+		require.Contains(t, filesAndHashes, pvtStateHashesFileName)
+		require.Contains(t, filesAndHashes, pvtStateHashesMetadataFileName)
+		// verify snapshot files contents
+		pvtStateHashesFromSnapshot := loadSnapshotDataForTest(t,
+			env,
+			filepath.Join(snapshotDir, pvtStateHashesFileName),
+			filepath.Join(snapshotDir, pvtStateHashesMetadataFileName),
+		)
+
+		require.Equal(t, pvtStateHashes, pvtStateHashesFromSnapshot)
+	}
 	require.Len(t, filesAndHashes, numFilesExpected)
-}
-
-func verifyImportedSnapshot(t *testing.T,
-	db *DB,
-	expectedSavepoint *version.Height,
-	expectedPublicState,
-	expectedPvtStateHashes,
-	notExpectedPvtState []*statedb.VersionedKV,
-) {
-	s, err := db.GetLatestSavePoint()
-	require.NoError(t, err)
-	require.Equal(t, expectedSavepoint, s)
-	for _, pub := range expectedPublicState {
-		vv, err := db.GetState(pub.Namespace, pub.Key)
-		require.NoError(t, err)
-		require.Equal(t, pub.VersionedValue, vv)
-	}
-
-	for _, pvtdataHashes := range expectedPvtStateHashes {
-		nsColl := strings.Split(pvtdataHashes.Namespace, nsJoiner+hashDataPrefix)
-		ns := nsColl[0]
-		coll := nsColl[1]
-		vv, err := db.GetValueHash(ns, coll, []byte(pvtdataHashes.Key))
-		require.NoError(t, err)
-		require.Equal(t, pvtdataHashes.VersionedValue, vv)
-	}
-
-	for _, ptvdata := range notExpectedPvtState {
-		nsColl := strings.Split(ptvdata.Namespace, nsJoiner+pvtDataPrefix)
-		ns := nsColl[0]
-		coll := nsColl[1]
-		vv, err := db.GetPrivateData(ns, coll, ptvdata.Key)
-		require.NoError(t, err)
-		require.Nil(t, vv)
-	}
-}
-
-func TestSnapshotImportMetadtaHintImport(t *testing.T) {
-	env := &LevelDBTestEnv{}
-	env.Init(t)
-	defer env.Cleanup()
-
-	sourceDB := env.GetDBHandle(generateLedgerID(t))
-	updateBatch := NewUpdateBatch()
-	updateBatch.PubUpdates.PutValAndMetadata(
-		"ns-with-no-metadata",
-		"key",
-		[]byte("value"),
-		nil,
-		version.NewHeight(1, 1),
-	)
-	updateBatch.PubUpdates.PutValAndMetadata(
-		"ns-with-metadata",
-		"key",
-		[]byte("value"),
-		[]byte("metadata"),
-		version.NewHeight(1, 1),
-	)
-	updateBatch.HashUpdates.PutValHashAndMetadata(
-		"ns-with-no-metadata-in-hashes",
-		"coll",
-		[]byte("Key"),
-		[]byte("Value"),
-		nil,
-		version.NewHeight(1, 1),
-	)
-	updateBatch.HashUpdates.PutValHashAndMetadata(
-		"ns-with-metadata-in-hashes",
-		"coll",
-		[]byte("Key"),
-		[]byte("Value"),
-		[]byte("metadata"),
-		version.NewHeight(1, 1),
-	)
-	err := sourceDB.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 2))
-	require.NoError(t, err)
-
-	// export snapshot files from statedb
-	snapshotDir, err := ioutil.TempDir("", "testsnapshot")
-	require.NoError(t, err)
-	defer func() {
-		os.RemoveAll(snapshotDir)
-	}()
-	_, err = sourceDB.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-	require.NoError(t, err)
-
-	// import snapshot in a fresh db
-	destinationDBName := generateLedgerID(t)
-	err = env.GetProvider().ImportFromSnapshot(
-		destinationDBName, version.NewHeight(10, 10), snapshotDir)
-	require.NoError(t, err)
-	destinationDB := env.GetDBHandle(destinationDBName)
-	h := destinationDB.metadataHint
-	require.False(t, h.metadataEverUsedFor("ns-with-no-metadata"))
-	require.True(t, h.metadataEverUsedFor("ns-with-metadata"))
-	require.False(t, h.metadataEverUsedFor("ns-with-no-metadata-in-hashes"))
-	require.True(t, h.metadataEverUsedFor("ns-with-metadata-in-hashes"))
 }
 
 func sha256ForFileForTest(t *testing.T, file string) []byte {
@@ -335,99 +173,55 @@ func sha256ForFileForTest(t *testing.T, file string) []byte {
 	return sha[:]
 }
 
-func TestSnapshotReaderNextFunction(t *testing.T) {
-	testdir, err := ioutil.TempDir("", "testsnapshot-WriterReader-")
+func loadSnapshotDataForTest(
+	t *testing.T,
+	testenv TestEnv,
+	dataFilePath, metadataFilePath string) []*statedb.VersionedKV {
+	dataFile, err := snapshot.OpenFile(dataFilePath, snapshotFileFormat)
 	require.NoError(t, err)
-	defer os.RemoveAll(testdir)
-
-	w, err := newSnapshotWriter(testdir, "datafile", "metadatafile", testNewHashFunc)
+	defer dataFile.Close()
+	dbValueFormat, err := dataFile.DecodeBytes()
 	require.NoError(t, err)
+	require.Equal(t, []byte{testenv.DBValueFormat()}, dbValueFormat)
 
-	snapshotRecord := &SnapshotRecord{
-		Key:   []byte("key"),
-		Value: []byte("value"),
+	metadataFile, err := snapshot.OpenFile(metadataFilePath, snapshotFileFormat)
+	require.NoError(t, err)
+	defer metadataFile.Close()
+	numMetadataEntries, err := metadataFile.DecodeUVarInt()
+	require.NoError(t, err)
+	if numMetadataEntries == 0 {
+		return nil
 	}
-	require.NoError(t, w.addData("ns", snapshotRecord))
-	_, _, err = w.done()
-	require.NoError(t, err)
-	w.close()
-
-	r, err := newSnapshotReader(testdir, "datafile", "metadatafile")
-	require.NoError(t, err)
-	require.NotNil(t, r)
-	defer r.Close()
-
-	retrievedNs, retrievedSr, err := r.Next()
-	require.NoError(t, err)
-	require.Equal(t, "ns", retrievedNs)
-	require.True(t, proto.Equal(snapshotRecord, retrievedSr))
-
-	retrievedNs, retrievedSr, err = r.Next()
-	require.NoError(t, err)
-	require.Equal(t, "", retrievedNs)
-	require.Nil(t, retrievedSr)
-}
-
-func TestMetadataCursor(t *testing.T) {
-	metadata := []*metadataRow{}
-	for i := 1; i <= 100; i++ {
-		metadata = append(metadata, &metadataRow{
-			namespace: fmt.Sprintf("ns-%d", i),
-			kvCounts:  uint64(i),
-		})
-	}
-
-	cursor := &cursor{
-		metadata: metadata,
-	}
-
-	for _, m := range metadata {
-		for i := uint64(0); i < m.kvCounts; i++ {
-			require.True(t, cursor.canMove())
-			require.True(t, cursor.move())
-			require.Equal(t, m.namespace, cursor.currentNamespace())
+	data := []*statedb.VersionedKV{}
+	for i := uint64(0); i < numMetadataEntries; i++ {
+		ns, err := metadataFile.DecodeString()
+		require.NoError(t, err)
+		numKVs, err := metadataFile.DecodeUVarInt()
+		require.NoError(t, err)
+		for j := uint64(0); j < numKVs; j++ {
+			key, err := dataFile.DecodeString()
+			require.NoError(t, err)
+			dbValue, err := dataFile.DecodeBytes()
+			require.NoError(t, err)
+			ck := statedb.CompositeKey{
+				Namespace: ns,
+				Key:       key,
+			}
+			data = append(data, &statedb.VersionedKV{
+				CompositeKey:   ck,
+				VersionedValue: testenv.DecodeDBValue(dbValue),
+			})
 		}
 	}
-	require.False(t, cursor.canMove())
-	require.False(t, cursor.move())
+	return data
 }
 
-func TestLoadMetadata(t *testing.T) {
-	testdir, err := ioutil.TempDir("", "testsnapshot-metadata-")
-	require.NoError(t, err)
-	defer os.RemoveAll(testdir)
-
-	metadata := []*metadataRow{}
-	for i := 1; i <= 100; i++ {
-		metadata = append(metadata, &metadataRow{
-			namespace: fmt.Sprintf("ns-%d", i),
-			kvCounts:  uint64(i),
-		})
-	}
-	metadataFilePath := filepath.Join(testdir, pubStateMetadataFileName)
-	metadataFileWriter, err := snapshot.CreateFile(metadataFilePath, snapshotFileFormat, testNewHashFunc)
-	require.NoError(t, err)
-
-	require.NoError(t, writeMetadata(metadata, metadataFileWriter))
-	_, err = metadataFileWriter.Done()
-	require.NoError(t, err)
-	defer metadataFileWriter.Close()
-
-	metadataFileReader, err := snapshot.OpenFile(metadataFilePath, snapshotFileFormat)
-	require.NoError(t, err)
-	defer metadataFileReader.Close()
-	loadedMetadata, err := readMetadata(metadataFileReader)
-	require.NoError(t, err)
-	require.Equal(t, metadata, loadedMetadata)
-}
-
-func TestSnapshotExportErrorPropagation(t *testing.T) {
+func TestSnapshotErrorPropagation(t *testing.T) {
 	var dbEnv *LevelDBTestEnv
 	var snapshotDir string
 	var db *DB
 	var cleanup func()
 	var err error
-
 	init := func() {
 		dbEnv = &LevelDBTestEnv{}
 		dbEnv.Init(t)
@@ -435,7 +229,7 @@ func TestSnapshotExportErrorPropagation(t *testing.T) {
 		updateBatch := NewUpdateBatch()
 		updateBatch.PubUpdates.Put("ns1", "key1", []byte("value1"), version.NewHeight(1, 1))
 		updateBatch.HashUpdates.Put("ns1", "coll1", []byte("key1"), []byte("value1"), version.NewHeight(1, 1))
-		require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 1)))
+		db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 1))
 		snapshotDir, err = ioutil.TempDir("", "testsnapshot")
 		require.NoError(t, err)
 		cleanup = func() {
@@ -444,354 +238,46 @@ func TestSnapshotExportErrorPropagation(t *testing.T) {
 		}
 	}
 
-	t.Run("pubStateDataFile already exists", func(t *testing.T) {
+	reinit := func() {
+		cleanup()
 		init()
-		defer cleanup()
-
-		pubStateDataFilePath := filepath.Join(snapshotDir, pubStateDataFileName)
-		_, err = os.Create(pubStateDataFilePath)
-		require.NoError(t, err)
-		_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.Contains(t, err.Error(), "error while creating the snapshot file: "+pubStateDataFilePath)
-	})
-
-	t.Run("pubStateMetadataFile already exists", func(t *testing.T) {
-		init()
-		defer cleanup()
-
-		pubStateMetadataFilePath := filepath.Join(snapshotDir, pubStateMetadataFileName)
-		_, err = os.Create(pubStateMetadataFilePath)
-		require.NoError(t, err)
-		_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.Contains(t, err.Error(), "error while creating the snapshot file: "+pubStateMetadataFilePath)
-	})
-
-	t.Run("pvtStateHashesDataFile already exists", func(t *testing.T) {
-		init()
-		defer cleanup()
-
-		pvtStateHashesDataFilePath := filepath.Join(snapshotDir, pvtStateHashesFileName)
-		_, err = os.Create(pvtStateHashesDataFilePath)
-		require.NoError(t, err)
-		_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.Contains(t, err.Error(), "error while creating the snapshot file: "+pvtStateHashesDataFilePath)
-	})
-
-	t.Run("pvtStateHashesMetadataFile already exists", func(t *testing.T) {
-		init()
-		defer cleanup()
-
-		pvtStateHashesMetadataFilePath := filepath.Join(snapshotDir, pvtStateHashesMetadataFileName)
-		_, err = os.Create(pvtStateHashesMetadataFilePath)
-		require.NoError(t, err)
-		_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.Contains(t, err.Error(), "error while creating the snapshot file: "+pvtStateHashesMetadataFilePath)
-	})
-
-	t.Run("error while reading from db", func(t *testing.T) {
-		init()
-		defer cleanup()
-
-		dbEnv.provider.Close()
-		_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.Contains(t, err.Error(), "internal leveldb error while obtaining db iterator:")
-	})
-}
-
-func TestSnapshotImportErrorPropagation(t *testing.T) {
-	var dbEnv *LevelDBTestEnv
-	var snapshotDir string
-	var cleanup func()
-	var err error
-
-	init := func() {
-		dbEnv = &LevelDBTestEnv{}
-		dbEnv.Init(t)
-		db := dbEnv.GetDBHandle(generateLedgerID(t))
-		updateBatch := NewUpdateBatch()
-		updateBatch.PubUpdates.PutValAndMetadata("ns1", "key1", []byte("value1"), []byte("metadata"), version.NewHeight(1, 1))
-		updateBatch.HashUpdates.Put("ns1", "coll1", []byte("key1"), []byte("value1"), version.NewHeight(1, 1))
-		require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 1)))
-		snapshotDir, err = ioutil.TempDir("", "testsnapshot")
-		require.NoError(t, err)
-		_, err := db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.NoError(t, err)
-		cleanup = func() {
-			dbEnv.Cleanup()
-			os.RemoveAll(snapshotDir)
-		}
 	}
 
-	// errors related to data files
-	for _, f := range []string{pubStateDataFileName, pvtStateHashesFileName} {
-		t.Run("error_while_checking_the_presence_of_"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
+	// pubStateDataFile already exists
+	init()
+	defer cleanup()
+	pubStateDataFilePath := filepath.Join(snapshotDir, pubStateDataFileName)
+	_, err = os.Create(pubStateDataFilePath)
+	require.NoError(t, err)
+	_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
+	require.Contains(t, err.Error(), "error while creating the snapshot file: "+pubStateDataFilePath)
 
-			dataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(dataFile))
-			require.NoError(t, os.MkdirAll(dataFile, 0700))
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.Contains(t, err.Error(), fmt.Sprintf("the supplied path [%s] is a dir", dataFile))
-		})
+	// pubStateMetadataFile already exists
+	reinit()
+	pubStateMetadataFilePath := filepath.Join(snapshotDir, pubStateMetadataFileName)
+	_, err = os.Create(pubStateMetadataFilePath)
+	require.NoError(t, err)
+	_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
+	require.Contains(t, err.Error(), "error while creating the snapshot file: "+pubStateMetadataFilePath)
 
-		t.Run("error_while_opening_data_file_"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
+	// pvtStateHashesDataFile already exists
+	reinit()
+	pvtStateHashesDataFilePath := filepath.Join(snapshotDir, pvtStateHashesFileName)
+	_, err = os.Create(pvtStateHashesDataFilePath)
+	require.NoError(t, err)
+	_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
+	require.Contains(t, err.Error(), "error while creating the snapshot file: "+pvtStateHashesDataFilePath)
 
-			dataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(dataFile))
-			require.NoError(t, ioutil.WriteFile(dataFile, []byte(""), 0600))
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.Contains(t, err.Error(), fmt.Sprintf("error while opening data file: error while reading from the snapshot file: %s", dataFile))
-		})
+	// pvtStateHashesMetadataFile already exists
+	reinit()
+	pvtStateHashesMetadataFilePath := filepath.Join(snapshotDir, pvtStateHashesMetadataFileName)
+	_, err = os.Create(pvtStateHashesMetadataFilePath)
+	require.NoError(t, err)
+	_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
+	require.Contains(t, err.Error(), "error while creating the snapshot file: "+pvtStateHashesMetadataFilePath)
 
-		t.Run("unexpected_data_format_in_"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			dataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(dataFile))
-			require.NoError(t, ioutil.WriteFile(dataFile, []byte{0x00}, 0600))
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.EqualError(t, err, "error while opening data file: unexpected data format: 0")
-		})
-
-		t.Run("error_while_reading_snapshot_record_from_"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			dataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(dataFile))
-
-			require.NoError(t, ioutil.WriteFile(dataFile, []byte{snapshotFileFormat}, 0600))
-
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-
-			require.Contains(t, err.Error(), "error while retrieving record from snapshot file")
-		})
-
-		t.Run("error_while_decoding_version_from_snapshot_record"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			dataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(dataFile))
-
-			fileContent := []byte{snapshotFileFormat}
-			buf := proto.NewBuffer(nil)
-			require.NoError(t,
-				buf.EncodeMessage(
-					&SnapshotRecord{
-						Version: []byte("bad-version-bytes"),
-					},
-				),
-			)
-			fileContent = append(fileContent, buf.Bytes()...)
-			require.NoError(t, ioutil.WriteFile(dataFile, fileContent, 0600))
-
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-
-			require.Contains(t, err.Error(), "error while decoding version")
-		})
-	}
-
-	// errors related to metadata files
-	for _, f := range []string{pubStateMetadataFileName, pvtStateHashesMetadataFileName} {
-		t.Run("error_while_reading_data_format_from_metadata_file:"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			metadataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(metadataFile))
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.Contains(t, err.Error(), "error while opening the snapshot file: "+metadataFile)
-		})
-
-		t.Run("error_while_reading_the_num-rows_from_metadata_file:"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			metadataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(metadataFile))
-
-			fileContentWithMissingNumRows := []byte{snapshotFileFormat}
-			require.NoError(t, ioutil.WriteFile(metadataFile, fileContentWithMissingNumRows, 0600))
-
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.Contains(t, err.Error(), "error while reading num-rows in metadata")
-		})
-
-		t.Run("error_while_reading_chaincode_name_from_metadata_file:"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			metadataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(metadataFile))
-
-			fileContentWithMissingCCName := []byte{snapshotFileFormat}
-			buf := proto.NewBuffer(nil)
-			require.NoError(t, buf.EncodeVarint(5))
-			fileContentWithMissingCCName = append(fileContentWithMissingCCName, buf.Bytes()...)
-			require.NoError(t, ioutil.WriteFile(metadataFile, fileContentWithMissingCCName, 0600))
-
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.Contains(t, err.Error(), "error while reading namespace name")
-		})
-
-		t.Run("error_while_reading_numKVs_for_the_chaincode_name_from_metadata_file:"+f, func(t *testing.T) {
-			init()
-			defer cleanup()
-
-			metadataFile := filepath.Join(snapshotDir, f)
-			require.NoError(t, os.Remove(metadataFile))
-
-			fileContentWithMissingCCName := []byte{snapshotFileFormat}
-			buf := proto.NewBuffer(nil)
-			require.NoError(t, buf.EncodeVarint(1))
-			require.NoError(t, buf.EncodeRawBytes([]byte("my-chaincode")))
-			fileContentWithMissingCCName = append(fileContentWithMissingCCName, buf.Bytes()...)
-			require.NoError(t, ioutil.WriteFile(metadataFile, fileContentWithMissingCCName, 0600))
-
-			err := dbEnv.GetProvider().ImportFromSnapshot(
-				generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-			require.Contains(t, err.Error(), fmt.Sprintf("error while reading num entries for the namespace [%s]", "my-chaincode"))
-		})
-	}
-
-	t.Run("error_writing_to_db", func(t *testing.T) {
-		init()
-		defer cleanup()
-
-		dbEnv.provider.Close()
-		err := dbEnv.GetProvider().ImportFromSnapshot(
-			generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-
-		require.Contains(t, err.Error(), "error writing batch to leveldb")
-	})
-
-	t.Run("error_writing_to_metadata_hint_db", func(t *testing.T) {
-		init()
-		defer cleanup()
-
-		dbEnv.provider.bookkeepingProvider.Close()
-		err := dbEnv.GetProvider().ImportFromSnapshot(
-			generateLedgerID(t), version.NewHeight(10, 10), snapshotDir)
-
-		require.Contains(t, err.Error(), "error while writing to metadata-hint db")
-	})
-}
-
-//go:generate counterfeiter -o mock/snapshot_pvtdatahashes_consumer.go -fake-name SnapshotPvtdataHashesConsumer . snapshotPvtdataHashesConsumer
-type snapshotPvtdataHashesConsumer interface {
-	SnapshotPvtdataHashesConsumer
-}
-
-func TestSnapshotImportPvtdataHashesConsumer(t *testing.T) {
-	for _, dbEnv := range testEnvs {
-		testSnapshotImportPvtdataHashesConsumer(t, dbEnv)
-	}
-}
-
-func testSnapshotImportPvtdataHashesConsumer(t *testing.T, dbEnv TestEnv) {
-	var snapshotDir string
-
-	init := func() {
-		var err error
-		dbEnv.Init(t)
-		snapshotDir, err = ioutil.TempDir("", "testsnapshot")
-
-		t.Cleanup(func() {
-			dbEnv.Cleanup()
-			os.RemoveAll(snapshotDir)
-		})
-
-		require.NoError(t, err)
-		db := dbEnv.GetDBHandle(generateLedgerID(t))
-		updateBatch := NewUpdateBatch()
-		updateBatch.PubUpdates.Put("ns-1", "key-1", []byte("value-1"), version.NewHeight(1, 1))
-		updateBatch.HashUpdates.Put("ns-1", "coll-1", []byte("key-hash-1"), []byte("value-hash-1"), version.NewHeight(1, 1))
-		require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 1)))
-		snapshotDir, err = ioutil.TempDir("", "testsnapshot")
-		require.NoError(t, err)
-		_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
-		require.NoError(t, err)
-	}
-
-	t.Run("snapshot-import-invokes-consumer-"+dbEnv.GetName(), func(t *testing.T) {
-		init()
-		consumers := []*mock.SnapshotPvtdataHashesConsumer{
-			{},
-			{},
-		}
-		err := dbEnv.GetProvider().ImportFromSnapshot(
-			generateLedgerID(t),
-			version.NewHeight(10, 10),
-			snapshotDir,
-			consumers[0],
-			consumers[1],
-		)
-		require.NoError(t, err)
-		for _, c := range consumers {
-			callCounts := c.ConsumeSnapshotDataCallCount()
-			require.Equal(t, 1, callCounts)
-
-			callArgNs, callArgsColl, callArgsKeyHash, callArgsValueHash, callArgsVer := c.ConsumeSnapshotDataArgsForCall(0)
-			require.Equal(t, "ns-1", callArgNs)
-			require.Equal(t, "coll-1", callArgsColl)
-			require.Equal(t, []byte("key-hash-1"), callArgsKeyHash)
-			require.Equal(t, []byte("value-hash-1"), callArgsValueHash)
-			require.Equal(t, version.NewHeight(1, 1), callArgsVer)
-
-			require.Equal(t, 1, c.DoneCallCount())
-		}
-	})
-
-	t.Run("snapshot-import-propages-error-from-consumer-"+dbEnv.GetName(), func(t *testing.T) {
-		init()
-		consumers := []*mock.SnapshotPvtdataHashesConsumer{
-			{},
-			{},
-		}
-		consumers[1].ConsumeSnapshotDataReturns(errors.New("cannot-consume"))
-
-		err := dbEnv.GetProvider().ImportFromSnapshot(
-			generateLedgerID(t),
-			version.NewHeight(10, 10),
-			snapshotDir,
-			consumers[0],
-			consumers[1],
-		)
-		require.EqualError(t, err, "cannot-consume")
-	})
-
-	t.Run("snapshot-import-propages-error-from-consumer-done-invoke"+dbEnv.GetName(), func(t *testing.T) {
-		init()
-		consumers := []*mock.SnapshotPvtdataHashesConsumer{
-			{},
-			{},
-		}
-		consumers[0].DoneReturns(errors.New("cannot-finish-without-error"))
-
-		err := dbEnv.GetProvider().ImportFromSnapshot(
-			generateLedgerID(t),
-			version.NewHeight(10, 10),
-			snapshotDir,
-			consumers[0],
-			consumers[1],
-		)
-		require.EqualError(t, err, "cannot-finish-without-error")
-
-		for _, c := range consumers {
-			require.Equal(t, 1, c.DoneCallCount())
-		}
-	})
+	reinit()
+	dbEnv.provider.Close()
+	_, err = db.ExportPubStateAndPvtStateHashes(snapshotDir, testNewHashFunc)
+	require.Contains(t, err.Error(), "internal leveldb error while obtaining db iterator:")
 }

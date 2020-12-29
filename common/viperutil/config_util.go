@@ -7,151 +7,31 @@ SPDX-License-Identifier: Apache-2.0
 package viperutil
 
 import (
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
-	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Shopify/sarama"
 	version "github.com/hashicorp/go-version"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/common/flogging"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
 )
 
 var logger = flogging.MustGetLogger("viperutil")
 
-// ConfigPaths returns the paths from environment and
-// defaults which are CWD and /etc/hyperledger/fabric.
-func ConfigPaths() []string {
-	var paths []string
-	if p := os.Getenv("FABRIC_CFG_PATH"); p != "" {
-		paths = append(paths, p)
-	}
-	return append(paths, ".", "/etc/hyperledger/fabric")
-}
+type viperGetter func(key string) interface{}
 
-// ConfigParser holds the configuration file locations.
-// It keeps the config file directory locations and env variables.
-// From the file the config is unmarshalled and stored.
-// Currently "yaml" is supported.
-type ConfigParser struct {
-	// configuration file to process
-	configPaths []string
-	configName  string
-	configFile  string
-
-	// parsed config
-	config map[string]interface{}
-}
-
-// New creates a ConfigParser instance
-func New() *ConfigParser {
-	return &ConfigParser{
-		config: map[string]interface{}{},
-	}
-}
-
-// AddConfigPaths keeps a list of path to search the relevant
-// config file. Multiple paths can be provided.
-func (c *ConfigParser) AddConfigPaths(cfgPaths ...string) {
-	c.configPaths = append(c.configPaths, cfgPaths...)
-}
-
-// SetConfigName provides the configuration file name stem. The upper-cased
-// version of this value also serves as the environment variable override
-// prefix.
-func (c *ConfigParser) SetConfigName(in string) {
-	c.configName = in
-}
-
-// ConfigFileUsed returns the used configFile.
-func (c *ConfigParser) ConfigFileUsed() string {
-	return c.configFile
-}
-
-// Search for the existence of filename for all supported extensions
-func (c *ConfigParser) searchInPath(in string) (filename string) {
-	var supportedExts []string = []string{"yaml", "yml"}
-	for _, ext := range supportedExts {
-		fullPath := filepath.Join(in, c.configName+"."+ext)
-		_, err := os.Stat(fullPath)
-		if err == nil {
-			return fullPath
-		}
-	}
-	return ""
-}
-
-// Search for the configName in all configPaths
-func (c *ConfigParser) findConfigFile() string {
-	paths := c.configPaths
-	if len(paths) == 0 {
-		paths = ConfigPaths()
-	}
-	for _, cp := range paths {
-		file := c.searchInPath(cp)
-		if file != "" {
-			return file
-		}
-	}
-	return ""
-}
-
-// Get the valid and present config file
-func (c *ConfigParser) getConfigFile() string {
-	// if explicitly set, then use it
-	if c.configFile != "" {
-		return c.configFile
-	}
-
-	c.configFile = c.findConfigFile()
-	return c.configFile
-}
-
-// ReadInConfig reads and unmarshals the config file.
-func (c *ConfigParser) ReadInConfig() error {
-	cf := c.getConfigFile()
-	logger.Debugf("Attempting to open the config file: %s", cf)
-	file, err := os.Open(cf)
-	if err != nil {
-		logger.Errorf("Unable to open the config file: %s", cf)
-		return err
-	}
-	defer file.Close()
-
-	return c.ReadConfig(file)
-}
-
-// ReadConfig parses the buffer and initializes the config.
-func (c *ConfigParser) ReadConfig(in io.Reader) error {
-	return yaml.NewDecoder(in).Decode(c.config)
-}
-
-// Get value for the key by searching environment variables.
-func (c *ConfigParser) getFromEnv(key string) string {
-	envKey := key
-	if c.configName != "" {
-		envKey = c.configName + "_" + envKey
-	}
-	envKey = strings.ToUpper(envKey)
-	envKey = strings.ReplaceAll(envKey, ".", "_")
-	return os.Getenv(envKey)
-}
-
-// Prototype declaration for getFromEnv function.
-type envGetter func(key string) string
-
-func getKeysRecursively(base string, getenv envGetter, nodeKeys map[string]interface{}, oType reflect.Type) map[string]interface{} {
+func getKeysRecursively(base string, getKey viperGetter, nodeKeys map[string]interface{}, oType reflect.Type) map[string]interface{} {
 	subTypes := map[string]reflect.Type{}
 
 	if oType != nil && oType.Kind() == reflect.Struct {
@@ -173,50 +53,72 @@ func getKeysRecursively(base string, getenv envGetter, nodeKeys map[string]inter
 	}
 
 	result := make(map[string]interface{})
-	for key, val := range nodeKeys {
+	for key := range nodeKeys {
 		fqKey := base + key
 
-		// overwrite val, if an environment is available
-		if override := getenv(fqKey); override != "" {
-			val = override
-		}
-
-		switch val := val.(type) {
-		case map[string]interface{}:
-			logger.Debugf("Found map[string]interface{} value for %s", fqKey)
-			result[key] = getKeysRecursively(fqKey+".", getenv, val, subTypes[key])
-
-		case map[interface{}]interface{}:
+		val := getKey(fqKey)
+		if m, ok := val.(map[interface{}]interface{}); ok {
 			logger.Debugf("Found map[interface{}]interface{} value for %s", fqKey)
-			result[key] = getKeysRecursively(fqKey+".", getenv, toMapStringInterface(val), subTypes[key])
-
-		case nil:
-			if override := getenv(fqKey + ".File"); override != "" {
-				result[key] = map[string]interface{}{"File": override}
+			tmp := make(map[string]interface{})
+			for ik, iv := range m {
+				cik, ok := ik.(string)
+				if !ok {
+					panic("Non string key-entry")
+				}
+				tmp[cik] = iv
 			}
-
-		default:
+			result[key] = getKeysRecursively(fqKey+".", getKey, tmp, subTypes[key])
+		} else if m, ok := val.(map[string]interface{}); ok {
+			logger.Debugf("Found map[string]interface{} value for %s", fqKey)
+			result[key] = getKeysRecursively(fqKey+".", getKey, m, subTypes[key])
+		} else if m, ok := unmarshalJSON(val); ok {
+			logger.Debugf("Found real value for %s setting to map[string]string %v", fqKey, m)
+			result[key] = m
+		} else {
+			if val == nil {
+				fileSubKey := fqKey + ".File"
+				fileVal := getKey(fileSubKey)
+				if fileVal != nil {
+					result[key] = map[string]interface{}{"File": fileVal}
+					continue
+				}
+			}
+			logger.Debugf("Found real value for %s setting to %T %v", fqKey, val, val)
 			result[key] = val
+
 		}
 	}
 	return result
 }
 
-func toMapStringInterface(m map[interface{}]interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
-	for k, v := range m {
-		k, ok := k.(string)
-		if !ok {
-			panic(fmt.Sprintf("Non string %v, %v: key-entry: %v", k, v, k))
-		}
-		result[k] = v
+func unmarshalJSON(val interface{}) (map[string]string, bool) {
+	mp := map[string]string{}
+
+	s, ok := val.(string)
+	if !ok {
+		logger.Debugf("Unmarshal JSON: value is not a string: %v", val)
+		return nil, false
 	}
-	return result
+	err := json.Unmarshal([]byte(s), &mp)
+	if err != nil {
+		logger.Debugf("Unmarshal JSON: value cannot be unmarshalled: %s", err)
+		return nil, false
+	}
+	return mp, true
 }
 
-// customDecodeHook parses strings of the format "[thing1, thing2, thing3]"
-// into string slices. Note that whitespace around slice elements is removed.
+// customDecodeHook adds the additional functions of parsing durations from strings
+// as well as parsing strings of the format "[thing1, thing2, thing3]" into string slices
+// Note that whitespace around slice elements is removed
 func customDecodeHook(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+	durationHook := mapstructure.StringToTimeDurationHookFunc()
+	dur, err := mapstructure.DecodeHookExec(durationHook, f, t, data)
+	if err == nil {
+		if _, ok := dur.(time.Duration); ok {
+			return dur, nil
+		}
+	}
+
 	if f.Kind() != reflect.String {
 		return data, nil
 	}
@@ -404,7 +306,7 @@ func bccspHook(f reflect.Type, t reflect.Type, data interface{}) (interface{}, e
 
 	err := mapstructure.WeakDecode(data, config)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not decode bccsp type")
+		return nil, errors.Wrap(err, "could not decode bcssp type")
 	}
 
 	return config, nil
@@ -413,7 +315,7 @@ func bccspHook(f reflect.Type, t reflect.Type, data interface{}) (interface{}, e
 // EnhancedExactUnmarshal is intended to unmarshal a config file into a structure
 // producing error when extraneous variables are introduced and supporting
 // the time.Duration type
-func (c *ConfigParser) EnhancedExactUnmarshal(output interface{}) error {
+func EnhancedExactUnmarshal(v *viper.Viper, output interface{}) error {
 	oType := reflect.TypeOf(output)
 	if oType.Kind() != reflect.Ptr {
 		return errors.Errorf("supplied output argument must be a pointer to a struct but is not pointer")
@@ -423,8 +325,10 @@ func (c *ConfigParser) EnhancedExactUnmarshal(output interface{}) error {
 		return errors.Errorf("supplied output argument must be a pointer to a struct, but it is pointer to something else")
 	}
 
-	baseKeys := c.config
-	leafKeys := getKeysRecursively("", c.getFromEnv, baseKeys, eType)
+	baseKeys := v.AllSettings()
+
+	getterWithClass := func(key string) interface{} { return v.Get(key) } // hide receiver
+	leafKeys := getKeysRecursively("", getterWithClass, baseKeys, eType)
 
 	logger.Debugf("%+v", leafKeys)
 	config := &mapstructure.DecoderConfig{
@@ -434,7 +338,6 @@ func (c *ConfigParser) EnhancedExactUnmarshal(output interface{}) error {
 		WeaklyTypedInput: true,
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			bccspHook,
-			mapstructure.StringToTimeDurationHookFunc(),
 			customDecodeHook,
 			byteSizeDecodeHook,
 			stringFromFileDecodeHook,

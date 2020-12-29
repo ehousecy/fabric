@@ -14,10 +14,10 @@ import (
 // Config configures the factory methods
 // and plugins for the registry
 type Config struct {
-	AuthFilters []*HandlerConfig `yaml:"authFilters"`
-	Decorators  []*HandlerConfig `yaml:"decorators"`
-	Endorsers   PluginMapping    `yaml:"endorsers"`
-	Validators  PluginMapping    `yaml:"validators"`
+	AuthFilters []*HandlerConfig `mapstructure:"authFilters" yaml:"authFilters"`
+	Decorators  []*HandlerConfig `mapstructure:"decorators" yaml:"decorators"`
+	Endorsers   PluginMapping    `mapstructure:"endorsers" yaml:"endorsers"`
+	Validators  PluginMapping    `mapstructure:"validators" yaml:"validators"`
 }
 
 // PluginMapping stores a map between chaincode id to plugin config
@@ -25,8 +25,8 @@ type PluginMapping map[string]*HandlerConfig
 
 // HandlerConfig defines configuration for a plugin or compiled handler
 type HandlerConfig struct {
-	Name    string `yaml:"name"`
-	Library string `yaml:"library"`
+	Name    string `mapstructure:"name" yaml:"name"`
+	Library string `mapstructure:"library" yaml:"library"`
 }
 
 func LoadConfig() (Config, error) {

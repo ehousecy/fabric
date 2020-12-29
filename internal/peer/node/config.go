@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	coreconfig "github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/core/ledger"
+	coreconfig "github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/core/ledger"
 	"github.com/spf13/viper"
 )
 
@@ -46,14 +46,13 @@ func ledgerConfig() *ledger.Config {
 		deprioritizedDataReconcilerInterval = viper.GetDuration("ledger.pvtdataStore.deprioritizedDataReconcilerInterval")
 	}
 
-	fsPath := coreconfig.GetPath("peer.fileSystemPath")
-	ledgersDataRootDir := filepath.Join(fsPath, "ledgersData")
+	rootFSPath := filepath.Join(coreconfig.GetPath("peer.fileSystemPath"), "ledgersData")
 	snapshotsRootDir := viper.GetString("ledger.snapshots.rootDir")
 	if snapshotsRootDir == "" {
-		snapshotsRootDir = filepath.Join(fsPath, "snapshots")
+		snapshotsRootDir = filepath.Join(rootFSPath, "snapshots")
 	}
 	conf := &ledger.Config{
-		RootFSPath: ledgersDataRootDir,
+		RootFSPath: rootFSPath,
 		StateDBConfig: &ledger.StateDBConfig{
 			StateDatabase: viper.GetString("ledger.state.stateDatabase"),
 			CouchDB:       &ledger.CouchDBConfig{},
@@ -72,7 +71,7 @@ func ledgerConfig() *ledger.Config {
 		},
 	}
 
-	if conf.StateDBConfig.StateDatabase == ledger.CouchDB {
+	if conf.StateDBConfig.StateDatabase == "CouchDB" {
 		conf.StateDBConfig.CouchDB = &ledger.CouchDBConfig{
 			Address:                 viper.GetString("ledger.state.couchDBConfig.couchDBAddress"),
 			Username:                viper.GetString("ledger.state.couchDBConfig.username"),
@@ -84,7 +83,7 @@ func ledgerConfig() *ledger.Config {
 			MaxBatchUpdateSize:      maxBatchUpdateSize,
 			WarmIndexesAfterNBlocks: warmAfterNBlocks,
 			CreateGlobalChangesDB:   viper.GetBool("ledger.state.couchDBConfig.createGlobalChangesDB"),
-			RedoLogPath:             filepath.Join(ledgersDataRootDir, "couchdbRedoLogs"),
+			RedoLogPath:             filepath.Join(rootFSPath, "couchdbRedoLogs"),
 			UserCacheSizeMBs:        viper.GetInt("ledger.state.couchDBConfig.cacheSize"),
 		}
 	}

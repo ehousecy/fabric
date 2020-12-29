@@ -14,18 +14,18 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/snapshot"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/pvtstatepurgemgmt"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/queryutil"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/validation"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/snapshot"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/bookkeeping"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/pvtstatepurgemgmt"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/queryutil"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/validation"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy"
+	"github.com/ehousecy/fabric/core/ledger/util"
 	"github.com/pkg/errors"
 )
 
@@ -53,6 +53,26 @@ type pvtdataPurgeMgr struct {
 	usedOnce bool
 }
 
+// ErrUnsupportedTransaction is expected to be thrown if a unsupported query is performed in an update transaction
+type ErrUnsupportedTransaction struct {
+	Msg string
+}
+
+func (e *ErrUnsupportedTransaction) Error() string {
+	return e.Msg
+}
+
+// ErrPvtdataNotAvailable is to be thrown when an application seeks a private data item
+// during simulation and the simulator is not capable of returning the version of the
+// private data item consistent with the snapshot exposed to the simulation
+type ErrPvtdataNotAvailable struct {
+	Msg string
+}
+
+func (e *ErrPvtdataNotAvailable) Error() string {
+	return e.Msg
+}
+
 type current struct {
 	block     *common.Block
 	batch     *privacyenabledstate.UpdateBatch
@@ -73,7 +93,7 @@ type Initializer struct {
 	DB                  *privacyenabledstate.DB
 	StateListeners      []ledger.StateListener
 	BtlPolicy           pvtdatapolicy.BTLPolicy
-	BookkeepingProvider *bookkeeping.Provider
+	BookkeepingProvider bookkeeping.Provider
 	CCInfoProvider      ledger.DeployedChaincodeInfoProvider
 	CustomTxProcessors  map[common.HeaderType]ledger.CustomTxProcessor
 	HashFunc            rwsetutil.HashFunc
@@ -252,7 +272,10 @@ func (txmgr *LockBasedTxMgr) RemoveStaleAndCommitPvtDataOfOldBlocks(reconciledPv
 
 	// (6) commit the pvt data to the stateDB
 	logger.Debug("Committing updates to state database")
-	return txmgr.db.ApplyPrivacyAwareUpdates(batch, nil)
+	if err := txmgr.db.ApplyPrivacyAwareUpdates(batch, nil); err != nil {
+		return err
+	}
+	return nil
 }
 
 type uniquePvtDataMap map[privacyenabledstate.HashedCompositeKey]*privacyenabledstate.PvtKVWrite

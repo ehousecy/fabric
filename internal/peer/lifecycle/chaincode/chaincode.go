@@ -9,9 +9,9 @@ package chaincode
 import (
 	"time"
 
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/internal/peer/common"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -62,7 +62,6 @@ var (
 	peerAddresses         []string
 	tlsRootCertFiles      []string
 	connectionProfilePath string
-	targetPeer            string
 	waitForEvent          bool
 	waitForEventTimeout   time.Duration
 	packageID             string
@@ -108,8 +107,6 @@ func ResetFlags() {
 		"If TLS is enabled, the paths to the TLS root cert files of the peers to connect to. The order and number of certs specified should match the --peerAddresses flag")
 	flags.StringVarP(&connectionProfilePath, "connectionProfile", "", "",
 		"The fully qualified path to the connection profile that provides the necessary connection information for the network. Note: currently only supported for providing peer connection information")
-	flags.StringVarP(&targetPeer, "targetPeer", "", "",
-		"When using a connection profile, the name of the peer to target for this action")
 	flags.BoolVar(&waitForEvent, "waitForEvent", true,
 		"Whether to wait for the event from each peer's deliver filtered service signifying that the transaction has been committed successfully")
 	flags.DurationVar(&waitForEventTimeout, "waitForEventTimeout", 30*time.Second,

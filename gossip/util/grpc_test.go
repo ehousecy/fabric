@@ -9,14 +9,14 @@ package util
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateGRPCLayer(t *testing.T) {
 	port, gRPCServer, certs, secureDialOpts, dialOpts := CreateGRPCLayer()
-	require.NotNil(t, port)
-	require.NotNil(t, gRPCServer)
-	require.NotNil(t, certs)
-	require.NotNil(t, secureDialOpts)
-	require.NotNil(t, dialOpts)
+	assert.NotNil(t, port)
+	assert.NotNil(t, gRPCServer)
+	assert.NotNil(t, certs)
+	assert.NotNil(t, secureDialOpts)
+	assert.NotNil(t, dialOpts)
 }

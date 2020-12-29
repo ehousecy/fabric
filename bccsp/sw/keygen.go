@@ -21,8 +21,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
-
-	"github.com/hyperledger/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 type ecdsaKeyGenerator struct {
@@ -36,6 +36,29 @@ func (kg *ecdsaKeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
 	}
 
 	return &ecdsaPrivateKey{privKey}, nil
+}
+
+type gmsm2KeyGenerator struct {
+}
+
+func (gm *gmsm2KeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
+	privKey, err := sm2.GenerateKey()
+	if err != nil {
+		return nil, fmt.Errorf("Failed generating SM2 key for [%v]: [%s]", err)
+	}
+	return &gmsm2PrivateKey{privKey}, nil
+}
+
+type gmsm4KeyGenerator struct {
+	length int
+}
+
+func (gm *gmsm4KeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
+	lowLevelKey, err := GetRandomBytes(int(gm.length))
+	if err != nil {
+		return nil, fmt.Errorf("Failed generating SM4 key for [%v]: [%s]", err)
+	}
+	return &gmsm4PrivateKey{lowLevelKey, false}, nil
 }
 
 type aesKeyGenerator struct {

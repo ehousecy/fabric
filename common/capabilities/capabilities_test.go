@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSatisfied(t *testing.T) {
@@ -20,7 +20,7 @@ func TestSatisfied(t *testing.T) {
 		NewOrdererProvider(capsMap).registry,
 		NewApplicationProvider(capsMap).registry,
 	} {
-		require.Nil(t, provider.Supported())
+		assert.Nil(t, provider.Supported())
 	}
 }
 
@@ -33,6 +33,6 @@ func TestNotSatisfied(t *testing.T) {
 		NewOrdererProvider(capsMap).registry,
 		NewApplicationProvider(capsMap).registry,
 	} {
-		require.Error(t, provider.Supported())
+		assert.Error(t, provider.Supported())
 	}
 }

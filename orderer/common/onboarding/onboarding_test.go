@@ -22,28 +22,28 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/configtx"
-	deliver_mocks "github.com/hyperledger/fabric/common/deliver/mock"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/ledger/blockledger"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/identity"
-	"github.com/hyperledger/fabric/orderer/common/cluster"
-	cluster_mocks "github.com/hyperledger/fabric/orderer/common/cluster/mocks"
-	"github.com/hyperledger/fabric/orderer/common/localconfig"
-	onboarding_mocks "github.com/hyperledger/fabric/orderer/common/onboarding/mocks"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/configtx"
+	deliver_mocks "github.com/ehousecy/fabric/common/deliver/mock"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/ledger/blockledger"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/identity"
+	"github.com/ehousecy/fabric/orderer/common/cluster"
+	cluster_mocks "github.com/ehousecy/fabric/orderer/common/cluster/mocks"
+	"github.com/ehousecy/fabric/orderer/common/localconfig"
+	onboarding_mocks "github.com/ehousecy/fabric/orderer/common/onboarding/mocks"
+	"github.com/ehousecy/fabric/protoutil"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -54,12 +54,12 @@ var configtxgen, cryptogen, tempDir string
 
 func TestMain(m *testing.M) {
 	var err error
-	configtxgen, err = gexec.Build("github.com/hyperledger/fabric/cmd/configtxgen")
+	configtxgen, err = gexec.Build("github.com/ehousecy/fabric/cmd/configtxgen")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "configtxgen build failed: %v", err)
 		os.Exit(-1)
 	}
-	cryptogen, err = gexec.Build("github.com/hyperledger/fabric/cmd/cryptogen")
+	cryptogen, err = gexec.Build("github.com/ehousecy/fabric/cmd/cryptogen")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cryptogen build failed: %v", err)
 		os.Exit(-1)
@@ -79,19 +79,14 @@ func TestMain(m *testing.M) {
 }
 
 //go:generate counterfeiter -o mocks/signer_serializer.go --fake-name SignerSerializer . signerSerializer
+
 type signerSerializer interface {
 	identity.SignerSerializer
 }
 
 //go:generate counterfeiter -o mocks/read_writer.go --fake-name ReadWriter . readWriter
-type readWriter interface {
-	blockledger.ReadWriter
-}
 
-//go:generate counterfeiter -o mocks/factory.go --fake-name Factory . factory
-type factory interface {
-	blockledger.Factory
-}
+type readWriter interface{ blockledger.ReadWriter }
 
 func copyYamlFiles(src, dst string) {
 	for _, file := range []string{"configtx.yaml", "examplecom-config.yaml"} {
@@ -189,7 +184,7 @@ func (ds *deliverServer) deliverBlocks(stream orderer.AtomicBroadcast_DeliverSer
 func loadPEM(cryptoPath, suffix string, t *testing.T) []byte {
 	ordererTLSPath := filepath.Join(cryptoPath, "ordererOrganizations", "example.com", "orderers", "127.0.0.1.example.com", "tls")
 	b, err := ioutil.ReadFile(filepath.Join(ordererTLSPath, suffix))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return b
 }
 
@@ -250,14 +245,14 @@ func TestOnboardingChannelUnavailable(t *testing.T) {
 
 	systemChannelBlockPath := generateBootstrapBlock(t, tempDir, configtxgen, "system", "SampleSoloSystemChannel")
 	systemChannelBlockBytes, err := ioutil.ReadFile(systemChannelBlockPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	applicationChannelBlockPath := generateBootstrapBlock(t, tempDir, configtxgen, "testchannel", "SampleOrgChannel")
 	applicationChannelBlockBytes, err := ioutil.ReadFile(applicationChannelBlockPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	testchannelGB := &common.Block{}
-	require.NoError(t, proto.Unmarshal(applicationChannelBlockBytes, testchannelGB))
+	assert.NoError(t, proto.Unmarshal(applicationChannelBlockBytes, testchannelGB))
 	testchannelGB.Header.Number = 0
 
 	systemChannelGenesisBlock := &common.Block{
@@ -278,7 +273,7 @@ func TestOnboardingChannelUnavailable(t *testing.T) {
 	channelCreationBlock := channelCreationBlock("system", "testchannel", systemChannelGenesisBlock)
 
 	bootBlock := &common.Block{}
-	require.NoError(t, proto.Unmarshal(systemChannelBlockBytes, bootBlock))
+	assert.NoError(t, proto.Unmarshal(systemChannelBlockBytes, bootBlock))
 	bootBlock.Header.Number = 2
 	bootBlock.Header.PreviousHash = protoutil.BlockHeaderHash(channelCreationBlock.Header)
 	injectOrdererEndpoint(t, bootBlock, deliverServer.srv.Address())
@@ -332,7 +327,7 @@ func TestOnboardingChannelUnavailable(t *testing.T) {
 	vr.On("RetrieveVerifier", mock.Anything).Return(verifier)
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	r := &ReplicationInitiator{
 		verifierRetriever: vr,
@@ -480,15 +475,15 @@ func TestOnboardingChannelUnavailable(t *testing.T) {
 	r.ReplicateIfNeeded(bootBlock)
 
 	// Ensure all events were invoked
-	require.True(t, probe)
-	require.True(t, pullSystemChannel)
-	require.True(t, pullAppChannel)
-	require.True(t, failedPulling)
+	assert.True(t, probe)
+	assert.True(t, pullSystemChannel)
+	assert.True(t, pullAppChannel)
+	assert.True(t, failedPulling)
 
 	// Ensure system channel was fully pulled
-	require.Len(t, blocksCommittedToSystemLedger, 3)
+	assert.Len(t, blocksCommittedToSystemLedger, 3)
 	// But the application channel only contains 1 block (the genesis block)
-	require.Len(t, blocksCommittedToApplicationLedger, 1)
+	assert.Len(t, blocksCommittedToApplicationLedger, 1)
 }
 
 func TestReplicate(t *testing.T) {
@@ -513,7 +508,7 @@ func TestReplicate(t *testing.T) {
 
 	applicationChannelBlockPath := generateBootstrapBlock(t, tempDir, configtxgen, "testchannel", "SampleOrgChannel")
 	applicationChannelBlockBytes, err := ioutil.ReadFile(applicationChannelBlockPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	caCert := loadPEM(cryptoPath, "ca.crt", t)
 	key := loadPEM(cryptoPath, "server.key", t)
@@ -522,22 +517,22 @@ func TestReplicate(t *testing.T) {
 	prepareTestCase := func() *deliverServer {
 		deliverServer := newServerNode(t, key, cert)
 
-		require.NoError(t, proto.Unmarshal(applicationChannelBlockBytes, &bootBlock))
+		assert.NoError(t, proto.Unmarshal(applicationChannelBlockBytes, &bootBlock))
 		bootBlock.Header.Number = 10
 		injectOrdererEndpoint(t, &bootBlock, deliverServer.srv.Address())
 
 		copyBlock := func(block *common.Block, seq uint64) common.Block {
 			res := common.Block{}
-			require.NoError(t, proto.Unmarshal(protoutil.MarshalOrPanic(block), &res))
+			assert.NoError(t, proto.Unmarshal(protoutil.MarshalOrPanic(block), &res))
 			res.Header.Number = seq
 			return res
 		}
 
 		bootBlockWithCorruptedPayload = copyBlock(&bootBlock, 100)
 		env := &common.Envelope{}
-		require.NoError(t, proto.Unmarshal(bootBlockWithCorruptedPayload.Data.Data[0], env))
+		assert.NoError(t, proto.Unmarshal(bootBlockWithCorruptedPayload.Data.Data[0], env))
 		payload := &common.Payload{}
-		require.NoError(t, proto.Unmarshal(env.Payload, payload))
+		assert.NoError(t, proto.Unmarshal(env.Payload, payload))
 		payload.Data = []byte{1, 2, 3}
 
 		deliverServer.blockResponses <- &orderer.DeliverResponse{
@@ -589,7 +584,7 @@ func TestReplicate(t *testing.T) {
 			zapHooks: []func(entry zapcore.Entry) error{
 				func(entry zapcore.Entry) error {
 					hooksActivated = true
-					require.Equal(t, entry.Message, "Booted with a genesis block, replication isn't an option")
+					assert.Equal(t, entry.Message, "Booted with a genesis block, replication isn't an option")
 					return nil
 				},
 			},
@@ -646,7 +641,7 @@ func TestReplicate(t *testing.T) {
 			zapHooks: []func(entry zapcore.Entry) error{
 				func(entry zapcore.Entry) error {
 					hooksActivated = true
-					require.Equal(t, entry.Message, "Replication isn't needed")
+					assert.Equal(t, entry.Message, "Replication isn't needed")
 					return nil
 				},
 			},
@@ -752,7 +747,7 @@ func TestReplicate(t *testing.T) {
 			vr.On("RetrieveVerifier", mock.Anything).Return(verifier)
 
 			cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			r := &ReplicationInitiator{
 				verifierRetriever: vr,
@@ -766,7 +761,7 @@ func TestReplicate(t *testing.T) {
 			}
 
 			if testCase.panicValue != "" {
-				require.PanicsWithValue(t, testCase.panicValue, func() {
+				assert.PanicsWithValue(t, testCase.panicValue, func() {
 					testCase.replicateFunc(r, testCase.bootBlock)
 				})
 				return
@@ -779,13 +774,13 @@ func TestReplicate(t *testing.T) {
 			testCase.replicateFunc(r, testCase.bootBlock)
 
 			// Ensure we ran the hooks for a test case that doesn't panic
-			require.True(t, hooksActivated)
+			assert.True(t, hooksActivated)
 			// Restore the flag for the next iteration
 			defer func() {
 				hooksActivated = false
 			}()
 
-			require.Equal(t, testCase.shouldConnect, atomic.LoadInt32(&deliverServer.isConnected) == int32(1))
+			assert.Equal(t, testCase.shouldConnect, atomic.LoadInt32(&deliverServer.isConnected) == int32(1))
 			verifier.AssertNumberOfCalls(t, "VerifyBlockSignature", testCase.verificationCount)
 		})
 	}
@@ -858,7 +853,6 @@ func TestInactiveChainReplicator(t *testing.T) {
 					return nil
 				},
 				quitChan:     make(chan struct{}),
-				doneChan:     make(chan struct{}),
 				scheduleChan: scheduler,
 			}
 
@@ -892,7 +886,7 @@ func TestInactiveChainReplicator(t *testing.T) {
 				scheduler <- time.Time{}
 				// trigger to replicate a second time
 				scheduler <- time.Time{}
-				icr.Stop()
+				icr.stop()
 			}()
 			icr.Run()
 			replicatorStopped.Wait()
@@ -902,9 +896,9 @@ func TestInactiveChainReplicator(t *testing.T) {
 			for chain := range trackedChains {
 				replicatedChains = append(replicatedChains, chain)
 			}
-			require.Equal(t, testCase.chainsExpectedToBeReplicated, replicatedChains)
+			assert.Equal(t, testCase.chainsExpectedToBeReplicated, replicatedChains)
 			replicator.AssertNumberOfCalls(t, "ReplicateChains", testCase.ReplicateChainsExpectedCallCount)
-			require.Equal(t, testCase.expectedRegisteredChains, registeredChains)
+			assert.Equal(t, testCase.expectedRegisteredChains, registeredChains)
 		})
 	}
 }
@@ -915,21 +909,21 @@ func TestInactiveChainReplicatorChannels(t *testing.T) {
 		chains2CreationCallbacks: make(map[string]chainCreation),
 	}
 	icr.TrackChain("foo", &common.Block{}, func() {})
-	require.Contains(t, icr.Channels(), cluster.ChannelGenesisBlock{ChannelName: "foo", GenesisBlock: &common.Block{}})
+	assert.Contains(t, icr.Channels(), cluster.ChannelGenesisBlock{ChannelName: "foo", GenesisBlock: &common.Block{}})
 
 	icr.TrackChain("bar", nil, func() {})
-	require.Contains(t, icr.Channels(), cluster.ChannelGenesisBlock{ChannelName: "bar", GenesisBlock: nil})
+	assert.Contains(t, icr.Channels(), cluster.ChannelGenesisBlock{ChannelName: "bar", GenesisBlock: nil})
 
 	icr.Close()
 }
 
 func injectConsenterCertificate(t *testing.T, block *common.Block, tlsCert []byte) {
 	env, err := protoutil.ExtractEnvelope(block, 0)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	payload, err := protoutil.UnmarshalPayload(env.Payload)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	confEnv, err := configtx.UnmarshalConfigEnvelope(payload.Data)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	consensus := confEnv.Config.ChannelGroup.Groups[channelconfig.OrdererGroupKey].Values[channelconfig.ConsensusTypeKey]
 	consensus.Value = protoutil.MarshalOrPanic(&orderer.ConsensusType{
 		Type: "etcdraft",
@@ -953,11 +947,11 @@ func injectOrdererEndpoint(t *testing.T, block *common.Block, endpoint string) {
 	ordererAddresses := channelconfig.OrdererAddressesValue([]string{endpoint})
 	// Unwrap the layers until we reach the orderer addresses
 	env, err := protoutil.ExtractEnvelope(block, 0)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	payload, err := protoutil.UnmarshalPayload(env.Payload)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	confEnv, err := configtx.UnmarshalConfigEnvelope(payload.Data)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	// Replace the orderer addresses
 	confEnv.Config.ChannelGroup.Values[ordererAddresses.Key()].Value = protoutil.MarshalOrPanic(ordererAddresses.Value())
 	// And put it back into the block
@@ -973,10 +967,10 @@ func TestVerifierLoader(t *testing.T) {
 
 	systemChannelBlockPath := generateBootstrapBlock(t, tempDir, configtxgen, "system", "SampleSoloSystemChannel")
 	systemChannelBlockBytes, err := ioutil.ReadFile(systemChannelBlockPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	configBlock := &common.Block{}
-	require.NoError(t, proto.Unmarshal(systemChannelBlockBytes, configBlock))
+	assert.NoError(t, proto.Unmarshal(systemChannelBlockBytes, configBlock))
 
 	verifier := &cluster_mocks.BlockVerifier{}
 
@@ -995,7 +989,7 @@ func TestVerifierLoader(t *testing.T) {
 	}{
 		{
 			description:          "obtaining ledger fails",
-			ledgerGetOrCreateErr: errors.New("oops"),
+			ledgerGetOrCreateErr: errors.New("IO error"),
 			expectedPanic:        "Failed obtaining ledger for channel mychannel",
 		},
 		{
@@ -1074,8 +1068,8 @@ func TestVerifierLoader(t *testing.T) {
 			ledger.IteratorReturns(iterator, 1)
 
 			ledgerFactory := &onboarding_mocks.Factory{}
-			ledgerFactory.GetOrCreateReturns(ledger, testCase.ledgerGetOrCreateErr)
-			ledgerFactory.ChannelIDsReturns([]string{"mychannel"})
+			ledgerFactory.On("GetOrCreate", "mychannel").Return(ledger, testCase.ledgerGetOrCreateErr)
+			ledgerFactory.On("ChannelIDs").Return([]string{"mychannel"})
 
 			verifierFactory := &cluster_mocks.VerifierFactory{}
 			verifierFactory.On("VerifierFromConfig", mock.Anything, "mychannel").Return(verifier, testCase.verifierFromConfigErr)
@@ -1101,14 +1095,14 @@ func TestVerifierLoader(t *testing.T) {
 				f := func() {
 					verifierLoader.loadVerifiers()
 				}
-				require.PanicsWithValue(t, testCase.expectedPanic, f)
+				assert.PanicsWithValue(t, testCase.expectedPanic, f)
 			} else {
 				res := verifierLoader.loadVerifiers()
-				require.Equal(t, testCase.expectedResult, res)
+				assert.Equal(t, testCase.expectedResult, res)
 			}
 
-			require.Equal(t, testCase.onFailureInvoked, onFailureInvoked)
-			require.Empty(t, testCase.expectedLoggedMessages)
+			assert.Equal(t, testCase.onFailureInvoked, onFailureInvoked)
+			assert.Empty(t, testCase.expectedLoggedMessages)
 		})
 	}
 }
@@ -1119,20 +1113,20 @@ func TestValidateBootstrapBlock(t *testing.T) {
 
 	systemChannelBlockPath := generateBootstrapBlock(t, tempDir, configtxgen, "system", "SampleSoloSystemChannel")
 	systemChannelBlockBytes, err := ioutil.ReadFile(systemChannelBlockPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	applicationChannelBlockPath := generateBootstrapBlock(t, tempDir, configtxgen, "mychannel", "SampleOrgChannel")
 	applicationChannelBlockBytes, err := ioutil.ReadFile(applicationChannelBlockPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	appBlock := &common.Block{}
-	require.NoError(t, proto.Unmarshal(applicationChannelBlockBytes, appBlock))
+	assert.NoError(t, proto.Unmarshal(applicationChannelBlockBytes, appBlock))
 
 	systemBlock := &common.Block{}
-	require.NoError(t, proto.Unmarshal(systemChannelBlockBytes, systemBlock))
+	assert.NoError(t, proto.Unmarshal(systemChannelBlockBytes, systemBlock))
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	for _, testCase := range []struct {
 		description   string
@@ -1171,11 +1165,11 @@ func TestValidateBootstrapBlock(t *testing.T) {
 		t.Run(testCase.description, func(t *testing.T) {
 			err := ValidateBootstrapBlock(testCase.block, cryptoProvider)
 			if testCase.expectedError == "" {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				return
 			}
 
-			require.EqualError(t, err, testCase.expectedError)
+			assert.EqualError(t, err, testCase.expectedError)
 		})
 	}
 }
@@ -1232,18 +1226,18 @@ func TestCreateReplicator(t *testing.T) {
 	ledger.IteratorReturns(iterator, 1)
 
 	ledgerFactory := &onboarding_mocks.Factory{}
-	ledgerFactory.GetOrCreateReturns(ledger, nil)
-	ledgerFactory.ChannelIDsReturns([]string{"mychannel"})
+	ledgerFactory.On("GetOrCreate", "mychannel").Return(ledger, nil)
+	ledgerFactory.On("ChannelIDs").Return([]string{"mychannel"})
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	signer := &onboarding_mocks.SignerSerializer{}
 	r := NewReplicationInitiator(ledgerFactory, bootBlock, &localconfig.TopLevel{}, comm.SecureOptions{}, signer, cryptoProvider)
 
 	err = r.verifierRetriever.RetrieveVerifier("mychannel").VerifyBlockSignature(nil, nil)
-	require.EqualError(t, err, "implicit policy evaluation failed - 0 sub-policies were satisfied, but this policy requires 1 of the 'Writers' sub-policies to be satisfied")
+	assert.EqualError(t, err, "implicit policy evaluation failed - 0 sub-policies were satisfied, but this policy requires 1 of the 'Writers' sub-policies to be satisfied")
 
 	err = r.verifierRetriever.RetrieveVerifier("system").VerifyBlockSignature(nil, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }

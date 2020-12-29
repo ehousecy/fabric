@@ -7,14 +7,15 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls"
 	"sync"
 
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/msp"
 	"google.golang.org/grpc/credentials"
+	"github.com/tjfoc/gmtls/gmcredentials"
 )
 
 var commLogger = flogging.MustGetLogger("comm")
@@ -24,7 +25,7 @@ type CredentialSupport struct {
 	mutex             sync.RWMutex
 	appRootCAsByChain map[string][][]byte
 	serverRootCAs     [][]byte
-	clientCert        tls.Certificate
+	clientCert        gmtls.Certificate
 }
 
 // NewCredentialSupport creates a CredentialSupport instance.
@@ -37,14 +38,14 @@ func NewCredentialSupport(rootCAs ...[]byte) *CredentialSupport {
 
 // SetClientCertificate sets the tls.Certificate to use for gRPC client
 // connections
-func (cs *CredentialSupport) SetClientCertificate(cert tls.Certificate) {
+func (cs *CredentialSupport) SetClientCertificate(cert gmtls.Certificate) {
 	cs.mutex.Lock()
 	cs.clientCert = cert
 	cs.mutex.Unlock()
 }
 
 // GetClientCertificate returns the client certificate of the CredentialSupport
-func (cs *CredentialSupport) GetClientCertificate() tls.Certificate {
+func (cs *CredentialSupport) GetClientCertificate() gmtls.Certificate {
 	cs.mutex.RLock()
 	defer cs.mutex.RUnlock()
 	return cs.clientCert
@@ -62,7 +63,7 @@ func (cs *CredentialSupport) GetPeerCredentials() credentials.TransportCredentia
 		appRootCAs = append(appRootCAs, appRootCA...)
 	}
 
-	certPool := x509.NewCertPool()
+	certPool := sm2.NewCertPool()
 	for _, appRootCA := range appRootCAs {
 		err := AddPemToCertPool(appRootCA, certPool)
 		if err != nil {
@@ -70,8 +71,9 @@ func (cs *CredentialSupport) GetPeerCredentials() credentials.TransportCredentia
 		}
 	}
 
-	return credentials.NewTLS(&tls.Config{
-		Certificates: []tls.Certificate{cs.clientCert},
+	// TODO important done
+	return gmcredentials.NewTLS(&gmtls.Config{
+		Certificates: []gmtls.Certificate{cs.clientCert},
 		RootCAs:      certPool,
 	})
 }

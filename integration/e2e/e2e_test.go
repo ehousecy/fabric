@@ -11,6 +11,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,10 +29,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-lib-go/healthz"
 	"github.com/hyperledger/fabric-protos-go/orderer/etcdraft"
-	"github.com/hyperledger/fabric/integration/channelparticipation"
-	"github.com/hyperledger/fabric/integration/nwo"
-	"github.com/hyperledger/fabric/integration/nwo/commands"
-	"github.com/hyperledger/fabric/integration/nwo/fabricconfig"
+	"github.com/ehousecy/fabric/integration/nwo"
+	"github.com/ehousecy/fabric/integration/nwo/commands"
+	"github.com/ehousecy/fabric/integration/nwo/fabricconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -59,7 +60,7 @@ var _ = Describe("EndToEnd", func() {
 		chaincode = nwo.Chaincode{
 			Name:            "mycc",
 			Version:         "0.0",
-			Path:            components.Build("github.com/hyperledger/fabric/integration/chaincode/simple/cmd"),
+			Path:            components.Build("github.com/ehousecy/fabric/integration/chaincode/simple/cmd"),
 			Lang:            "binary",
 			PackageFile:     filepath.Join(testDir, "simplecc.tar.gz"),
 			Ctor:            `{"Args":["init","a","100","b","200"]}`,
@@ -94,7 +95,7 @@ var _ = Describe("EndToEnd", func() {
 			network = nwo.New(nwo.BasicSolo(), testDir, nil, StartPort(), components)
 			network.MetricsProvider = "statsd"
 			network.StatsdEndpoint = metricsReader.Address()
-			network.Consensus.ChannelParticipationEnabled = true
+			network.ChannelParticipationEnabled = true
 			network.Profiles = append(network.Profiles, &nwo.Profile{
 				Name:          "TwoOrgsBaseProfileChannel",
 				Consortium:    "SampleConsortium",
@@ -120,7 +121,6 @@ var _ = Describe("EndToEnd", func() {
 				core.VM = nil
 				network.WritePeerConfig(peer, core)
 			}
-
 			network.Bootstrap()
 
 			networkRunner := network.NetworkGroupRunner()
@@ -158,9 +158,6 @@ var _ = Describe("EndToEnd", func() {
 
 			By("setting up the channel")
 			network.CreateAndJoinChannel(orderer, "testchannel")
-			cl := channelparticipation.List(network, orderer)
-			channelparticipation.ChannelListMatcher(cl, []string{"testchannel"}, []string{"systemchannel"}...)
-
 			nwo.EnableCapabilities(network, "testchannel", "Application", "V2_0", orderer, network.Peer("Org1", "peer0"), network.Peer("Org2", "peer0"))
 
 			By("attempting to install unsupported chaincode without docker")
@@ -217,7 +214,7 @@ var _ = Describe("EndToEnd", func() {
 		BeforeEach(func() {
 			network = nwo.New(nwo.BasicKafka(), testDir, client, StartPort(), components)
 			network.MetricsProvider = "prometheus"
-			network.Consensus.ChannelParticipationEnabled = true
+			network.ChannelParticipationEnabled = true
 			network.GenerateConfigTree()
 			network.Bootstrap()
 
@@ -248,7 +245,7 @@ var _ = Describe("EndToEnd", func() {
 			gopathChaincode := nwo.Chaincode{
 				Name:            "mycc",
 				Version:         "0.0",
-				Path:            "github.com/hyperledger/fabric/integration/chaincode/simple/cmd",
+				Path:            "github.com/ehousecy/fabric/integration/chaincode/simple/cmd",
 				Lang:            "golang",
 				PackageFile:     filepath.Join(testDir, "simplecc.tar.gz"),
 				Ctor:            `{"Args":["init","a","100","b","200"]}`,
@@ -261,9 +258,6 @@ var _ = Describe("EndToEnd", func() {
 			orderer := network.Orderer("orderer")
 
 			network.CreateAndJoinChannel(orderer, "testchannel")
-			cl := channelparticipation.List(network, orderer)
-			channelparticipation.ChannelListMatcher(cl, []string{"testchannel"}, []string{"systemchannel"}...)
-
 			nwo.EnableCapabilities(network, "testchannel", "Application", "V2_0", orderer, network.Peer("Org1", "peer0"), network.Peer("Org2", "peer0"))
 
 			// package, install, and approve by org1 - module chaincode
@@ -350,7 +344,7 @@ var _ = Describe("EndToEnd", func() {
 
 		BeforeEach(func() {
 			network = nwo.New(nwo.MultiChannelEtcdRaft(), testDir, client, StartPort(), components)
-			network.Consensus.ChannelParticipationEnabled = true
+			network.ChannelParticipationEnabled = true
 			network.GenerateConfigTree()
 			for _, peer := range network.Peers {
 				core := network.ReadPeerConfig(peer)
@@ -399,9 +393,6 @@ var _ = Describe("EndToEnd", func() {
 
 			By("Create second channel and deploy chaincode")
 			network.CreateAndJoinChannel(orderer, "testchannel2")
-			cl := channelparticipation.List(network, orderer)
-			channelparticipation.ChannelListMatcher(cl, []string{"testchannel", "testchannel2"}, []string{"systemchannel"}...)
-
 			peers := network.PeersWithChannel("testchannel2")
 			nwo.EnableCapabilities(network, "testchannel2", "Application", "V2_0", orderer, network.Peer("Org1", "peer0"), network.Peer("Org2", "peer0"))
 			nwo.ApproveChaincodeForMyOrg(network, "testchannel2", orderer, chaincode, peers...)
@@ -485,6 +476,48 @@ var _ = Describe("EndToEnd", func() {
 		})
 	})
 
+	Describe("basic etcdraft network without a system channel", func() {
+		var ordererProcess ifrit.Process
+		BeforeEach(func() {
+			raftConfig := nwo.BasicEtcdRaft()
+			network = nwo.New(raftConfig, testDir, client, StartPort(), components)
+			network.ChannelParticipationEnabled = true
+			network.GenerateConfigTree()
+
+			orderer := network.Orderer("orderer")
+			ordererConfig := network.ReadOrdererConfig(orderer)
+			ordererConfig.General.BootstrapMethod = "none"
+			network.WriteOrdererConfig(orderer, ordererConfig)
+			network.Bootstrap()
+
+			ordererRunner := network.OrdererRunner(orderer)
+			ordererProcess = ifrit.Invoke(ordererRunner)
+			Eventually(ordererProcess.Ready, network.EventuallyTimeout).Should(BeClosed())
+			Eventually(ordererRunner.Err(), network.EventuallyTimeout).Should(gbytes.Say("Registrar initializing without a system channel, number of application channels: 0"))
+		})
+
+		AfterEach(func() {
+			if ordererProcess != nil {
+				ordererProcess.Signal(syscall.SIGTERM)
+				Eventually(ordererProcess.Wait(), network.EventuallyTimeout).Should(Receive())
+			}
+		})
+
+		It("starts the orderer but rejects channel creation requests", func() {
+			By("attempting to create a channel without a system channel defined")
+			sess, err := network.PeerAdminSession(network.Peer("Org1", "peer0"), commands.ChannelCreate{
+				ChannelID:   "testchannel",
+				Orderer:     network.OrdererAddress(network.Orderer("orderer"), nwo.ListenPort),
+				File:        network.CreateChannelTxPath("testchannel"),
+				OutputBlock: "/dev/null",
+				ClientAuth:  network.ClientAuthRequired,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(1))
+			Eventually(sess.Err, network.EventuallyTimeout).Should(gbytes.Say("channel creation request not allowed because the orderer system channel is not defined"))
+		})
+	})
+
 	Describe("basic solo network with containers being interrupted", func() {
 		BeforeEach(func() {
 			network = nwo.New(nwo.FullSolo(), testDir, client, StartPort(), components)
@@ -501,7 +534,7 @@ var _ = Describe("EndToEnd", func() {
 			chaincode := nwo.Chaincode{
 				Name:            "mycc",
 				Version:         "0.0",
-				Path:            "github.com/hyperledger/fabric/integration/chaincode/simple/cmd",
+				Path:            "github.com/ehousecy/fabric/integration/chaincode/simple/cmd",
 				Lang:            "golang",
 				PackageFile:     filepath.Join(testDir, "simplecc.tar.gz"),
 				Ctor:            `{"Args":["init","a","100","b","200"]}`,
@@ -689,12 +722,49 @@ func CheckOrdererStatsdMetrics(prefix string, mr *MetricsReader, timeout time.Du
 	))
 }
 
+func OrdererOperationalClients(network *nwo.Network, orderer *nwo.Orderer) (authClient, unauthClient *http.Client) {
+	return operationalClients(network.OrdererLocalTLSDir(orderer))
+}
+
+func PeerOperationalClients(network *nwo.Network, peer *nwo.Peer) (authClient, unauthClient *http.Client) {
+	return operationalClients(network.PeerLocalTLSDir(peer))
+}
+
+func operationalClients(tlsDir string) (authClient, unauthClient *http.Client) {
+	clientCert, err := tls.LoadX509KeyPair(
+		filepath.Join(tlsDir, "server.crt"),
+		filepath.Join(tlsDir, "server.key"),
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	clientCertPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(filepath.Join(tlsDir, "ca.crt"))
+	Expect(err).NotTo(HaveOccurred())
+	clientCertPool.AppendCertsFromPEM(caCert)
+
+	authenticatedClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates: []tls.Certificate{clientCert},
+				RootCAs:      clientCertPool,
+			},
+		},
+	}
+	unauthenticatedClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: clientCertPool},
+		},
+	}
+
+	return authenticatedClient, unauthenticatedClient
+}
+
 func CheckPeerOperationEndpoints(network *nwo.Network, peer *nwo.Peer) {
 	metricsURL := fmt.Sprintf("https://127.0.0.1:%d/metrics", network.PeerPort(peer, nwo.OperationsPort))
 	logspecURL := fmt.Sprintf("https://127.0.0.1:%d/logspec", network.PeerPort(peer, nwo.OperationsPort))
 	healthURL := fmt.Sprintf("https://127.0.0.1:%d/healthz", network.PeerPort(peer, nwo.OperationsPort))
 
-	authClient, unauthClient := nwo.PeerOperationalClients(network, peer)
+	authClient, unauthClient := PeerOperationalClients(network, peer)
 
 	CheckPeerPrometheusMetrics(authClient, metricsURL)
 	CheckLogspecOperations(authClient, logspecURL)
@@ -714,7 +784,7 @@ func CheckOrdererOperationEndpoints(network *nwo.Network, orderer *nwo.Orderer) 
 	logspecURL := fmt.Sprintf("https://127.0.0.1:%d/logspec", network.OrdererPort(orderer, nwo.OperationsPort))
 	healthURL := fmt.Sprintf("https://127.0.0.1:%d/healthz", network.OrdererPort(orderer, nwo.OperationsPort))
 
-	authClient, unauthClient := nwo.OrdererOperationalClients(network, orderer)
+	authClient, unauthClient := OrdererOperationalClients(network, orderer)
 
 	CheckOrdererPrometheusMetrics(authClient, metricsURL)
 	CheckLogspecOperations(authClient, logspecURL)

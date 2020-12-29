@@ -15,14 +15,14 @@ import (
 	"time"
 
 	proto "github.com/hyperledger/fabric-protos-go/gossip"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/gossip/common"
-	"github.com/hyperledger/fabric/gossip/discovery"
-	"github.com/hyperledger/fabric/gossip/metrics"
-	"github.com/hyperledger/fabric/gossip/metrics/mocks"
-	"github.com/hyperledger/fabric/gossip/protoext"
-	"github.com/hyperledger/fabric/gossip/util"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/gossip/common"
+	"github.com/ehousecy/fabric/gossip/discovery"
+	"github.com/ehousecy/fabric/gossip/metrics"
+	"github.com/ehousecy/fabric/gossip/metrics/mocks"
+	"github.com/ehousecy/fabric/gossip/protoext"
+	"github.com/ehousecy/fabric/gossip/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -341,22 +341,22 @@ func TestReportMetrics(t *testing.T) {
 
 	adapter.ReportMetrics(true)
 
-	require.Equal(t,
+	assert.Equal(t,
 		[]string{"channel", "channel0"},
 		testMetricProvider.FakeDeclarationGauge.WithArgsForCall(0),
 	)
-	require.EqualValues(t,
+	assert.EqualValues(t,
 		1,
 		testMetricProvider.FakeDeclarationGauge.SetArgsForCall(0),
 	)
 
 	adapter.ReportMetrics(false)
 
-	require.Equal(t,
+	assert.Equal(t,
 		[]string{"channel", "channel0"},
 		testMetricProvider.FakeDeclarationGauge.WithArgsForCall(1),
 	)
-	require.EqualValues(t,
+	assert.EqualValues(t,
 		0,
 		testMetricProvider.FakeDeclarationGauge.SetArgsForCall(1),
 	)

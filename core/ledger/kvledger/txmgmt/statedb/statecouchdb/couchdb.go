@@ -28,8 +28,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/core/ledger"
 	"github.com/pkg/errors"
 	"go.uber.org/zap/zapcore"
 )
@@ -38,6 +38,11 @@ var couchdbLogger = flogging.MustGetLogger("couchdb")
 
 //time between retry attempts in milliseconds
 const retryWaitTime = 125
+
+// dbOperationResponse is body for successful database calls.
+type dbOperationResponse struct {
+	Ok bool
+}
 
 // dbInfo is body for database information.
 type dbInfo struct {
@@ -141,13 +146,6 @@ type attachmentInfo struct {
 	AttachmentBytes []byte `json:"data"`
 }
 
-func (a *attachmentInfo) len() int {
-	if a == nil {
-		return 0
-	}
-	return len(a.Name) + len(a.ContentType) + len(a.AttachmentBytes)
-}
-
 //fileDetails defines the structure needed to send an attachment to couchdb
 type fileDetails struct {
 	Follows     bool   `json:"follows"`
@@ -213,17 +211,7 @@ func (d *couchDoc) key() (string, error) {
 		return "", err
 	}
 	return m[idField].(string), nil
-}
 
-func (d *couchDoc) len() int {
-	if d == nil {
-		return 0
-	}
-	size := len(d.jsonValue)
-	for _, a := range d.attachments {
-		size += a.len()
-	}
-	return size
 }
 
 // closeResponseBody discards the body and then closes it to enable returning it to
@@ -486,7 +474,7 @@ func (couchInstance *couchInstance) url() string {
 }
 
 //dropDatabase provides method to drop an existing database
-func (dbclient *couchDatabase) dropDatabase() error {
+func (dbclient *couchDatabase) dropDatabase() (*dbOperationResponse, error) {
 	dbName := dbclient.dbName
 
 	couchdbLogger.Debugf("[%s] Entering DropDatabase()", dbName)
@@ -494,24 +482,35 @@ func (dbclient *couchDatabase) dropDatabase() error {
 	connectURL, err := url.Parse(dbclient.couchInstance.url())
 	if err != nil {
 		couchdbLogger.Errorf("URL parse error: %s", err)
-		return errors.Wrapf(err, "error parsing CouchDB URL: %s", dbclient.couchInstance.url())
+		return nil, errors.Wrapf(err, "error parsing CouchDB URL: %s", dbclient.couchInstance.url())
 	}
 
 	//get the number of retries
 	maxRetries := dbclient.couchInstance.conf.MaxRetries
 
-	resp, couchdbReturn, err := dbclient.handleRequest(http.MethodDelete, "DropDatabase", connectURL, nil, "", "", maxRetries, true, nil)
-	defer closeResponseBody(resp)
-	if couchdbReturn != nil && couchdbReturn.StatusCode == 404 {
-		couchdbLogger.Debugf("[%s] Exiting DropDatabase(), database does not exist", dbclient.dbName)
-		return nil
-	}
+	resp, _, err := dbclient.handleRequest(http.MethodDelete, "DropDatabase", connectURL, nil, "", "", maxRetries, true, nil)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+
+	dbResponse := &dbOperationResponse{}
+	decodeErr := json.NewDecoder(resp.Body).Decode(&dbResponse)
+	if decodeErr != nil {
+		return nil, errors.Wrap(decodeErr, "error decoding response body")
 	}
 
-	couchdbLogger.Debugf("[%s] Exiting DropDatabase(), database dropped", dbclient.dbName)
-	return nil
+	if dbResponse.Ok {
+		couchdbLogger.Debugf("[%s] Dropped database", dbclient.dbName)
+	}
+
+	couchdbLogger.Debugf("[%s] Exiting DropDatabase()", dbclient.dbName)
+
+	if dbResponse.Ok {
+		return dbResponse, nil
+	}
+
+	return dbResponse, errors.New("error dropping database")
 }
 
 //saveDoc method provides a function to save a document, id and byte array
@@ -716,8 +715,6 @@ func (dbclient *couchDatabase) readDoc(id string) (*couchDoc, string, error) {
 	dbName := dbclient.dbName
 
 	couchdbLogger.Debugf("[%s] Entering ReadDoc()  id=[%s]", dbName, id)
-	defer couchdbLogger.Debugf("[%s] Exiting ReadDoc()", dbclient.dbName)
-
 	if !utf8.ValidString(id) {
 		return nil, "", errors.Errorf("doc id [%x] not a valid utf8 string", id)
 	}
@@ -753,92 +750,92 @@ func (dbclient *couchDatabase) readDoc(id string) (*couchDoc, string, error) {
 		log.Fatal(err)
 	}
 
-	// Get the revision from header
+	//Get the revision from header
 	revision, err := getRevisionHeader(resp)
 	if err != nil {
 		return nil, "", err
 	}
 
-	// Handle as JSON if multipart is NOT detected
-	if !strings.HasPrefix(mediaType, "multipart/") {
-		couchDoc.jsonValue, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "error reading response body")
-		}
+	//check to see if the is multipart,  handle as attachment if multipart is detected
+	if strings.HasPrefix(mediaType, "multipart/") {
+		//Set up the multipart reader based on the boundary
+		multipartReader := multipart.NewReader(resp.Body, params["boundary"])
+		for {
+			p, err := multipartReader.NextPart()
+			if err == io.EOF {
+				break // processed all parts
+			}
+			if err != nil {
+				return nil, "", errors.Wrap(err, "error reading next multipart")
+			}
+
+			defer p.Close()
+
+			couchdbLogger.Debugf("[%s] part header=%s", dbclient.dbName, p.Header)
+			switch p.Header.Get("Content-Type") {
+			case "application/json":
+				partdata, err := ioutil.ReadAll(p)
+				if err != nil {
+					return nil, "", errors.Wrap(err, "error reading multipart data")
+				}
+				couchDoc.jsonValue = partdata
+			default:
+
+				//Create an attachment structure and load it
+				attachment := &attachmentInfo{}
+				attachment.ContentType = p.Header.Get("Content-Type")
+				contentDispositionParts := strings.Split(p.Header.Get("Content-Disposition"), ";")
+				if strings.TrimSpace(contentDispositionParts[0]) == "attachment" {
+					switch p.Header.Get("Content-Encoding") {
+					case "gzip": //See if the part is gzip encoded
+
+						var respBody []byte
+
+						gr, err := gzip.NewReader(p)
+						if err != nil {
+							return nil, "", errors.Wrap(err, "error creating gzip reader")
+						}
+						respBody, err = ioutil.ReadAll(gr)
+						if err != nil {
+							return nil, "", errors.Wrap(err, "error reading gzip data")
+						}
+
+						couchdbLogger.Debugf("[%s] Retrieved attachment data", dbclient.dbName)
+						attachment.AttachmentBytes = respBody
+						attachment.Length = uint64(len(attachment.AttachmentBytes))
+						attachment.Name = p.FileName()
+						attachments = append(attachments, attachment)
+
+					default:
+
+						//retrieve the data,  this is not gzip
+						partdata, err := ioutil.ReadAll(p)
+						if err != nil {
+							return nil, "", errors.Wrap(err, "error reading multipart data")
+						}
+						couchdbLogger.Debugf("[%s] Retrieved attachment data", dbclient.dbName)
+						attachment.AttachmentBytes = partdata
+						attachment.Length = uint64(len(attachment.AttachmentBytes))
+						attachment.Name = p.FileName()
+						attachments = append(attachments, attachment)
+
+					} // end content-encoding switch
+				} // end if attachment
+			} // end content-type switch
+		} // for all multiparts
+
+		couchDoc.attachments = attachments
 
 		return &couchDoc, revision, nil
 	}
 
-	// Handle as attachment.
-	// Set up the multipart reader based on the boundary.
-	multipartReader := multipart.NewReader(resp.Body, params["boundary"])
-	for {
-		p, err := multipartReader.NextPart()
-		if err == io.EOF {
-			break // processed all parts
-		}
-		if err != nil {
-			return nil, "", errors.Wrap(err, "error reading next multipart")
-		}
-
-		defer p.Close()
-
-		couchdbLogger.Debugf("[%s] part header=%s", dbclient.dbName, p.Header)
-
-		if p.Header.Get("Content-Type") == "application/json" {
-			partdata, err := ioutil.ReadAll(p)
-			if err != nil {
-				return nil, "", errors.Wrap(err, "error reading multipart data")
-			}
-			couchDoc.jsonValue = partdata
-			continue
-		}
-
-		// Create an attachment structure and load it.
-		attachment := &attachmentInfo{}
-		attachment.ContentType = p.Header.Get("Content-Type")
-		contentDispositionParts := strings.Split(p.Header.Get("Content-Disposition"), ";")
-
-		if strings.TrimSpace(contentDispositionParts[0]) != "attachment" {
-			continue
-		}
-
-		switch p.Header.Get("Content-Encoding") {
-		case "gzip": // See if the part is gzip encoded
-
-			var respBody []byte
-
-			gr, err := gzip.NewReader(p)
-			if err != nil {
-				return nil, "", errors.Wrap(err, "error creating gzip reader")
-			}
-			respBody, err = ioutil.ReadAll(gr)
-			if err != nil {
-				return nil, "", errors.Wrap(err, "error reading gzip data")
-			}
-
-			couchdbLogger.Debugf("[%s] Retrieved attachment data", dbclient.dbName)
-			attachment.AttachmentBytes = respBody
-			attachment.Length = uint64(len(attachment.AttachmentBytes))
-			attachment.Name = p.FileName()
-			attachments = append(attachments, attachment)
-
-		default:
-
-			//retrieve the data,  this is not gzip
-			partdata, err := ioutil.ReadAll(p)
-			if err != nil {
-				return nil, "", errors.Wrap(err, "error reading multipart data")
-			}
-			couchdbLogger.Debugf("[%s] Retrieved attachment data", dbclient.dbName)
-			attachment.AttachmentBytes = partdata
-			attachment.Length = uint64(len(attachment.AttachmentBytes))
-			attachment.Name = p.FileName()
-			attachments = append(attachments, attachment)
-		}
+	//handle as JSON document
+	couchDoc.jsonValue, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "error reading response body")
 	}
 
-	couchDoc.attachments = attachments
+	couchdbLogger.Debugf("[%s] Exiting ReadDoc()", dbclient.dbName)
 	return &couchDoc, revision, nil
 }
 
@@ -1473,23 +1470,6 @@ func (dbclient *couchDatabase) batchRetrieveDocumentMetadata(keys []string) ([]*
 
 	return docMetadataArray, nil
 
-}
-
-func (dbclient *couchDatabase) insertDocuments(docs []*couchDoc) error {
-	responses, err := dbclient.batchUpdateDocuments(docs)
-	if err != nil {
-		return errors.WithMessage(err, "error while updating docs in bulk")
-	}
-
-	for i, resp := range responses {
-		if resp.Ok {
-			continue
-		}
-		if _, err := dbclient.saveDoc(resp.ID, "", docs[i]); err != nil {
-			return errors.WithMessagef(err, "error while storing doc with ID %s", resp.ID)
-		}
-	}
-	return nil
 }
 
 //batchUpdateDocuments - batch method to batch update documents

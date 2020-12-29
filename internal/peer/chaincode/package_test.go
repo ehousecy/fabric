@@ -15,11 +15,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	pcommon "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/msp"
-	msptesttools "github.com/hyperledger/fabric/msp/mgmt/testtools"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/internal/peer/common"
+	"github.com/ehousecy/fabric/msp"
+	msptesttools "github.com/ehousecy/fabric/msp/mgmt/testtools"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -92,7 +92,7 @@ func createSignedCDSPackage(t *testing.T, args []string, sign bool) error {
 	p := newPackagerForTest(t, sign)
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	cmd := packageCmd(nil, mockCDSFactory, p, cryptoProvider)
 	addFlags(cmd)
 
@@ -215,7 +215,7 @@ func newPackagerForTest(t *testing.T /*pr PlatformRegistry, w Writer,*/, sign bo
 		t.Fatal("error creating mock ChaincodeCmdFactory", err)
 	}
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	p := &Packager{
 		ChaincodeCmdFactory: mockCF,

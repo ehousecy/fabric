@@ -7,13 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package idemixca
 
 import (
-	"crypto/ecdsa"
+	"github.com/tjfoc/gmsm/sm2"
 
+	"github.com/ehousecy/fabric/idemix"
+	"github.com/ehousecy/fabric/msp"
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	m "github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/idemix"
-	"github.com/hyperledger/fabric/msp"
 	"github.com/pkg/errors"
 )
 
@@ -42,7 +42,7 @@ func GenerateIssuerKey() ([]byte, []byte, error) {
 // GenerateSignerConfig creates a new signer config.
 // It generates a fresh user secret and issues a credential
 // with four attributes (described above) using the CA's key pair.
-func GenerateSignerConfig(roleMask int, ouString string, enrollmentId string, revocationHandle int, key *idemix.IssuerKey, revKey *ecdsa.PrivateKey) ([]byte, error) {
+func GenerateSignerConfig(roleMask int, ouString string, enrollmentId string, revocationHandle int, key *idemix.IssuerKey, revKey *sm2.PrivateKey) ([]byte, error) {
 	attrs := make([]*FP256BN.BIG, 4)
 
 	if ouString == "" {

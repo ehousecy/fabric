@@ -10,13 +10,13 @@ import (
 	"testing"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func basicTest(t *testing.T, sv *StandardConfigPolicy) {
-	require.NotNil(t, sv)
-	require.NotEmpty(t, sv.Key())
-	require.NotNil(t, sv.Value())
+	assert.NotNil(t, sv)
+	assert.NotEmpty(t, sv.Key())
+	assert.NotNil(t, sv.Value())
 }
 
 func TestUtilsBasic(t *testing.T) {

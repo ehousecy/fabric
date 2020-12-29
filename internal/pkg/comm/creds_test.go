@@ -16,9 +16,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/flogging/floggingtest"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ehousecy/fabric/common/flogging/floggingtest"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreds(t *testing.T) {
@@ -51,11 +53,11 @@ func TestCreds(t *testing.T) {
 
 	creds := comm.NewServerTransportCredentials(config, logger)
 	_, _, err = creds.ClientHandshake(context.Background(), "", nil)
-	require.EqualError(t, err, comm.ErrClientHandshakeNotImplemented.Error())
+	assert.EqualError(t, err, comm.ErrClientHandshakeNotImplemented.Error())
 	err = creds.OverrideServerName("")
-	require.EqualError(t, err, comm.ErrOverrideHostnameNotSupported.Error())
-	require.Equal(t, "1.2", creds.Info().SecurityVersion)
-	require.Equal(t, "tls", creds.Info().SecurityProtocol)
+	assert.EqualError(t, err, comm.ErrOverrideHostnameNotSupported.Error())
+	assert.Equal(t, "1.2", creds.Info().SecurityVersion)
+	assert.Equal(t, "tls", creds.Info().SecurityProtocol)
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
@@ -64,7 +66,7 @@ func TestCreds(t *testing.T) {
 	defer lis.Close()
 
 	_, port, err := net.SplitHostPort(lis.Addr().String())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	addr := net.JoinHostPort("localhost", port)
 
 	handshake := func(wg *sync.WaitGroup) {
@@ -84,7 +86,7 @@ func TestCreds(t *testing.T) {
 	go handshake(wg)
 	_, err = tls.Dial("tcp", addr, &tls.Config{RootCAs: certPool})
 	wg.Wait()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	wg = &sync.WaitGroup{}
 	wg.Add(1)
@@ -104,7 +106,7 @@ func TestNewTLSConfig(t *testing.T) {
 
 	config := comm.NewTLSConfig(tlsConfig)
 
-	require.NotEmpty(t, config, "TLSConfig is not empty")
+	assert.NotEmpty(t, config, "TLSConfig is not empty")
 }
 
 func TestConfig(t *testing.T) {
@@ -118,7 +120,7 @@ func TestConfig(t *testing.T) {
 	certPool := x509.NewCertPool()
 	config.SetClientCAs(certPool)
 
-	require.NotEqual(t, config.Config(), &configCopy, "TLSConfig should have new certs")
+	assert.NotEqual(t, config.Config(), &configCopy, "TLSConfig should have new certs")
 }
 
 func TestAddRootCA(t *testing.T) {
@@ -152,11 +154,11 @@ func TestAddRootCA(t *testing.T) {
 	}
 	config := comm.NewTLSConfig(tlsConfig)
 
-	require.Equal(t, config.Config().ClientCAs, certPool)
+	assert.Equal(t, config.Config().ClientCAs, certPool)
 
 	config.AddClientRootCA(cert)
 
-	require.Equal(t, config.Config().ClientCAs, expectedCertPool, "The CertPools should be equal")
+	assert.Equal(t, config.Config().ClientCAs, expectedCertPool, "The CertPools should be equal")
 }
 
 func TestSetClientCAs(t *testing.T) {
@@ -166,10 +168,10 @@ func TestSetClientCAs(t *testing.T) {
 	}
 	config := comm.NewTLSConfig(tlsConfig)
 
-	require.Empty(t, config.Config().ClientCAs, "No CertPool should be defined")
+	assert.Empty(t, config.Config().ClientCAs, "No CertPool should be defined")
 
 	certPool := x509.NewCertPool()
 	config.SetClientCAs(certPool)
 
-	require.NotNil(t, config.Config().ClientCAs, "The CertPools' should not be the same")
+	assert.NotNil(t, config.Config().ClientCAs, "The CertPools' should not be the same")
 }

@@ -9,9 +9,9 @@ package channelconfig
 import (
 	"sync/atomic"
 
-	"github.com/hyperledger/fabric/common/configtx"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/common/configtx"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/msp"
 )
 
 // BundleSource stores a reference to the current configuration bundle

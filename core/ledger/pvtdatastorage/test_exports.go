@@ -12,8 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/pvtdatapolicy"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,10 +64,10 @@ func (env *StoreEnv) CloseAndReopen() {
 	var err error
 	env.TestStoreProvider.Close()
 	env.TestStoreProvider, err = NewProvider(env.conf)
-	require.NoError(env.t, err)
+	assert.NoError(env.t, err)
 	env.TestStore, err = env.TestStoreProvider.OpenStore(env.ledgerid)
 	env.TestStore.Init(env.btlPolicy)
-	require.NoError(env.t, err)
+	assert.NoError(env.t, err)
 }
 
 // Cleanup cleansup the  store env after testing

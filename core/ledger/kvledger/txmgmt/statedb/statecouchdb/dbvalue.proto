@@ -6,9 +6,14 @@ SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/statecouchdb";
+option go_package = "github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb/statecouchdb";
 
 package statecouchdb;
+
+message ValueVersionMetadata {
+    bytes value = 1;
+    bytes version_and_metadata = 2;
+}
 
 message VersionAndMetadata {
     bytes version = 1;

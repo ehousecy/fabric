@@ -19,7 +19,7 @@ package version
 import (
 	"fmt"
 
-	"github.com/hyperledger/fabric/common/ledger/util"
+	"github.com/ehousecy/fabric/common/ledger/util"
 )
 
 // Height represents the height of a transaction in blockchain
@@ -73,9 +73,6 @@ func (h *Height) Compare(h1 *Height) int {
 
 // String returns string for printing
 func (h *Height) String() string {
-	if h == nil {
-		return "<nil>"
-	}
 	return fmt.Sprintf("{BlockNum: %d, TxNum: %d}", h.BlockNum, h.TxNum)
 }
 

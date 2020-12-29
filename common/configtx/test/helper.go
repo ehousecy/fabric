@@ -11,14 +11,14 @@ import (
 	mspproto "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/common/channelconfig"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/genesis"
-	"github.com/hyperledger/fabric/core/config/configtest"
-	"github.com/hyperledger/fabric/internal/configtxgen/encoder"
-	"github.com/hyperledger/fabric/internal/configtxgen/genesisconfig"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/common/channelconfig"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/genesis"
+	"github.com/ehousecy/fabric/core/config/configtest"
+	"github.com/ehousecy/fabric/internal/configtxgen/encoder"
+	"github.com/ehousecy/fabric/internal/configtxgen/genesisconfig"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/protoutil"
 )
 
 var logger = flogging.MustGetLogger("common.configtx.test")
@@ -40,15 +40,6 @@ func MakeGenesisBlock(channelID string) (*cb.Block, error) {
 	gb.Metadata.Metadata[cb.BlockMetadataIndex_TRANSACTIONS_FILTER] = txsFilter
 
 	return gb, nil
-}
-
-func MakeChannelConfig(channelID string) (*cb.Config, error) {
-	profile := genesisconfig.Load(genesisconfig.SampleDevModeSoloProfile, configtest.GetDevConfigDir())
-	channelGroup, err := encoder.NewChannelGroup(profile)
-	if err != nil {
-		return nil, err
-	}
-	return &cb.Config{ChannelGroup: channelGroup}, nil
 }
 
 // MakeGenesisBlockWithMSPs creates a genesis block using the MSPs provided for the given channelID

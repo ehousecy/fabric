@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRevocation(t *testing.T) {
@@ -33,23 +33,23 @@ func TestRevocation(t *testing.T) {
 	thisMSP := getLocalMSP(t, "testdata/revocation")
 
 	id, err := thisMSP.GetDefaultSigningIdentity()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// the certificate associated to this id is revoked and so validation should fail!
 	err = id.Validate()
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	// This MSP is identical to the previous one, with only 1 difference:
 	// the signature on the CRL is invalid
 	thisMSP = getLocalMSP(t, "testdata/revocation2")
 
 	id, err = thisMSP.GetDefaultSigningIdentity()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// the certificate associated to this id is revoked but the signature on the CRL is invalid
 	// so validation should succeed
 	err = id.Validate()
-	require.NoError(t, err, "Identity found revoked although the signature over the CRL is invalid")
+	assert.NoError(t, err, "Identity found revoked although the signature over the CRL is invalid")
 }
 
 func TestIdentityPolicyPrincipalAgainstRevokedIdentity(t *testing.T) {
@@ -60,17 +60,17 @@ func TestIdentityPolicyPrincipalAgainstRevokedIdentity(t *testing.T) {
 	thisMSP := getLocalMSP(t, "testdata/revocation")
 
 	id, err := thisMSP.GetDefaultSigningIdentity()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	idSerialized, err := id.Serialize()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	principal := &msp.MSPPrincipal{
 		PrincipalClassification: msp.MSPPrincipal_IDENTITY,
 		Principal:               idSerialized}
 
 	err = id.SatisfiesPrincipal(principal)
-	require.Error(t, err)
+	assert.Error(t, err)
 }
 
 func TestRevokedIntermediateCA(t *testing.T) {
@@ -80,19 +80,19 @@ func TestRevokedIntermediateCA(t *testing.T) {
 	// 3) a revocation list that revokes the intermediate CA cert
 	dir := "testdata/revokedica"
 	conf, err := GetLocalMspConfig(dir, nil, "SampleOrg")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	thisMSP, err := newBccspMsp(MSPv1_0, cryptoProvider)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	ks, err := sw.NewFileBasedKeyStore(nil, filepath.Join(dir, "keystore"), true)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	csp, err := sw.NewWithParams(256, "SHA2", ks)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	thisMSP.(*bccspmsp).bccsp = csp
 
 	err = thisMSP.Setup(conf)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "CA Certificate is not valid, ")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "CA Certificate is not valid, ")
 }

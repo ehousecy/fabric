@@ -11,10 +11,10 @@ import (
 	"math"
 
 	cb "github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/capabilities"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/msp"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/common/capabilities"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/msp"
 	"github.com/pkg/errors"
 )
 
@@ -190,6 +190,8 @@ func (cc *ChannelConfig) validateHashingAlgorithm() error {
 		cc.hashingAlgorithm = util.ComputeSHA256
 	case bccsp.SHA3_256:
 		cc.hashingAlgorithm = util.ComputeSHA3256
+	case bccsp.GMSM3:
+		cc.hashingAlgorithm = util.ComputeGMSM3
 	default:
 		return fmt.Errorf("Unknown hashing algorithm type: %s", cc.protos.HashingAlgorithm.Name)
 	}

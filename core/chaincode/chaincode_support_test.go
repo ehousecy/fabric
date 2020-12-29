@@ -27,43 +27,42 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	plgr "github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/hyperledger/fabric/common/crypto/tlsgen"
-	"github.com/hyperledger/fabric/common/flogging"
-	commonledger "github.com/hyperledger/fabric/common/ledger"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/common/policies"
-	"github.com/hyperledger/fabric/common/util"
-	aclmocks "github.com/hyperledger/fabric/core/aclmgmt/mocks"
-	"github.com/hyperledger/fabric/core/aclmgmt/resources"
-	"github.com/hyperledger/fabric/core/chaincode/accesscontrol"
-	"github.com/hyperledger/fabric/core/chaincode/lifecycle"
-	"github.com/hyperledger/fabric/core/chaincode/mock"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/core/chaincode/platforms"
-	"github.com/hyperledger/fabric/core/chaincode/platforms/golang"
-	"github.com/hyperledger/fabric/core/common/ccprovider"
-	"github.com/hyperledger/fabric/core/config"
-	"github.com/hyperledger/fabric/core/container"
-	"github.com/hyperledger/fabric/core/container/ccintf"
-	"github.com/hyperledger/fabric/core/container/dockercontroller"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/ledgermgmt"
-	"github.com/hyperledger/fabric/core/ledger/ledgermgmt/ledgermgmttest"
-	ledgermock "github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/core/peer"
-	"github.com/hyperledger/fabric/core/policy"
-	policymocks "github.com/hyperledger/fabric/core/policy/mocks"
-	"github.com/hyperledger/fabric/core/scc"
-	"github.com/hyperledger/fabric/core/scc/lscc"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
-	"github.com/hyperledger/fabric/msp"
-	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
-	msptesttools "github.com/hyperledger/fabric/msp/mgmt/testtools"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp/factory"
+	"github.com/ehousecy/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/common/crypto/tlsgen"
+	"github.com/ehousecy/fabric/common/flogging"
+	commonledger "github.com/ehousecy/fabric/common/ledger"
+	"github.com/ehousecy/fabric/common/metrics/disabled"
+	"github.com/ehousecy/fabric/common/policies"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/core/aclmgmt/resources"
+	"github.com/ehousecy/fabric/core/chaincode/accesscontrol"
+	"github.com/ehousecy/fabric/core/chaincode/lifecycle"
+	"github.com/ehousecy/fabric/core/chaincode/mock"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/core/chaincode/platforms"
+	"github.com/ehousecy/fabric/core/chaincode/platforms/golang"
+	"github.com/ehousecy/fabric/core/common/ccprovider"
+	"github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/core/container"
+	"github.com/ehousecy/fabric/core/container/ccintf"
+	"github.com/ehousecy/fabric/core/container/dockercontroller"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/ledgermgmt"
+	"github.com/ehousecy/fabric/core/ledger/ledgermgmt/ledgermgmttest"
+	ledgermock "github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/core/peer"
+	"github.com/ehousecy/fabric/core/policy"
+	policymocks "github.com/ehousecy/fabric/core/policy/mocks"
+	"github.com/ehousecy/fabric/core/scc"
+	"github.com/ehousecy/fabric/core/scc/lscc"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/msp"
+	mspmgmt "github.com/ehousecy/fabric/msp/mgmt"
+	msptesttools "github.com/ehousecy/fabric/msp/mgmt/testtools"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 // CCContext is a legacy structure that was utilized heavily in the tests
@@ -219,7 +218,7 @@ func initMockPeer(channelIDs ...string) (*peer.Peer, *ChaincodeSupport, func(), 
 			GetMSPIDs: peerInstance.GetMSPIDs,
 		},
 		SCCProvider:      &lscc.PeerShim{Peer: peerInstance},
-		ACLProvider:      &aclmocks.DefaultACLProvider{},
+		ACLProvider:      mockAclProvider,
 		GetMSPIDs:        peerInstance.GetMSPIDs,
 		PolicyChecker:    newPolicyChecker(peerInstance),
 		BCCSP:            cryptoProvider,
@@ -456,10 +455,10 @@ func deployCC(t *testing.T, txParams *ccprovider.TransactionParams, ccContext *C
 	cds := &pb.ChaincodeDeploymentSpec{ChaincodeSpec: spec, CodePackage: code}
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	ccinfoFSImpl := &ccprovider.CCInfoFSImpl{GetHasher: cryptoProvider}
 	_, err = ccinfoFSImpl.PutChaincode(cds)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	b := protoutil.MarshalOrPanic(cds)
 
@@ -984,13 +983,13 @@ func TestStartAndWaitLaunchError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error but succeeded")
 	}
-	require.EqualError(t, err, "error starting container: Bad lunch; upset stomach")
+	assert.EqualError(t, err, "error starting container: Bad lunch; upset stomach")
 }
 
 func TestGetTxContextFromHandler(t *testing.T) {
 	chnl := "test"
 	peerInstance, _, cleanup, err := initMockPeer(chnl)
-	require.NoError(t, err, "failed to initialize mock peer")
+	assert.NoError(t, err, "failed to initialize mock peer")
 	defer cleanup()
 
 	h := Handler{
@@ -1001,7 +1000,7 @@ func TestGetTxContextFromHandler(t *testing.T) {
 	txid := "1"
 	// test getTxContext for TEST channel, tx=1, msgType=IVNOKE_CHAINCODE and empty payload - empty payload => expect to return empty txContext
 	txContext, _ := h.getTxContextForInvoke(chnl, "1", []byte(""), "[%s]No ledger context for %s. Sending %s", 12345, "TestCC", pb.ChaincodeMessage_ERROR)
-	require.Nil(t, txContext, "expected empty txContext for empty payload")
+	assert.Nil(t, txContext, "expected empty txContext for empty payload")
 
 	pldgr := peerInstance.GetLedger(chnl)
 
@@ -1217,7 +1216,7 @@ func TestCCFramework(t *testing.T) {
 
 func TestExecuteTimeout(t *testing.T) {
 	_, cs, cleanup, err := initMockPeer("testchannel")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer cleanup()
 
 	tests := []struct {
@@ -1284,7 +1283,7 @@ func TestExecuteTimeout(t *testing.T) {
 			input := &pb.ChaincodeInput{Args: util.ToChaincodeArgs(tt.command)}
 
 			result := cs.executeTimeout(tt.namespace, input)
-			require.Equalf(t, tt.expectedTimeout, result, "want %s, got %s", tt.expectedTimeout, result)
+			assert.Equalf(t, tt.expectedTimeout, result, "want %s, got %s", tt.expectedTimeout, result)
 		})
 	}
 }
@@ -1309,7 +1308,7 @@ func TestMaxDuration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		result := maxDuration(tt.durations...)
-		require.Equalf(t, tt.expected, result, "want %s got %s", tt.expected, result)
+		assert.Equalf(t, tt.expected, result, "want %s got %s", tt.expected, result)
 	}
 }
 

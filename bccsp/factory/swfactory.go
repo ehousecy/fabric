@@ -16,8 +16,8 @@ limitations under the License.
 package factory
 
 import (
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/sw"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/bccsp/sw"
 	"github.com/pkg/errors"
 )
 
@@ -37,11 +37,11 @@ func (f *SWFactory) Name() string {
 // Get returns an instance of BCCSP using Opts.
 func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 	// Validate arguments
-	if config == nil || config.SW == nil {
+	if config == nil || config.SwOpts == nil {
 		return nil, errors.New("Invalid config. It must not be nil.")
 	}
 
-	swOpts := config.SW
+	swOpts := config.SwOpts
 
 	var ks bccsp.KeyStore
 	switch {
@@ -51,23 +51,33 @@ func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 			return nil, errors.Wrapf(err, "Failed to initialize software key store")
 		}
 		ks = fks
+	case swOpts.InmemKeystore != nil:
+		ks = sw.NewInMemoryKeyStore()
 	default:
 		// Default to ephemeral key store
 		ks = sw.NewDummyKeyStore()
 	}
 
-	return sw.NewWithParams(swOpts.Security, swOpts.Hash, ks)
+	return sw.NewWithParams(swOpts.SecLevel, swOpts.HashFamily, ks)
 }
 
 // SwOpts contains options for the SWFactory
 type SwOpts struct {
 	// Default algorithms when not specified (Deprecated?)
-	Security     int               `json:"security" yaml:"Security"`
-	Hash         string            `json:"hash" yaml:"Hash"`
-	FileKeystore *FileKeystoreOpts `json:"filekeystore,omitempty" yaml:"FileKeyStore,omitempty"`
+	SecLevel      int                `mapstructure:"security" json:"security" yaml:"Security"`
+	HashFamily    string             `mapstructure:"hash" json:"hash" yaml:"Hash"`
+	FileKeystore  *FileKeystoreOpts  `mapstructure:"filekeystore,omitempty" json:"filekeystore,omitempty" yaml:"FileKeyStore"`
+	DummyKeystore *DummyKeystoreOpts `mapstructure:"dummykeystore,omitempty" json:"dummykeystore,omitempty"`
+	InmemKeystore *InmemKeystoreOpts `mapstructure:"inmemkeystore,omitempty" json:"inmemkeystore,omitempty"`
+	Ephemeral     bool               `mapstructure:"ephemeral" json:"ephemeral" yaml:"ephemeral"`
 }
 
 // Pluggable Keystores, could add JKS, P12, etc..
 type FileKeystoreOpts struct {
-	KeyStorePath string `yaml:"KeyStore"`
+	KeyStorePath string `mapstructure:"keystore" yaml:"KeyStore"`
 }
+
+type DummyKeystoreOpts struct{}
+
+// InmemKeystoreOpts - empty, as there is no config for the in-memory keystore
+type InmemKeystoreOpts struct{}

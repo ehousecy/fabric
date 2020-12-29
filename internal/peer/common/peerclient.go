@@ -8,12 +8,13 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
+	tls "github.com/tjfoc/gmtls"
 	"io/ioutil"
 	"time"
 
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/core/config"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -53,12 +54,16 @@ func NewPeerClientForAddress(address, tlsRootCertFile string) (*PeerClient, erro
 	}
 
 	if secOpts.RequireClientCert {
-		var err error
-		secOpts.Key, secOpts.Certificate, err = getClientAuthInfoFromEnv("peer")
+		keyPEM, err := ioutil.ReadFile(config.GetPath("peer.tls.clientKey.file"))
 		if err != nil {
-			return nil, err
+			return nil, errors.WithMessage(err, "unable to load peer.tls.clientKey.file")
 		}
-
+		secOpts.Key = keyPEM
+		certPEM, err := ioutil.ReadFile(config.GetPath("peer.tls.clientCert.file"))
+		if err != nil {
+			return nil, errors.WithMessage(err, "unable to load peer.tls.clientCert.file")
+		}
+		secOpts.Certificate = certPEM
 	}
 	clientConfig.SecOpts = secOpts
 
@@ -128,29 +133,26 @@ func (pc *PeerClient) Certificate() tls.Certificate {
 // from the configuration settings for "peer.address" and
 // "peer.tls.rootcert.file"
 func GetEndorserClient(address, tlsRootCertFile string) (pb.EndorserClient, error) {
-	peerClient, err := newPeerClient(address, tlsRootCertFile)
+	var peerClient *PeerClient
+	var err error
+	if address != "" {
+		peerClient, err = NewPeerClientForAddress(address, tlsRootCertFile)
+	} else {
+		peerClient, err = NewPeerClientFromEnv()
+	}
 	if err != nil {
 		return nil, err
 	}
 	return peerClient.Endorser()
 }
 
-// GetClientCertificate returns the client's TLS certificate
-func GetClientCertificate() (tls.Certificate, error) {
-	if !viper.GetBool("peer.tls.clientAuthRequired") {
-		return tls.Certificate{}, nil
-	}
-
-	key, certificate, err := getClientAuthInfoFromEnv("peer")
+// GetCertificate returns the client's TLS certificate
+func GetCertificate() (tls.Certificate, error) {
+	peerClient, err := NewPeerClientFromEnv()
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-
-	cert, err := tls.X509KeyPair(certificate, key)
-	if err != nil {
-		return tls.Certificate{}, errors.WithMessage(err, "failed to load client certificate")
-	}
-	return cert, nil
+	return peerClient.Certificate(), nil
 }
 
 // GetDeliverClient returns a new deliver client. If both the address and
@@ -158,7 +160,13 @@ func GetClientCertificate() (tls.Certificate, error) {
 // from the configuration settings for "peer.address" and
 // "peer.tls.rootcert.file"
 func GetDeliverClient(address, tlsRootCertFile string) (pb.Deliver_DeliverClient, error) {
-	peerClient, err := newPeerClient(address, tlsRootCertFile)
+	var peerClient *PeerClient
+	var err error
+	if address != "" {
+		peerClient, err = NewPeerClientForAddress(address, tlsRootCertFile)
+	} else {
+		peerClient, err = NewPeerClientFromEnv()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -170,37 +178,15 @@ func GetDeliverClient(address, tlsRootCertFile string) (pb.Deliver_DeliverClient
 // from the configuration settings for "peer.address" and
 // "peer.tls.rootcert.file"
 func GetPeerDeliverClient(address, tlsRootCertFile string) (pb.DeliverClient, error) {
-	peerClient, err := newPeerClient(address, tlsRootCertFile)
+	var peerClient *PeerClient
+	var err error
+	if address != "" {
+		peerClient, err = NewPeerClientForAddress(address, tlsRootCertFile)
+	} else {
+		peerClient, err = NewPeerClientFromEnv()
+	}
 	if err != nil {
 		return nil, err
 	}
 	return peerClient.PeerDeliver()
-}
-
-// SnapshotClient returns a client for the snapshot service
-func (pc *PeerClient) SnapshotClient() (pb.SnapshotClient, error) {
-	conn, err := pc.CommonClient.NewConnection(pc.Address, comm.ServerNameOverride(pc.sn))
-	if err != nil {
-		return nil, errors.WithMessagef(err, "snapshot client failed to connect to %s", pc.Address)
-	}
-	return pb.NewSnapshotClient(conn), nil
-}
-
-// GetSnapshotClient returns a new snapshot client. If both the address and
-// tlsRootCertFile are not provided, the target values for the client are taken
-// from the configuration settings for "peer.address" and
-// "peer.tls.rootcert.file"
-func GetSnapshotClient(address, tlsRootCertFile string) (pb.SnapshotClient, error) {
-	peerClient, err := newPeerClient(address, tlsRootCertFile)
-	if err != nil {
-		return nil, err
-	}
-	return peerClient.SnapshotClient()
-}
-
-func newPeerClient(address, tlsRootCertFile string) (*PeerClient, error) {
-	if address != "" {
-		return NewPeerClientForAddress(address, tlsRootCertFile)
-	}
-	return NewPeerClientFromEnv()
 }

@@ -21,13 +21,14 @@ import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	mspproto "github.com/hyperledger/fabric-protos-go/msp"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
-	configtxtest "github.com/hyperledger/fabric/common/configtx/test"
-	"github.com/hyperledger/fabric/core/ledger/mock"
-	"github.com/hyperledger/fabric/core/peer"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/internal/pkg/comm/testpb"
-	"github.com/hyperledger/fabric/internal/pkg/txflags"
-	"github.com/hyperledger/fabric/msp"
+	configtxtest "github.com/ehousecy/fabric/common/configtx/test"
+	"github.com/ehousecy/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/core/peer"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/internal/pkg/comm/testpb"
+	"github.com/ehousecy/fabric/internal/pkg/txflags"
+	"github.com/ehousecy/fabric/msp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -284,8 +285,8 @@ func TestUpdateRootsFromConfigBlock(t *testing.T) {
 			peerInstance.SetServer(server)
 			peerInstance.ServerConfig = test.serverConfig
 
-			require.NoError(t, err, "NewGRPCServer should not have returned an error")
-			require.NotNil(t, server, "NewGRPCServer should have created a server")
+			assert.NoError(t, err, "NewGRPCServer should not have returned an error")
+			assert.NotNil(t, server, "NewGRPCServer should have created a server")
 			// register a GRPC test service
 			testpb.RegisterTestServiceServer(server.Server(), &testServiceServer{})
 			go server.Start()
@@ -303,18 +304,18 @@ func TestUpdateRootsFromConfigBlock(t *testing.T) {
 			// invoke the EmptyCall service with good options but should fail
 			// until channel is created and root CAs are updated
 			_, err = invokeEmptyCall(testAddress, test.goodOptions)
-			require.Error(t, err, "Expected error invoking the EmptyCall service ")
+			assert.Error(t, err, "Expected error invoking the EmptyCall service ")
 
 			// creating channel should update the trusted client roots
 			test.createChannel(t)
 
 			// invoke the EmptyCall service with good options
 			_, err = invokeEmptyCall(testAddress, test.goodOptions)
-			require.NoError(t, err, "Failed to invoke the EmptyCall service")
+			assert.NoError(t, err, "Failed to invoke the EmptyCall service")
 
 			// invoke the EmptyCall service with bad options
 			_, err = invokeEmptyCall(testAddress, test.badOptions)
-			require.Error(t, err, "Expected error using bad dial options")
+			assert.Error(t, err, "Expected error using bad dial options")
 		})
 	}
 }

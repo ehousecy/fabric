@@ -12,7 +12,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
+	"github.com/ehousecy/fabric/common/ledger/util/leveldbhelper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,6 +116,46 @@ func TestGetNamespaceIterator(t *testing.T) {
 		itr, err := db.getNamespaceIterator("ns1")
 		require.EqualError(t, err, "internal leveldb error while obtaining db iterator: leveldb: closed")
 		require.Nil(t, itr)
+	})
+}
+
+func TestIsNotEmpty(t *testing.T) {
+	testDBPath := "/tmp/fabric/core/ledger/confighistory"
+	deleteTestPath(t, testDBPath)
+	provider, err := newDBProvider(testDBPath)
+	require.NoError(t, err)
+	defer deleteTestPath(t, testDBPath)
+
+	db := provider.getDB("ledger1")
+
+	t.Run("db is empty", func(t *testing.T) {
+		empty, err := db.isEmpty()
+		require.NoError(t, err)
+		require.True(t, empty)
+	})
+
+	t.Run("db is not empty", func(t *testing.T) {
+		sampleData := []*compositeKV{
+			{
+				&compositeKey{
+					ns:       "ns1",
+					key:      "key1",
+					blockNum: 40,
+				},
+				[]byte("val1_40"),
+			},
+		}
+		populateDBWithSampleData(t, db, sampleData)
+		empty, err := db.isEmpty()
+		require.NoError(t, err)
+		require.False(t, empty)
+	})
+
+	t.Run("iter error", func(t *testing.T) {
+		provider.Close()
+		empty, err := db.isEmpty()
+		require.EqualError(t, err, "internal leveldb error while obtaining db iterator: leveldb: closed")
+		require.False(t, empty)
 	})
 }
 

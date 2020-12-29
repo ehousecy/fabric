@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-protos-go/orderer"
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/util"
-	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/util"
+	"github.com/ehousecy/fabric/internal/pkg/comm"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

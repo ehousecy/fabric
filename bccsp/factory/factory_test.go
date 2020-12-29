@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp/pkcs11"
+	"github.com/ehousecy/fabric/bccsp/pkcs11"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -22,9 +22,9 @@ func TestMain(m *testing.M) {
 
 	yamlCFG := `
 BCCSP:
-    default: SW
-    SW:
-        Hash: SHA3
+    default: GM
+    GM:
+        Hash: GMSM3
         Security: 256
 `
 
@@ -61,8 +61,8 @@ BCCSP:
 
 	cfgVariations := []*FactoryOpts{
 		{},
-		{Default: "SW"},
-		{Default: "SW", SW: &SwOpts{Hash: "SHA2", Security: 256}},
+		{ProviderName: "GM"},
+		{ProviderName: "GM", SwOpts: &SwOpts{HashFamily: "GMSM3", SecLevel: 256, Ephemeral: true}},
 		yamlBCCSP,
 	}
 

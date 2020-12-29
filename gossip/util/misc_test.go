@@ -13,22 +13,22 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func testHappyPath(t *testing.T) {
 	n1 := RandomInt(10000)
 	n2 := RandomInt(10000)
-	require.NotEqual(t, n1, n2)
+	assert.NotEqual(t, n1, n2)
 	n3 := RandomUInt64()
 	n4 := RandomUInt64()
-	require.NotEqual(t, n3, n4)
+	assert.NotEqual(t, n3, n4)
 }
 
 func TestContains(t *testing.T) {
-	require.True(t, Contains("foo", []string{"bar", "foo", "baz"}))
-	require.False(t, Contains("foo", []string{"bar", "baz"}))
+	assert.True(t, Contains("foo", []string{"bar", "foo", "baz"}))
+	assert.False(t, Contains("foo", []string{"bar", "baz"}))
 }
 
 func TestGetRandomInt(t *testing.T) {
@@ -36,7 +36,7 @@ func TestGetRandomInt(t *testing.T) {
 }
 
 func TestNonNegativeValues(t *testing.T) {
-	require.True(t, RandomInt(1000000) >= 0)
+	assert.True(t, RandomInt(1000000) >= 0)
 }
 
 func TestGetRandomIntBadInput(t *testing.T) {
@@ -46,8 +46,8 @@ func TestGetRandomIntBadInput(t *testing.T) {
 	f2 := func() {
 		RandomInt(-500)
 	}
-	require.Panics(t, f1)
-	require.Panics(t, f2)
+	assert.Panics(t, f1)
+	assert.Panics(t, f2)
 }
 
 type reader struct {
@@ -78,27 +78,27 @@ func TestGetRandomIntNoEntropy(t *testing.T) {
 
 func TestRandomIndices(t *testing.T) {
 	// not enough choices as needed
-	require.Nil(t, GetRandomIndices(10, 5))
+	assert.Nil(t, GetRandomIndices(10, 5))
 	// exact number of choices as available
-	require.Len(t, GetRandomIndices(10, 9), 10)
+	assert.Len(t, GetRandomIndices(10, 9), 10)
 	// more choices available than needed
-	require.Len(t, GetRandomIndices(10, 90), 10)
+	assert.Len(t, GetRandomIndices(10, 90), 10)
 }
 
 func TestGetIntOrDefault(t *testing.T) {
 	viper.Set("N", 100)
 	n := GetIntOrDefault("N", 100)
-	require.Equal(t, 100, n)
+	assert.Equal(t, 100, n)
 	m := GetIntOrDefault("M", 101)
-	require.Equal(t, 101, m)
+	assert.Equal(t, 101, m)
 }
 
 func TestGetDurationOrDefault(t *testing.T) {
 	viper.Set("foo", time.Second)
 	foo := GetDurationOrDefault("foo", time.Second*2)
-	require.Equal(t, time.Second, foo)
+	assert.Equal(t, time.Second, foo)
 	bar := GetDurationOrDefault("bar", time.Second*2)
-	require.Equal(t, time.Second*2, bar)
+	assert.Equal(t, time.Second*2, bar)
 }
 
 func TestPrintStackTrace(t *testing.T) {
@@ -108,27 +108,27 @@ func TestPrintStackTrace(t *testing.T) {
 func TestGetLogger(t *testing.T) {
 	l1 := GetLogger("foo", "bar")
 	l2 := GetLogger("foo", "bar")
-	require.Equal(t, l1, l2)
+	assert.Equal(t, l1, l2)
 }
 
 func TestSet(t *testing.T) {
 	s := NewSet()
-	require.Len(t, s.ToArray(), 0)
-	require.Equal(t, s.Size(), 0)
-	require.False(t, s.Exists(42))
+	assert.Len(t, s.ToArray(), 0)
+	assert.Equal(t, s.Size(), 0)
+	assert.False(t, s.Exists(42))
 	s.Add(42)
-	require.True(t, s.Exists(42))
-	require.Len(t, s.ToArray(), 1)
-	require.Equal(t, s.Size(), 1)
+	assert.True(t, s.Exists(42))
+	assert.Len(t, s.ToArray(), 1)
+	assert.Equal(t, s.Size(), 1)
 	s.Remove(42)
-	require.False(t, s.Exists(42))
+	assert.False(t, s.Exists(42))
 	s.Add(42)
-	require.True(t, s.Exists(42))
+	assert.True(t, s.Exists(42))
 	s.Clear()
-	require.False(t, s.Exists(42))
+	assert.False(t, s.Exists(42))
 }
 
 func TestStringsToBytesToStrings(t *testing.T) {
 	strings := []string{"foo", "bar"}
-	require.Equal(t, strings, BytesToStrings(StringsToBytes(strings)))
+	assert.Equal(t, strings, BytesToStrings(StringsToBytes(strings)))
 }

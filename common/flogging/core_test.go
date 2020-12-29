@@ -11,9 +11,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/flogging/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/ehousecy/fabric/common/flogging"
+	"github.com/ehousecy/fabric/common/flogging/mock"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
@@ -25,7 +25,7 @@ func TestCoreWith(t *testing.T) {
 		Observer: &mock.Observer{},
 	}
 	clone := core.With([]zapcore.Field{zap.String("key", "value")})
-	require.Equal(t, core, clone)
+	assert.Equal(t, core, clone)
 
 	jsonEncoder := zapcore.NewJSONEncoder(zapcore.EncoderConfig{})
 	consoleEncoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{})
@@ -38,19 +38,19 @@ func TestCoreWith(t *testing.T) {
 	decorated := core.With([]zapcore.Field{zap.String("key", "value")})
 
 	// verify the objects differ
-	require.NotEqual(t, core, decorated)
+	assert.NotEqual(t, core, decorated)
 
 	// verify the objects only differ by the encoded fields
 	jsonEncoder.AddString("key", "value")
 	consoleEncoder.AddString("key", "value")
-	require.Equal(t, core, decorated)
+	assert.Equal(t, core, decorated)
 }
 
 func TestCoreCheck(t *testing.T) {
 	var enabledArgs []zapcore.Level
 	levels := &flogging.LoggerLevels{}
 	err := levels.ActivateSpec("warning")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	core := &flogging.Core{
 		LevelEnabler: zap.LevelEnablerFunc(func(l zapcore.Level) bool {
 			enabledArgs = append(enabledArgs, l)
@@ -61,15 +61,15 @@ func TestCoreCheck(t *testing.T) {
 
 	// not enabled
 	ce := core.Check(zapcore.Entry{Level: zapcore.DebugLevel}, nil)
-	require.Nil(t, ce)
+	assert.Nil(t, ce)
 	ce = core.Check(zapcore.Entry{Level: zapcore.InfoLevel}, nil)
-	require.Nil(t, ce)
+	assert.Nil(t, ce)
 
 	// enabled
 	ce = core.Check(zapcore.Entry{Level: zapcore.WarnLevel}, nil)
-	require.NotNil(t, ce)
+	assert.NotNil(t, ce)
 
-	require.Equal(t, enabledArgs, []zapcore.Level{zapcore.DebugLevel, zapcore.InfoLevel, zapcore.WarnLevel})
+	assert.Equal(t, enabledArgs, []zapcore.Level{zapcore.DebugLevel, zapcore.InfoLevel, zapcore.WarnLevel})
 }
 
 type sw struct {
@@ -113,12 +113,12 @@ func TestCoreWrite(t *testing.T) {
 		Message: "this is a message",
 	}
 	err := core.Write(entry, nil)
-	require.NoError(t, err)
-	require.Equal(t, "INFO\tthis is a message\n", output.String())
+	assert.NoError(t, err)
+	assert.Equal(t, "INFO\tthis is a message\n", output.String())
 
 	output.writeErr = errors.New("super-loose")
 	err = core.Write(entry, nil)
-	require.EqualError(t, err, "super-loose")
+	assert.EqualError(t, err, "super-loose")
 }
 
 func TestCoreWriteSync(t *testing.T) {
@@ -139,16 +139,16 @@ func TestCoreWriteSync(t *testing.T) {
 		Message: "no bugs for me",
 	}
 	err := core.Write(entry, nil)
-	require.NoError(t, err)
-	require.False(t, output.syncCalled)
+	assert.NoError(t, err)
+	assert.False(t, output.syncCalled)
 
 	entry = zapcore.Entry{
 		Level:   zapcore.PanicLevel,
 		Message: "gah!",
 	}
 	err = core.Write(entry, nil)
-	require.NoError(t, err)
-	require.True(t, output.syncCalled)
+	assert.NoError(t, err)
+	assert.True(t, output.syncCalled)
 }
 
 type brokenEncoder struct{ zapcore.Encoder }
@@ -172,7 +172,7 @@ func TestCoreWriteEncodeFail(t *testing.T) {
 		Message: "no bugs for me",
 	}
 	err := core.Write(entry, nil)
-	require.EqualError(t, err, "broken encoder")
+	assert.EqualError(t, err, "broken encoder")
 }
 
 func TestCoreSync(t *testing.T) {
@@ -182,12 +182,12 @@ func TestCoreSync(t *testing.T) {
 	}
 
 	err := core.Sync()
-	require.NoError(t, err)
-	require.True(t, syncWriter.syncCalled)
+	assert.NoError(t, err)
+	assert.True(t, syncWriter.syncCalled)
 
 	syncWriter.syncErr = errors.New("bummer")
 	err = core.Sync()
-	require.EqualError(t, err, "bummer")
+	assert.EqualError(t, err, "bummer")
 }
 
 func TestObserverCheck(t *testing.T) {
@@ -200,7 +200,7 @@ func TestObserverCheck(t *testing.T) {
 
 	levels := &flogging.LoggerLevels{}
 	err := levels.ActivateSpec("debug")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	core := &flogging.Core{
 		LevelEnabler: zap.LevelEnablerFunc(func(l zapcore.Level) bool { return true }),
 		Levels:       levels,
@@ -208,12 +208,12 @@ func TestObserverCheck(t *testing.T) {
 	}
 
 	ce := core.Check(entry, checkedEntry)
-	require.Exactly(t, ce, checkedEntry)
+	assert.Exactly(t, ce, checkedEntry)
 
-	require.Equal(t, 1, observer.CheckCallCount())
+	assert.Equal(t, 1, observer.CheckCallCount())
 	observedEntry, observedCE := observer.CheckArgsForCall(0)
-	require.Equal(t, entry, observedEntry)
-	require.Equal(t, ce, observedCE)
+	assert.Equal(t, entry, observedEntry)
+	assert.Equal(t, ce, observedCE)
 }
 
 func TestObserverWriteEntry(t *testing.T) {
@@ -229,7 +229,7 @@ func TestObserverWriteEntry(t *testing.T) {
 
 	levels := &flogging.LoggerLevels{}
 	err := levels.ActivateSpec("debug")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	selector := &sw{}
 	output := &sw{}
 	core := &flogging.Core{
@@ -244,10 +244,10 @@ func TestObserverWriteEntry(t *testing.T) {
 	}
 
 	err = core.Write(entry, fields)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
-	require.Equal(t, 1, observer.WriteEntryCallCount())
+	assert.Equal(t, 1, observer.WriteEntryCallCount())
 	observedEntry, observedFields := observer.WriteEntryArgsForCall(0)
-	require.Equal(t, entry, observedEntry)
-	require.Equal(t, fields, observedFields)
+	assert.Equal(t, entry, observedEntry)
+	assert.Equal(t, fields, observedFields)
 }

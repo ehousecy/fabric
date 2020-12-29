@@ -12,8 +12,8 @@ import (
 	"github.com/hyperledger/fabric-protos-go/common"
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/mock"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +49,7 @@ func TestCollElgNotifier(t *testing.T) {
 	}
 	collElgNotifier.registerListener("testLedger", mockCollElgListener)
 
-	err := collElgNotifier.HandleStateUpdates(&ledger.StateUpdateTrigger{
+	collElgNotifier.HandleStateUpdates(&ledger.StateUpdateTrigger{
 		LedgerID:           "testLedger",
 		CommittingBlockNum: uint64(500),
 		StateUpdates: map[string]*ledger.KVStateUpdates{
@@ -63,7 +63,6 @@ func TestCollElgNotifier(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, err)
 
 	// event triggered should only contain "coll3" as this is the only collection
 	// for which peer became from ineligile to eligible by upgrade tx

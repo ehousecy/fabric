@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/statedb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +37,7 @@ func TestGetRevision(t *testing.T) {
 			Key:       "key-in-both-db-cache",
 		},
 	}
-	require.NoError(t, db.LoadCommittedVersions(keys))
+	db.LoadCommittedVersions(keys)
 	// change cache reivision number for test purpose. (makes sure only read from cache but not db)
 	db.committedDataCache.setVerAndRev("ns", "key-in-both-db-cache", version.NewHeight(1, 2), "revision-db-number")
 

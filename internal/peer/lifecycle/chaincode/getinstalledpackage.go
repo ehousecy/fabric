@@ -14,9 +14,9 @@ import (
 	cb "github.com/hyperledger/fabric-protos-go/common"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	lb "github.com/hyperledger/fabric-protos-go/peer/lifecycle"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/core/chaincode/persistence"
-	"github.com/hyperledger/fabric/protoutil"
+	"github.com/ehousecy/fabric/bccsp"
+	"github.com/ehousecy/fabric/core/chaincode/persistence"
+	"github.com/ehousecy/fabric/protoutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -60,10 +60,10 @@ func GetInstalledPackageCmd(i *InstalledPackageGetter, cryptoProvider bccsp.BCCS
 				ccInput := &ClientConnectionsInput{
 					CommandName:           cmd.Name(),
 					EndorserRequired:      true,
+					ChannelID:             channelID,
 					PeerAddresses:         peerAddresses,
 					TLSRootCertFiles:      tlsRootCertFiles,
 					ConnectionProfilePath: connectionProfilePath,
-					TargetPeer:            targetPeer,
 					TLSEnabled:            viper.GetBool("peer.tls.enabled"),
 				}
 
@@ -96,7 +96,6 @@ func GetInstalledPackageCmd(i *InstalledPackageGetter, cryptoProvider bccsp.BCCS
 		"peerAddresses",
 		"tlsRootCertFiles",
 		"connectionProfile",
-		"targetPeer",
 		"package-id",
 		"output-directory",
 	}

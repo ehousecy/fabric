@@ -15,13 +15,13 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
-	"github.com/hyperledger/fabric/common/ledger/testutil"
-	"github.com/hyperledger/fabric/core/ledger"
-	"github.com/hyperledger/fabric/core/ledger/internal/version"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
-	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/ehousecy/fabric/common/ledger/testutil"
+	"github.com/ehousecy/fabric/core/ledger"
+	"github.com/ehousecy/fabric/core/ledger/internal/version"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/ehousecy/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	btltestutil "github.com/ehousecy/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/ehousecy/fabric/core/ledger/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,10 +43,10 @@ func testTxSimulatorWithNoExistingData(t *testing.T, env testEnv) {
 	require.NoErrorf(t, err, "Error in GetState(): %s", err)
 	require.Nil(t, value)
 
-	require.NoError(t, s.SetState("ns1", "key1", []byte("value1")))
-	require.NoError(t, s.SetState("ns1", "key2", []byte("value2")))
-	require.NoError(t, s.SetState("ns2", "key3", []byte("value3")))
-	require.NoError(t, s.SetState("ns2", "key4", []byte("value4")))
+	s.SetState("ns1", "key1", []byte("value1"))
+	s.SetState("ns1", "key2", []byte("value2"))
+	s.SetState("ns2", "key3", []byte("value3"))
+	s.SetState("ns2", "key4", []byte("value4"))
 
 	value, _ = s.GetState("ns2", "key3")
 	require.Nil(t, value)
@@ -75,12 +75,10 @@ func TestTxSimulatorGetResults(t *testing.T) {
 
 	// Create a simulator and get/set keys in one namespace "ns1"
 	simulator, _ := testEnv.getTxMgr().NewTxSimulator("test_txid1")
-	_, err = simulator.GetState("ns1", "key1")
-	require.NoError(t, err)
+	simulator.GetState("ns1", "key1")
 	_, err = simulator.GetPrivateData("ns1", "coll1", "key1")
 	require.NoError(t, err)
-	err = simulator.SetState("ns1", "key1", []byte("value1"))
-	require.NoError(t, err)
+	simulator.SetState("ns1", "key1", []byte("value1"))
 	// get simulation results and verify that this contains rwset only for one namespace
 	simulationResults1, err := simulator.GetTxSimulationResults()
 	require.NoError(t, err)
@@ -92,12 +90,9 @@ func TestTxSimulatorGetResults(t *testing.T) {
 	require.NoError(t, gob.NewDecoder(buff1).Decode(&frozenSimulationResults1))
 
 	// use the same simulator after obtaining the simulation results by get/set keys in one more namespace "ns2"
-	_, err = simulator.GetState("ns2", "key2")
-	require.NoError(t, err)
-	_, err = simulator.GetPrivateData("ns2", "coll2", "key2")
-	require.NoError(t, err)
-	err = simulator.SetState("ns2", "key2", []byte("value2"))
-	require.NoError(t, err)
+	simulator.GetState("ns2", "key2")
+	simulator.GetPrivateData("ns2", "coll2", "key2")
+	simulator.SetState("ns2", "key2", []byte("value2"))
 	// get simulation results and verify that an error is raised when obtaining the simulation results more than once
 	_, err = simulator.GetTxSimulationResults()
 	require.Error(t, err) // calling 'GetTxSimulationResults()' more than once should raise error
@@ -132,10 +127,10 @@ func testTxSimulatorWithExistingData(t *testing.T, env testEnv) {
 	txMgrHelper := newTxMgrTestHelper(t, txMgr)
 	// simulate tx1
 	s1, _ := txMgr.NewTxSimulator("test_tx1")
-	require.NoError(t, s1.SetState("ns1", "key1", []byte("value1")))
-	require.NoError(t, s1.SetState("ns1", "key2", []byte("value2")))
-	require.NoError(t, s1.SetState("ns2", "key3", []byte("value3")))
-	require.NoError(t, s1.SetState("ns2", "key4", []byte("value4")))
+	s1.SetState("ns1", "key1", []byte("value1"))
+	s1.SetState("ns1", "key2", []byte("value2"))
+	s1.SetState("ns2", "key3", []byte("value3"))
+	s1.SetState("ns2", "key4", []byte("value4"))
 	s1.Done()
 	// validate and commit RWset
 	txRWSet1, _ := s1.GetTxSimulationResults()
@@ -145,25 +140,20 @@ func testTxSimulatorWithExistingData(t *testing.T, env testEnv) {
 	s2, _ := txMgr.NewTxSimulator("test_tx2")
 	value, _ := s2.GetState("ns1", "key1")
 	require.Equal(t, []byte("value1"), value)
-	require.NoError(t, s2.SetState("ns1", "key1", []byte("value1_1")))
-	require.NoError(t, s2.DeleteState("ns2", "key3"))
-	value, err := s2.GetState("ns1", "key1")
-	require.NoError(t, err)
+	s2.SetState("ns1", "key1", []byte("value1_1"))
+	s2.DeleteState("ns2", "key3")
+	value, _ = s2.GetState("ns1", "key1")
 	require.Equal(t, []byte("value1"), value)
 	s2.Done()
 	// validate and commit RWset for tx2
-	txRWSet2, err := s2.GetTxSimulationResults()
-	require.NoError(t, err)
+	txRWSet2, _ := s2.GetTxSimulationResults()
 	txMgrHelper.validateAndCommitRWSet(txRWSet2.PubSimulationResults)
 
 	// simulate tx3
-	s3, err := txMgr.NewTxSimulator("test_tx3")
-	require.NoError(t, err)
-	value, err = s3.GetState("ns1", "key1")
-	require.NoError(t, err)
+	s3, _ := txMgr.NewTxSimulator("test_tx3")
+	value, _ = s3.GetState("ns1", "key1")
 	require.Equal(t, []byte("value1_1"), value)
-	value, err = s3.GetState("ns2", "key3")
-	require.NoError(t, err)
+	value, _ = s3.GetState("ns2", "key3")
 	require.Nil(t, value)
 	s3.Done()
 
@@ -189,10 +179,10 @@ func testTxValidation(t *testing.T, env testEnv) {
 	txMgrHelper := newTxMgrTestHelper(t, txMgr)
 	// simulate tx1
 	s1, _ := txMgr.NewTxSimulator("test_tx1")
-	require.NoError(t, s1.SetState("ns1", "key1", []byte("value1")))
-	require.NoError(t, s1.SetState("ns1", "key2", []byte("value2")))
-	require.NoError(t, s1.SetState("ns2", "key3", []byte("value3")))
-	require.NoError(t, s1.SetState("ns2", "key4", []byte("value4")))
+	s1.SetState("ns1", "key1", []byte("value1"))
+	s1.SetState("ns1", "key2", []byte("value2"))
+	s1.SetState("ns2", "key3", []byte("value3"))
+	s1.SetState("ns2", "key4", []byte("value4"))
 	s1.Done()
 	// validate and commit RWset
 	txRWSet1, _ := s1.GetTxSimulationResults()
@@ -204,39 +194,35 @@ func testTxValidation(t *testing.T, env testEnv) {
 	value, _ := s2.GetState("ns1", "key1")
 	require.Equal(t, []byte("value1"), value)
 
-	require.NoError(t, s2.SetState("ns1", "key1", []byte("value1_2")))
-	require.NoError(t, s2.DeleteState("ns2", "key3"))
+	s2.SetState("ns1", "key1", []byte("value1_2"))
+	s2.DeleteState("ns2", "key3")
 	s2.Done()
 
 	// simulate tx3 before committing tx2 changes. Reads and modifies the key changed by tx2.
 	// tx3: Read/Update ns1:key1
 	s3, _ := txMgr.NewTxSimulator("test_tx3")
-	_, err := s3.GetState("ns1", "key1")
-	require.NoError(t, err)
-	require.NoError(t, s3.SetState("ns1", "key1", []byte("value1_3")))
+	s3.GetState("ns1", "key1")
+	s3.SetState("ns1", "key1", []byte("value1_3"))
 	s3.Done()
 
 	// simulate tx4 before committing tx2 changes. Reads and Deletes the key changed by tx2
 	// tx4: Read/Delete ns2:key3
 	s4, _ := txMgr.NewTxSimulator("test_tx4")
-	_, err = s4.GetState("ns2", "key3")
-	require.NoError(t, err)
-	require.NoError(t, s4.DeleteState("ns2", "key3"))
+	s4.GetState("ns2", "key3")
+	s4.DeleteState("ns2", "key3")
 	s4.Done()
 
 	// simulate tx5 before committing tx2 changes. Modifies and then Reads the key changed by tx2 and writes a new key
 	// tx5: Update/Read ns1:key1
-	s5, err := txMgr.NewTxSimulator("test_tx5")
-	require.NoError(t, err)
-	require.NoError(t, s5.SetState("ns1", "key1", []byte("new_value")))
-	_, err = s5.GetState("ns1", "key1")
-	require.NoError(t, err)
+	s5, _ := txMgr.NewTxSimulator("test_tx5")
+	s5.SetState("ns1", "key1", []byte("new_value"))
+	s5.GetState("ns1", "key1")
 	s5.Done()
 
 	// simulate tx6 before committing tx2 changes. Only writes a new key, does not reads/writes a key changed by tx2
 	// tx6: Update ns1:new_key
 	s6, _ := txMgr.NewTxSimulator("test_tx6")
-	require.NoError(t, s6.SetState("ns1", "new_key", []byte("new_value")))
+	s6.SetState("ns1", "new_key", []byte("new_value"))
 	s6.Done()
 
 	// Summary of simulated transactions
@@ -280,12 +266,12 @@ func testTxPhantomValidation(t *testing.T, env testEnv) {
 	txMgrHelper := newTxMgrTestHelper(t, txMgr)
 	// simulate tx1
 	s1, _ := txMgr.NewTxSimulator("test_tx1")
-	require.NoError(t, s1.SetState("ns", "key1", []byte("value1")))
-	require.NoError(t, s1.SetState("ns", "key2", []byte("value2")))
-	require.NoError(t, s1.SetState("ns", "key3", []byte("value3")))
-	require.NoError(t, s1.SetState("ns", "key4", []byte("value4")))
-	require.NoError(t, s1.SetState("ns", "key5", []byte("value5")))
-	require.NoError(t, s1.SetState("ns", "key6", []byte("value6")))
+	s1.SetState("ns", "key1", []byte("value1"))
+	s1.SetState("ns", "key2", []byte("value2"))
+	s1.SetState("ns", "key3", []byte("value3"))
+	s1.SetState("ns", "key4", []byte("value4"))
+	s1.SetState("ns", "key5", []byte("value5"))
+	s1.SetState("ns", "key6", []byte("value6"))
 	// validate and commit RWset
 	txRWSet1, _ := s1.GetTxSimulationResults()
 	s1.Done() // explicitly calling done after obtaining the results to verify FAB-10788
@@ -299,22 +285,19 @@ func testTxPhantomValidation(t *testing.T, env testEnv) {
 			break
 		}
 	}
-	require.NoError(t, s2.DeleteState("ns", "key3"))
-	txRWSet2, err := s2.GetTxSimulationResults()
-	require.NoError(t, err)
+	s2.DeleteState("ns", "key3")
+	txRWSet2, _ := s2.GetTxSimulationResults()
 	s2.Done()
 
 	// simulate tx3
-	s3, err := txMgr.NewTxSimulator("test_tx3")
-	require.NoError(t, err)
-	itr3, err := s3.GetStateRangeScanIterator("ns", "key2", "key5")
-	require.NoError(t, err)
+	s3, _ := txMgr.NewTxSimulator("test_tx3")
+	itr3, _ := s3.GetStateRangeScanIterator("ns", "key2", "key5")
 	for {
 		if result, _ := itr3.Next(); result == nil {
 			break
 		}
 	}
-	require.NoError(t, s3.SetState("ns", "key3", []byte("value3_new")))
+	s3.SetState("ns", "key3", []byte("value3_new"))
 	txRWSet3, _ := s3.GetTxSimulationResults()
 	s3.Done()
 	// simulate tx4
@@ -325,7 +308,7 @@ func testTxPhantomValidation(t *testing.T, env testEnv) {
 			break
 		}
 	}
-	require.NoError(t, s4.SetState("ns", "key3", []byte("value3_new")))
+	s4.SetState("ns", "key3", []byte("value3_new"))
 	txRWSet4, _ := s4.GetTxSimulationResults()
 	s4.Done()
 
@@ -377,7 +360,7 @@ func testIterator(t *testing.T, env testEnv, numKeys int, startKeyNum int, endKe
 		k := createTestKey(i)
 		v := createTestValue(i)
 		t.Logf("Adding k=[%s], v=[%s]", k, v)
-		require.NoError(t, s.SetState(cID, k, v))
+		s.SetState(cID, k, v)
 	}
 	s.Done()
 	// validate and commit RWset
@@ -453,7 +436,7 @@ func testIteratorPagingInit(t *testing.T, env testEnv, numKeys int) {
 		k := createTestKey(i)
 		v := createTestValue(i)
 		t.Logf("Adding k=[%s], v=[%s]", k, v)
-		require.NoError(t, s.SetState(cID, k, v))
+		s.SetState(cID, k, v)
 	}
 	s.Done()
 	// validate and commit RWset
@@ -513,7 +496,7 @@ func testIteratorWithDeletes(t *testing.T, env testEnv) {
 		k := createTestKey(i)
 		v := createTestValue(i)
 		t.Logf("Adding k=[%s], v=[%s]", k, v)
-		require.NoError(t, s.SetState(cID, k, v))
+		s.SetState(cID, k, v)
 	}
 	s.Done()
 	// validate and commit RWset
@@ -521,7 +504,7 @@ func testIteratorWithDeletes(t *testing.T, env testEnv) {
 	txMgrHelper.validateAndCommitRWSet(txRWSet1.PubSimulationResults)
 
 	s, _ = txMgr.NewTxSimulator("test_tx2")
-	require.NoError(t, s.DeleteState(cID, createTestKey(4)))
+	s.DeleteState(cID, createTestKey(4))
 	s.Done()
 	// validate and commit RWset
 	txRWSet2, _ := s.GetTxSimulationResults()
@@ -557,7 +540,7 @@ func testTxValidationWithItr(t *testing.T, env testEnv) {
 		k := createTestKey(i)
 		v := createTestValue(i)
 		t.Logf("Adding k=[%s], v=[%s]", k, v)
-		require.NoError(t, s1.SetState(cID, k, v))
+		s1.SetState(cID, k, v)
 	}
 	s1.Done()
 	// validate and commit RWset
@@ -568,10 +551,8 @@ func testTxValidationWithItr(t *testing.T, env testEnv) {
 	s2, _ := txMgr.NewTxSimulator("test_tx2")
 	itr, _ := s2.GetStateRangeScanIterator(cID, createTestKey(1), createTestKey(5))
 	// read key_001 and key_002
-	_, err := itr.Next()
-	require.NoError(t, err)
-	_, err = itr.Next()
-	require.NoError(t, err)
+	itr.Next()
+	itr.Next()
 	itr.Close()
 	s2.Done()
 
@@ -579,16 +560,14 @@ func testTxValidationWithItr(t *testing.T, env testEnv) {
 	s3, _ := txMgr.NewTxSimulator("test_tx3")
 	itr, _ = s3.GetStateRangeScanIterator(cID, createTestKey(4), createTestKey(6))
 	// read key_001 and key_002
-	_, err = itr.Next()
-	require.NoError(t, err)
-	_, err = itr.Next()
-	require.NoError(t, err)
+	itr.Next()
+	itr.Next()
 	itr.Close()
 	s3.Done()
 
 	// simulate tx4 before committing tx2 and tx3. Modifies a key read by tx3
 	s4, _ := txMgr.NewTxSimulator("test_tx4")
-	require.NoError(t, s4.DeleteState(cID, createTestKey(5)))
+	s4.DeleteState(cID, createTestKey(5))
 	s4.Done()
 
 	// validate and commit RWset for tx4
@@ -627,7 +606,7 @@ func testGetSetMultipeKeys(t *testing.T, env testEnv) {
 		v := createTestValue(i)
 		multipleKeyMap[k] = v
 	}
-	require.NoError(t, s1.SetStateMultipleKeys(cID, multipleKeyMap))
+	s1.SetStateMultipleKeys(cID, multipleKeyMap)
 	s1.Done()
 	// validate and commit RWset
 	txRWSet, _ := s1.GetTxSimulationResults()
@@ -664,7 +643,7 @@ func createTestValue(i int) []byte {
 	return []byte(fmt.Sprintf("value_%03d", i))
 }
 
-//TestExecuteQuery is only tested on the CouchDB testEnv
+//TestExecuteQueryQuery is only tested on the CouchDB testEnv
 func TestExecuteQuery(t *testing.T) {
 	for _, testEnv := range testEnvs {
 		// Query is only supported and tested on the CouchDB testEnv
@@ -694,21 +673,21 @@ func testExecuteQuery(t *testing.T, env testEnv) {
 
 	s1, _ := txMgr.NewTxSimulator("test_tx1")
 
-	require.NoError(t, s1.SetState("ns1", "key1", []byte("value1")))
-	require.NoError(t, s1.SetState("ns1", "key2", []byte("value2")))
-	require.NoError(t, s1.SetState("ns1", "key3", []byte("value3")))
-	require.NoError(t, s1.SetState("ns1", "key4", []byte("value4")))
-	require.NoError(t, s1.SetState("ns1", "key5", []byte("value5")))
-	require.NoError(t, s1.SetState("ns1", "key6", []byte("value6")))
-	require.NoError(t, s1.SetState("ns1", "key7", []byte("value7")))
-	require.NoError(t, s1.SetState("ns1", "key8", []byte("value8")))
+	s1.SetState("ns1", "key1", []byte("value1"))
+	s1.SetState("ns1", "key2", []byte("value2"))
+	s1.SetState("ns1", "key3", []byte("value3"))
+	s1.SetState("ns1", "key4", []byte("value4"))
+	s1.SetState("ns1", "key5", []byte("value5"))
+	s1.SetState("ns1", "key6", []byte("value6"))
+	s1.SetState("ns1", "key7", []byte("value7"))
+	s1.SetState("ns1", "key8", []byte("value8"))
 
-	require.NoError(t, s1.SetState("ns1", "key9", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`)))
-	require.NoError(t, s1.SetState("ns1", "key10", []byte(`{"asset_name":"marble2","color":"blue","size":"10","owner":"bob"}`)))
-	require.NoError(t, s1.SetState("ns1", "key11", []byte(`{"asset_name":"marble3","color":"blue","size":"35","owner":"jerry"}`)))
-	require.NoError(t, s1.SetState("ns1", "key12", []byte(`{"asset_name":"marble4","color":"green","size":"15","owner":"bob"}`)))
-	require.NoError(t, s1.SetState("ns1", "key13", []byte(`{"asset_name":"marble5","color":"red","size":"35","owner":"jerry"}`)))
-	require.NoError(t, s1.SetState("ns1", "key14", []byte(`{"asset_name":"marble6","color":"blue","size":"25","owner":"bob"}`)))
+	s1.SetState("ns1", "key9", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`))
+	s1.SetState("ns1", "key10", []byte(`{"asset_name":"marble2","color":"blue","size":"10","owner":"bob"}`))
+	s1.SetState("ns1", "key11", []byte(`{"asset_name":"marble3","color":"blue","size":"35","owner":"jerry"}`))
+	s1.SetState("ns1", "key12", []byte(`{"asset_name":"marble4","color":"green","size":"15","owner":"bob"}`))
+	s1.SetState("ns1", "key13", []byte(`{"asset_name":"marble5","color":"red","size":"35","owner":"jerry"}`))
+	s1.SetState("ns1", "key14", []byte(`{"asset_name":"marble6","color":"blue","size":"25","owner":"bob"}`))
 
 	s1.Done()
 
@@ -729,7 +708,7 @@ func testExecuteQuery(t *testing.T, env testEnv) {
 		}
 		//Unmarshal the document to Asset structure
 		assetResp := &Asset{}
-		require.NoError(t, json.Unmarshal(queryRecord.(*queryresult.KV).Value, &assetResp))
+		json.Unmarshal(queryRecord.(*queryresult.KV).Value, &assetResp)
 		//Verify the owner retrieved matches
 		require.Equal(t, "bob", assetResp.Owner)
 		counter++
@@ -768,12 +747,12 @@ func testExecutePaginatedQuery(t *testing.T, env testEnv) {
 
 	s1, _ := txMgr.NewTxSimulator("test_tx1")
 
-	require.NoError(t, s1.SetState("ns1", "key1", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`)))
-	require.NoError(t, s1.SetState("ns1", "key2", []byte(`{"asset_name":"marble2","color":"blue","size":"10","owner":"bob"}`)))
-	require.NoError(t, s1.SetState("ns1", "key3", []byte(`{"asset_name":"marble3","color":"blue","size":"35","owner":"jerry"}`)))
-	require.NoError(t, s1.SetState("ns1", "key4", []byte(`{"asset_name":"marble4","color":"green","size":"15","owner":"bob"}`)))
-	require.NoError(t, s1.SetState("ns1", "key5", []byte(`{"asset_name":"marble5","color":"red","size":"35","owner":"jerry"}`)))
-	require.NoError(t, s1.SetState("ns1", "key6", []byte(`{"asset_name":"marble6","color":"blue","size":"25","owner":"bob"}`)))
+	s1.SetState("ns1", "key1", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`))
+	s1.SetState("ns1", "key2", []byte(`{"asset_name":"marble2","color":"blue","size":"10","owner":"bob"}`))
+	s1.SetState("ns1", "key3", []byte(`{"asset_name":"marble3","color":"blue","size":"35","owner":"jerry"}`))
+	s1.SetState("ns1", "key4", []byte(`{"asset_name":"marble4","color":"green","size":"15","owner":"bob"}`))
+	s1.SetState("ns1", "key5", []byte(`{"asset_name":"marble5","color":"red","size":"35","owner":"jerry"}`))
+	s1.SetState("ns1", "key6", []byte(`{"asset_name":"marble6","color":"blue","size":"25","owner":"bob"}`))
 
 	s1.Done()
 
@@ -794,7 +773,7 @@ func testExecutePaginatedQuery(t *testing.T, env testEnv) {
 		}
 		//Unmarshal the document to Asset structure
 		assetResp := &Asset{}
-		require.NoError(t, json.Unmarshal(queryRecord.(*queryresult.KV).Value, &assetResp))
+		json.Unmarshal(queryRecord.(*queryresult.KV).Value, &assetResp)
 		//Verify the owner retrieved matches
 		require.Equal(t, "bob", assetResp.Owner)
 		counter++
@@ -814,7 +793,7 @@ func testExecutePaginatedQuery(t *testing.T, env testEnv) {
 		}
 		//Unmarshal the document to Asset structure
 		assetResp := &Asset{}
-		require.NoError(t, json.Unmarshal(queryRecord.(*queryresult.KV).Value, &assetResp))
+		json.Unmarshal(queryRecord.(*queryresult.KV).Value, &assetResp)
 		//Verify the owner retrieved matches
 		require.Equal(t, "bob", assetResp.Owner)
 		counter++
@@ -861,46 +840,76 @@ func TestTxSimulatorUnsupportedTx(t *testing.T) {
 	err := simulator.SetState("ns", "key", []byte("value"))
 	require.NoError(t, err)
 	_, err = simulator.GetPrivateDataRangeScanIterator("ns1", "coll1", "startKey", "endKey")
-	require.EqualError(t, err, "txid [txid1]: unsuppored transaction. Queries on pvt data is supported only in a read-only transaction")
+	_, ok := err.(*ErrUnsupportedTransaction)
+	require.True(t, ok)
 
 	simulator, _ = txMgr.NewTxSimulator("txid2")
 	_, err = simulator.GetPrivateDataRangeScanIterator("ns1", "coll1", "startKey", "endKey")
 	require.NoError(t, err)
 	err = simulator.SetState("ns", "key", []byte("value"))
-	require.EqualError(t, err, "txid [txid2]: unsuppored transaction. Transaction has already performed queries on pvt data. Writes are not allowed")
+	_, ok = err.(*ErrUnsupportedTransaction)
+	require.True(t, ok)
 
 	simulator, _ = txMgr.NewTxSimulator("txid3")
 	err = simulator.SetState("ns", "key", []byte("value"))
 	require.NoError(t, err)
 	_, err = simulator.GetStateRangeScanIteratorWithPagination("ns1", "startKey", "endKey", 2)
-	require.EqualError(t, err, "txid [txid3]: unsuppored transaction. Paginated queries are supported only in a read-only transaction")
+	_, ok = err.(*ErrUnsupportedTransaction)
+	require.True(t, ok)
 
 	simulator, _ = txMgr.NewTxSimulator("txid4")
 	_, err = simulator.GetStateRangeScanIteratorWithPagination("ns1", "startKey", "endKey", 2)
 	require.NoError(t, err)
 	err = simulator.SetState("ns", "key", []byte("value"))
-	require.EqualError(t, err, "txid [txid4]: unsuppored transaction. Transaction has already performed a paginated query. Writes are not allowed")
+	_, ok = err.(*ErrUnsupportedTransaction)
+	require.True(t, ok)
 
 }
 
-func TestTxSimulatorUnsupportedTxCouchDBQuery(t *testing.T) {
-	testEnv := testEnvsMap[couchDBtestEnvName]
-	testEnv.init(t, "testtxsimulatorunsupportedtxqueries", nil)
-	defer testEnv.cleanup()
-	txMgr := testEnv.getTxMgr()
+// TestTxSimulatorQueryUnsupportedTx is only tested on the CouchDB testEnv
+func TestTxSimulatorQueryUnsupportedTx(t *testing.T) {
+	for _, testEnv := range testEnvs {
+		// Query is only supported and tested on the CouchDB testEnv
+		if testEnv.getName() == couchDBtestEnvName {
+			t.Logf("Running test for TestEnv = %s", testEnv.getName())
+			testLedgerID := "testtxsimulatorunsupportedtxqueries"
+			testEnv.init(t, testLedgerID, nil)
+			testTxSimulatorQueryUnsupportedTx(t, testEnv)
+			testEnv.cleanup()
+		}
+	}
+}
+
+func testTxSimulatorQueryUnsupportedTx(t *testing.T, env testEnv) {
+	txMgr := env.getTxMgr()
+	txMgrHelper := newTxMgrTestHelper(t, txMgr)
+
+	s1, _ := txMgr.NewTxSimulator("test_tx1")
+
+	s1.SetState("ns1", "key1", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`))
+
+	s1.Done()
+
+	// validate and commit RWset
+	txRWSet, _ := s1.GetTxSimulationResults()
+	txMgrHelper.validateAndCommitRWSet(txRWSet.PubSimulationResults)
+
 	queryString := `{"selector":{"owner":{"$eq":"bob"}}}`
 
 	simulator, _ := txMgr.NewTxSimulator("txid1")
 	err := simulator.SetState("ns1", "key1", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`))
 	require.NoError(t, err)
 	_, err = simulator.ExecuteQueryWithPagination("ns1", queryString, "", 2)
-	require.EqualError(t, err, "txid [txid1]: unsuppored transaction. Paginated queries are supported only in a read-only transaction")
+	_, ok := err.(*ErrUnsupportedTransaction)
+	require.True(t, ok)
 
 	simulator, _ = txMgr.NewTxSimulator("txid2")
 	_, err = simulator.ExecuteQueryWithPagination("ns1", queryString, "", 2)
 	require.NoError(t, err)
 	err = simulator.SetState("ns1", "key1", []byte(`{"asset_name":"marble1","color":"red","size":"25","owner":"jerry"}`))
-	require.EqualError(t, err, "txid [txid2]: unsuppored transaction. Transaction has already performed a paginated query. Writes are not allowed")
+	_, ok = err.(*ErrUnsupportedTransaction)
+	require.True(t, ok)
+
 }
 
 func TestConstructUniquePvtData(t *testing.T) {
@@ -975,7 +984,7 @@ func TestFindAndRemoveStalePvtData(t *testing.T) {
 	batch.HashUpdates.Put("ns2", "coll2", util.ComputeStringHash("key3"), util.ComputeStringHash("value_2_2_3"), version.NewHeight(10, 10))
 
 	// all pvt data associated with the hash updates are missing
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(batch, version.NewHeight(11, 1)))
+	db.ApplyPrivacyAwareUpdates(batch, version.NewHeight(11, 1))
 
 	// construct pvt data for some of the above missing data. note that no
 	// duplicate entries are expected
@@ -1072,17 +1081,17 @@ func testValidationAndCommitOfOldPvtData(t *testing.T, env testEnv) {
 	updateBatch.HashUpdates.Put("ns1", "coll1", util.ComputeStringHash("key2"), util.ComputeStringHash("value2"), version.NewHeight(1, 2)) // E2
 	updateBatch.HashUpdates.Put("ns1", "coll2", util.ComputeStringHash("key3"), util.ComputeStringHash("value3"), version.NewHeight(1, 2)) // E3
 	updateBatch.HashUpdates.Put("ns1", "coll2", util.ComputeStringHash("key4"), util.ComputeStringHash("value4"), version.NewHeight(1, 3)) // E4
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2)))
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 2))
 
 	updateBatch = privacyenabledstate.NewUpdateBatch()
 	updateBatch.HashUpdates.Put("ns1", "coll1", util.ComputeStringHash("key1"), util.ComputeStringHash("new-value1"), version.NewHeight(2, 1)) // E1 is updated
 	updateBatch.HashUpdates.Delete("ns1", "coll1", util.ComputeStringHash("key2"), version.NewHeight(2, 2))                                    // E2 is being deleted
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 2)))
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 2))
 
 	updateBatch = privacyenabledstate.NewUpdateBatch()
 	updateBatch.HashUpdates.Put("ns1", "coll1", util.ComputeStringHash("key1"), util.ComputeStringHash("another-new-value1"), version.NewHeight(3, 1)) // E1 is again updated
 	updateBatch.HashUpdates.Put("ns1", "coll2", util.ComputeStringHash("key3"), util.ComputeStringHash("value3"), version.NewHeight(3, 2))             // E3 gets only metadata update
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(3, 2)))
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(3, 2))
 
 	v1 := []byte("value1")
 	// ns1-coll1-key1 should be rejected as it is updated in the future by Blk2Tx1
@@ -1165,21 +1174,24 @@ func TestTxSimulatorMissingPvtdata(t *testing.T) {
 	updateBatch := privacyenabledstate.NewUpdateBatch()
 	updateBatch.HashUpdates.Put("ns1", "coll1", util.ComputeStringHash("key1"), util.ComputeStringHash("value1"), version.NewHeight(1, 1))
 	updateBatch.PvtUpdates.Put("ns1", "coll1", "key1", []byte("value1"), version.NewHeight(1, 1))
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 1)))
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(1, 1))
 
-	verifyPvtKeyValue(t, txMgr, "ns1", "coll1", "key1", []byte("value1"))
+	require.True(t, testPvtValueEqual(t, txMgr, "ns1", "coll1", "key1", []byte("value1")))
 
 	updateBatch = privacyenabledstate.NewUpdateBatch()
 	updateBatch.HashUpdates.Put("ns1", "coll1", util.ComputeStringHash("key1"), util.ComputeStringHash("value1"), version.NewHeight(2, 1))
 	updateBatch.HashUpdates.Put("ns1", "coll2", util.ComputeStringHash("key2"), util.ComputeStringHash("value2"), version.NewHeight(2, 1))
 	updateBatch.HashUpdates.Put("ns1", "coll3", util.ComputeStringHash("key3"), util.ComputeStringHash("value3"), version.NewHeight(2, 1))
 	updateBatch.PvtUpdates.Put("ns1", "coll3", "key3", []byte("value3"), version.NewHeight(2, 1))
-	require.NoError(t, db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 1)))
+	db.ApplyPrivacyAwareUpdates(updateBatch, version.NewHeight(2, 1))
 
-	verifyPvtKeyVersionStale(t, txMgr, "ns1", "coll1", "key1")
-	verifyPvtKeyVersionStale(t, txMgr, "ns1", "coll2", "key2")
-	verifyPvtKeyValue(t, txMgr, "ns1", "coll3", "key3", []byte("value3"))
-	verifyPvtKeyValue(t, txMgr, "ns1", "coll4", "key4", nil)
+	require.False(t, testPvtKeyExist(t, txMgr, "ns1", "coll1", "key1"))
+
+	require.False(t, testPvtKeyExist(t, txMgr, "ns1", "coll2", "key2"))
+
+	require.True(t, testPvtValueEqual(t, txMgr, "ns1", "coll3", "key3", []byte("value3")))
+
+	require.True(t, testPvtValueEqual(t, txMgr, "ns1", "coll4", "key4", nil))
 }
 
 func TestRemoveStaleAndCommitPvtDataOfOldBlocksWithExpiry(t *testing.T) {
@@ -1213,7 +1225,7 @@ func TestRemoveStaleAndCommitPvtDataOfOldBlocksWithExpiry(t *testing.T) {
 	require.NoError(t, txMgr.Commit())
 
 	// pvt data should not exist
-	verifyPvtKeyVersionStale(t, txMgr, "ns", "coll", "pvtkey1")
+	require.False(t, testPvtKeyExist(t, txMgr, "ns", "coll", "pvtkey1"))
 
 	// committing pvt data of block 1
 	v1 := []byte("pvt-value1")
@@ -1227,7 +1239,7 @@ func TestRemoveStaleAndCommitPvtDataOfOldBlocksWithExpiry(t *testing.T) {
 	require.NoError(t, err)
 
 	// pvt data should exist
-	verifyPvtKeyValue(t, txMgr, "ns", "coll", "pvtkey1", v1)
+	require.True(t, testPvtValueEqual(t, txMgr, "ns", "coll", "pvtkey1", v1))
 
 	// storing hashed data but the pvt key is missing
 	// stored pvt key would get expired and purged while committing block 4
@@ -1239,7 +1251,7 @@ func TestRemoveStaleAndCommitPvtDataOfOldBlocksWithExpiry(t *testing.T) {
 	require.NoError(t, txMgr.Commit())
 
 	// pvt data should not exist
-	verifyPvtKeyVersionStale(t, txMgr, "ns", "coll", "pvtkey2")
+	require.False(t, testPvtKeyExist(t, txMgr, "ns", "coll", "pvtkey2"))
 
 	blkAndPvtdata = prepareNextBlockForTest(t, txMgr, bg, "txid-3",
 		map[string]string{"pubkey3": "pub-value3"}, nil, false)
@@ -1264,7 +1276,7 @@ func TestRemoveStaleAndCommitPvtDataOfOldBlocksWithExpiry(t *testing.T) {
 	require.NoError(t, err)
 
 	// pvt data should exist
-	verifyPvtKeyValue(t, txMgr, "ns", "coll", "pvtkey2", v2)
+	require.True(t, testPvtValueEqual(t, txMgr, "ns", "coll", "pvtkey2", v2))
 
 	blkAndPvtdata = prepareNextBlockForTest(t, txMgr, bg, "txid-4",
 		map[string]string{"pubkey4": "pub-value4"}, nil, false)
@@ -1272,22 +1284,24 @@ func TestRemoveStaleAndCommitPvtDataOfOldBlocksWithExpiry(t *testing.T) {
 	require.NoError(t, err)
 	// committing block 4 and should purge pvtkey2
 	require.NoError(t, txMgr.Commit())
-	verifyPvtKeyValue(t, txMgr, "ns", "coll", "pvtkey2", nil)
+
+	require.True(t, testPvtValueEqual(t, txMgr, "ns", "coll", "pvtkey2", nil))
 }
 
-func verifyPvtKeyVersionStale(t *testing.T, txMgr *LockBasedTxMgr, ns, coll, key string) {
+func testPvtKeyExist(t *testing.T, txMgr *LockBasedTxMgr, ns, coll, key string) bool {
 	simulator, _ := txMgr.NewTxSimulator("tx-tmp")
 	defer simulator.Done()
 	_, err := simulator.GetPrivateData(ns, coll, key)
-	require.Contains(t, err.Error(), "private data matching public hash version is not available")
+	_, ok := err.(*ErrPvtdataNotAvailable)
+	return !ok
 }
 
-func verifyPvtKeyValue(t *testing.T, txMgr *LockBasedTxMgr, ns, coll, key string, expectedValue []byte) {
+func testPvtValueEqual(t *testing.T, txMgr *LockBasedTxMgr, ns, coll, key string, value []byte) bool {
 	simulator, _ := txMgr.NewTxSimulator("tx-tmp")
 	defer simulator.Done()
 	pvtValue, err := simulator.GetPrivateData(ns, coll, key)
 	require.NoError(t, err)
-	require.Equal(t, expectedValue, pvtValue)
+	return bytes.Equal(pvtValue, value)
 }
 
 func TestDeleteOnCursor(t *testing.T) {
@@ -1305,7 +1319,7 @@ func TestDeleteOnCursor(t *testing.T) {
 		k := createTestKey(i)
 		v := createTestValue(i)
 		t.Logf("Adding k=[%s], v=[%s]", k, v)
-		require.NoError(t, s.SetState(cID, k, v))
+		s.SetState(cID, k, v)
 	}
 	s.Done()
 	txRWSet1, _ := s.GetTxSimulationResults()
@@ -1319,7 +1333,7 @@ func TestDeleteOnCursor(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, kv)
 		key := kv.(*queryresult.KV).Key
-		require.NoError(t, s2.DeleteState(cID, key))
+		s2.DeleteState(cID, key)
 	}
 	itr2.Close()
 	s2.Done()
@@ -1360,21 +1374,24 @@ func TestTxSimulatorMissingPvtdataExpiry(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, txMgr.Commit())
 
-	verifyPvtKeyValue(t, txMgr, "ns", "coll", "pvtkey1", []byte("pvt-value1"))
+	require.True(t, testPvtValueEqual(t, txMgr, "ns", "coll", "pvtkey1", []byte("pvt-value1")))
 
 	blkAndPvtdata = prepareNextBlockForTest(t, txMgr, bg, "txid-2",
+
 		map[string]string{"pubkey1": "pub-value2"}, map[string]string{"pvtkey2": "pvt-value2"}, false)
 	_, _, err = txMgr.ValidateAndPrepare(blkAndPvtdata, true)
 	require.NoError(t, err)
 	require.NoError(t, txMgr.Commit())
-	verifyPvtKeyValue(t, txMgr, "ns", "coll", "pvtkey1", []byte("pvt-value1"))
+
+	require.True(t, testPvtValueEqual(t, txMgr, "ns", "coll", "pvtkey1", []byte("pvt-value1")))
 
 	blkAndPvtdata = prepareNextBlockForTest(t, txMgr, bg, "txid-2",
 		map[string]string{"pubkey1": "pub-value3"}, map[string]string{"pvtkey3": "pvt-value3"}, false)
 	_, _, err = txMgr.ValidateAndPrepare(blkAndPvtdata, true)
 	require.NoError(t, err)
 	require.NoError(t, txMgr.Commit())
-	verifyPvtKeyValue(t, txMgr, "ns", "coll", "pvtkey1", nil)
+
+	require.True(t, testPvtValueEqual(t, txMgr, "ns", "coll", "pvtkey1", nil))
 }
 
 func TestTxWithPubMetadata(t *testing.T) {
@@ -1398,11 +1415,11 @@ func testTxWithPubMetadata(t *testing.T, env testEnv) {
 	key2, value2, metadata2 := "key2", []byte("value2"), map[string][]byte{"entry1": []byte("meatadata2-entry1")}
 	key3, metadata3 := "key3", map[string][]byte{"entry1": []byte("meatadata3-entry")}
 
-	require.NoError(t, s1.SetState(namespace, key1, value1))
-	require.NoError(t, s1.SetStateMetadata(namespace, key1, metadata1))
-	require.NoError(t, s1.SetState(namespace, key2, value2))
-	require.NoError(t, s1.SetStateMetadata(namespace, key2, metadata2))
-	require.NoError(t, s1.SetStateMetadata(namespace, key3, metadata3))
+	s1.SetState(namespace, key1, value1)
+	s1.SetStateMetadata(namespace, key1, metadata1)
+	s1.SetState(namespace, key2, value2)
+	s1.SetStateMetadata(namespace, key2, metadata2)
+	s1.SetStateMetadata(namespace, key3, metadata3)
 	s1.Done()
 	txRWSet1, _ := s1.GetTxSimulationResults()
 	txMgrHelper.validateAndCommitRWSet(txRWSet1.PubSimulationResults)
@@ -1417,8 +1434,8 @@ func testTxWithPubMetadata(t *testing.T, env testEnv) {
 	// Simulate and commit tx3 - update metadata for key1 and delete metadata for key2
 	updatedMetadata1 := map[string][]byte{"entry1": []byte("meatadata1-entry1"), "entry2": []byte("meatadata1-entry2")}
 	s2, _ := txMgr.NewTxSimulator("test_tx3")
-	require.NoError(t, s2.SetStateMetadata(namespace, key1, updatedMetadata1))
-	require.NoError(t, s2.DeleteStateMetadata(namespace, key2))
+	s2.SetStateMetadata(namespace, key1, updatedMetadata1)
+	s2.DeleteStateMetadata(namespace, key2)
 	s2.Done()
 	txRWSet2, _ := s2.GetTxSimulationResults()
 	txMgrHelper.validateAndCommitRWSet(txRWSet2.PubSimulationResults)
@@ -1457,11 +1474,11 @@ func testTxWithPvtdataMetadata(t *testing.T, env testEnv, ns, coll string) {
 	key1, value1, metadata1 := "key1", []byte("value1"), map[string][]byte{"entry1": []byte("meatadata1-entry1")}
 	key2, value2, metadata2 := "key2", []byte("value2"), map[string][]byte{"entry1": []byte("meatadata2-entry1")}
 	key3, metadata3 := "key3", map[string][]byte{"entry1": []byte("meatadata3-entry")}
-	require.NoError(t, s1.SetPrivateData(ns, coll, key1, value1))
-	require.NoError(t, s1.SetPrivateDataMetadata(ns, coll, key1, metadata1))
-	require.NoError(t, s1.SetPrivateData(ns, coll, key2, value2))
-	require.NoError(t, s1.SetPrivateDataMetadata(ns, coll, key2, metadata2))
-	require.NoError(t, s1.SetPrivateDataMetadata(ns, coll, key3, metadata3))
+	s1.SetPrivateData(ns, coll, key1, value1)
+	s1.SetPrivateDataMetadata(ns, coll, key1, metadata1)
+	s1.SetPrivateData(ns, coll, key2, value2)
+	s1.SetPrivateDataMetadata(ns, coll, key2, metadata2)
+	s1.SetPrivateDataMetadata(ns, coll, key3, metadata3)
 	s1.Done()
 
 	blkAndPvtdata1 := prepareNextBlockForTestFromSimulator(t, bg, s1)
@@ -1479,8 +1496,8 @@ func testTxWithPvtdataMetadata(t *testing.T, env testEnv, ns, coll string) {
 	// Simulate and commit tx3 - update metadata for key1 and delete metadata for key2
 	updatedMetadata1 := map[string][]byte{"entry1": []byte("meatadata1-entry1"), "entry2": []byte("meatadata1-entry2")}
 	s2, _ := txMgr.NewTxSimulator("test_tx3")
-	require.NoError(t, s2.SetPrivateDataMetadata(ns, coll, key1, updatedMetadata1))
-	require.NoError(t, s2.DeletePrivateDataMetadata(ns, coll, key2))
+	s2.SetPrivateDataMetadata(ns, coll, key1, updatedMetadata1)
+	s2.DeletePrivateDataMetadata(ns, coll, key2)
 	s2.Done()
 
 	blkAndPvtdata2 := prepareNextBlockForTestFromSimulator(t, bg, s2)
@@ -1500,10 +1517,10 @@ func prepareNextBlockForTest(t *testing.T, txMgr *LockBasedTxMgr, bg *testutil.B
 	simulator, _ := txMgr.NewTxSimulator(txid)
 	//simulating transaction
 	for k, v := range pubKVs {
-		require.NoError(t, simulator.SetState("ns", k, []byte(v)))
+		simulator.SetState("ns", k, []byte(v))
 	}
 	for k, v := range pvtKVs {
-		require.NoError(t, simulator.SetPrivateData("ns", "coll", k, []byte(v)))
+		simulator.SetPrivateData("ns", "coll", k, []byte(v))
 	}
 	simulator.Done()
 	if isMissing {
@@ -1526,7 +1543,7 @@ func prepareNextBlockForTestFromSimulatorWithMissingData(t *testing.T, bg *testu
 	simRes, _ := simulator.GetTxSimulationResults()
 	pubSimBytes, _ := simRes.GetPubSimulationBytes()
 	block := bg.NextBlock([][]byte{pubSimBytes})
-	missingData := make(ledger.TxMissingPvtData)
+	missingData := make(ledger.TxMissingPvtDataMap)
 	missingData.Add(txNum, ns, coll, isEligible)
 	return &ledger.BlockAndPvtData{Block: block, MissingPvtData: missingData}
 }
