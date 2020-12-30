@@ -85,6 +85,10 @@ type EncrypterOpts interface{}
 // DecrypterOpts contains options for decrypting with a CSP.
 type DecrypterOpts interface{}
 
+type VerifierOpts interface {
+	Name () string
+}
+
 // BCCSP is the blockchain cryptographic service provider that offers
 // the implementation of cryptographic standards and algorithms.
 type BCCSP interface {

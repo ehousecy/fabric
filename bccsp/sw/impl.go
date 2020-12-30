@@ -63,7 +63,6 @@ func New(keyStore bccsp.KeyStore) (*CSP, error) {
 	csp := &CSP{keyStore,
 		keyGenerators, keyDerivers, keyImporters, encryptors,
 		decryptors, signers, verifiers, hashers}
-
 	return csp, nil
 }
 

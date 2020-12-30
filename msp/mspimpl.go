@@ -13,13 +13,13 @@ import (
 	"encoding/pem"
 	"github.com/tjfoc/gmsm/sm2"
 
-	"github.com/golang/protobuf/proto"
-	m "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/ehousecy/fabric/bccsp"
 	"github.com/ehousecy/fabric/bccsp/factory"
 	"github.com/ehousecy/fabric/bccsp/signer"
 	"github.com/ehousecy/fabric/bccsp/sw"
 	"github.com/ehousecy/fabric/bccsp/utils"
+	"github.com/golang/protobuf/proto"
+	m "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/pkg/errors"
 )
 
