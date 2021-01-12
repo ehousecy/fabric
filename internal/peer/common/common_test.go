@@ -8,6 +8,7 @@ package common_test
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/msp"
 	"io/ioutil"
 	"os"
 	"path"
@@ -19,7 +20,6 @@ import (
 	"github.com/hyperledger/fabric/common/util"
 	"github.com/hyperledger/fabric/core/config/configtest"
 	"github.com/hyperledger/fabric/internal/peer/common"
-	"github.com/hyperledger/fabric/msp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"

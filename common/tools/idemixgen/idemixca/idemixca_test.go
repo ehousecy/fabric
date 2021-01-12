@@ -9,6 +9,8 @@ package idemixca
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/hyperledger/fabric/msp/factory"
+	idemix2 "github.com/hyperledger/fabric/msp/idemix"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -45,13 +47,13 @@ func TestIdemixCa(t *testing.T) {
 
 	key := &idemix.IssuerKey{Isk: isk, Ipk: ipk}
 
-	conf, err := GenerateSignerConfig(m.GetRoleMaskFromIdemixRole(m.MEMBER), "OU1", "enrollmentid1", 1, key, revocationkey)
+	conf, err := GenerateSignerConfig(idemix2.GetRoleMaskFromIdemixRole(idemix2.MEMBER), "OU1", "enrollmentid1", 1, key, revocationkey)
 	assert.NoError(t, err)
 	cleanupSigner()
 	assert.NoError(t, writeSignerToFile(conf))
 	assert.NoError(t, setupMSP())
 
-	conf, err = GenerateSignerConfig(m.GetRoleMaskFromIdemixRole(m.ADMIN), "OU1", "enrollmentid2", 1234, key, revocationkey)
+	conf, err = GenerateSignerConfig(idemix2.GetRoleMaskFromIdemixRole(idemix2.ADMIN), "OU1", "enrollmentid2", 1234, key, revocationkey)
 	assert.NoError(t, err)
 	cleanupSigner()
 	assert.NoError(t, writeSignerToFile(conf))
@@ -61,10 +63,10 @@ func TestIdemixCa(t *testing.T) {
 	cleanupVerifier()
 	assert.Error(t, setupMSP())
 
-	_, err = GenerateSignerConfig(m.GetRoleMaskFromIdemixRole(m.ADMIN), "", "enrollmentid", 1, key, revocationkey)
+	_, err = GenerateSignerConfig(idemix2.GetRoleMaskFromIdemixRole(idemix2.ADMIN), "", "enrollmentid", 1, key, revocationkey)
 	assert.EqualError(t, err, "the OU attribute value is empty")
 
-	_, err = GenerateSignerConfig(m.GetRoleMaskFromIdemixRole(m.ADMIN), "OU1", "", 1, key, revocationkey)
+	_, err = GenerateSignerConfig(idemix2.GetRoleMaskFromIdemixRole(idemix2.ADMIN), "OU1", "", 1, key, revocationkey)
 	assert.EqualError(t, err, "the enrollment id value is empty")
 }
 
@@ -114,7 +116,7 @@ func setupMSP() error {
 		return err
 	}
 	// setup an idemix msp from the test directory
-	msp, err := m.New(
+	msp, err := factory.New(
 		&m.IdemixNewOpts{NewBaseOpts: m.NewBaseOpts{Version: m.MSPv1_1}},
 		cryptoProvider,
 	)

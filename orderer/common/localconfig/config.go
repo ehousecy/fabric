@@ -55,6 +55,7 @@ type General struct {
 	Profile           Profile
 	LocalMSPDir       string
 	LocalMSPID        string
+	LocalMSPType      string
 	BCCSP             *bccsp.FactoryOpts
 	Authentication    Authentication
 }

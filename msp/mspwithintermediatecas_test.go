@@ -17,6 +17,7 @@ limitations under the License.
 package msp
 
 import (
+	"github.com/hyperledger/fabric/msp/sw"
 	"path/filepath"
 	"testing"
 
@@ -90,7 +91,7 @@ func TestIntermediateCAIdentityValidity(t *testing.T) {
 	// 3) cacert is the CA that signed the intermediate
 	thisMSP := getLocalMSP(t, "testdata/intermediate")
 
-	id := thisMSP.(*bccspmsp).intermediateCerts[0]
+	id := thisMSP.(*sw.bccspmsp).intermediateCerts[0]
 	assert.Error(t, id.Validate())
 }
 
@@ -114,7 +115,7 @@ func TestMSPWithIntermediateCAs2(t *testing.T) {
 	// user2-cert has been signed by the root CA, validation must fail
 	pem, err := readPemFile(filepath.Join("testdata", "intermediate2", "users", "user2-cert.pem"))
 	assert.NoError(t, err)
-	id2, _, err := thisMSP.(*bccspmsp).getIdentityFromConf(pem)
+	id2, _, err := thisMSP.(*sw.bccspmsp).getIdentityFromConf(pem)
 	assert.NoError(t, err)
 	err = thisMSP.Validate(id2)
 	assert.Error(t, err)

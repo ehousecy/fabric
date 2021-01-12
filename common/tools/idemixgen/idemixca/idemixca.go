@@ -8,12 +8,12 @@ package idemixca
 
 import (
 	"crypto/ecdsa"
+	idemix2 "github.com/hyperledger/fabric/msp/idemix"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	m "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric/idemix"
-	"github.com/hyperledger/fabric/msp"
 	"github.com/pkg/errors"
 )
 
@@ -29,7 +29,7 @@ func GenerateIssuerKey() ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	AttributeNames := []string{msp.AttributeNameOU, msp.AttributeNameRole, msp.AttributeNameEnrollmentId, msp.AttributeNameRevocationHandle}
+	AttributeNames := []string{idemix2.AttributeNameOU, idemix2.AttributeNameRole, idemix2.AttributeNameEnrollmentId, idemix2.AttributeNameRevocationHandle}
 	key, err := idemix.NewIssuerKey(AttributeNames, rng)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "cannot generate CA key")
@@ -53,10 +53,10 @@ func GenerateSignerConfig(roleMask int, ouString string, enrollmentId string, re
 		return nil, errors.Errorf("the enrollment id value is empty")
 	}
 
-	attrs[msp.AttributeIndexOU] = idemix.HashModOrder([]byte(ouString))
-	attrs[msp.AttributeIndexRole] = FP256BN.NewBIGint(roleMask)
-	attrs[msp.AttributeIndexEnrollmentId] = idemix.HashModOrder([]byte(enrollmentId))
-	attrs[msp.AttributeIndexRevocationHandle] = FP256BN.NewBIGint(revocationHandle)
+	attrs[idemix2.AttributeIndexOU] = idemix.HashModOrder([]byte(ouString))
+	attrs[idemix2.AttributeIndexRole] = FP256BN.NewBIGint(roleMask)
+	attrs[idemix2.AttributeIndexEnrollmentId] = idemix.HashModOrder([]byte(enrollmentId))
+	attrs[idemix2.AttributeIndexRevocationHandle] = FP256BN.NewBIGint(revocationHandle)
 
 	rng, err := idemix.GetRand()
 	if err != nil {

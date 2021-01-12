@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package mgmt
 
 import (
+	factory2 "github.com/hyperledger/fabric/msp/factory"
+	"github.com/hyperledger/fabric/msp/sw"
 	"reflect"
 	"sync"
 
@@ -90,7 +92,7 @@ func GetManagerForChain(chainID string) msp.MSPManager {
 	mspMgr, ok := mspMap[chainID]
 	if !ok {
 		mspLogger.Debugf("Created new msp manager for channel `%s`", chainID)
-		mspMgmtMgr := &mspMgmtMgr{msp.NewMSPManager(), false}
+		mspMgmtMgr := &mspMgmtMgr{sw.NewMSPManager(), false}
 		mspMap[chainID] = mspMgmtMgr
 		mspMgr = mspMgmtMgr
 	} else {
@@ -156,12 +158,12 @@ func loadLocalMSP(bccsp bccsp.BCCSP) msp.MSP {
 		mspLogger.Panicf("msp type " + mspType + " unknown")
 	}
 
-	mspInst, err := msp.New(newOpts, bccsp)
+	mspInst, err := factory2.GetDefault(newOpts,bccsp)
 	if err != nil {
 		mspLogger.Fatalf("Failed to initialize local MSP, received err %+v", err)
 	}
 	switch mspType {
-	case msp.ProviderTypeToString(msp.FABRIC):
+	case msp.ProviderTypeToString(msp.FABRIC),msp.ProviderTypeToString(msp.GM):
 		mspInst, err = cache.New(mspInst)
 		if err != nil {
 			mspLogger.Fatalf("Failed to initialize local MSP, received err %+v", err)

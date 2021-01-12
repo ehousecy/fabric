@@ -8,17 +8,18 @@ package msp
 
 import (
 	"encoding/pem"
+	"github.com/hyperledger/fabric/common/flogging"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
+var mspLogger = flogging.MustGetLogger("msp")
 
 // OrganizationalUnitIdentifiersConfiguration is used to represent an OU
 // and an associated trusted certificate
@@ -157,7 +158,7 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, keystoreDir stri
 // directory, with the specified ID and type
 func GetLocalMspConfigWithType(dir string, bccspConfig *factory.FactoryOpts, ID, mspType string) (*msp.MSPConfig, error) {
 	switch mspType {
-	case ProviderTypeToString(FABRIC):
+	case ProviderTypeToString(FABRIC),ProviderTypeToString(GM):
 		return GetLocalMspConfig(dir, bccspConfig, ID)
 	case ProviderTypeToString(IDEMIX):
 		return GetIdemixMspConfig(dir, ID)
@@ -188,23 +189,35 @@ func GetLocalMspConfig(dir string, bccspConfig *factory.FactoryOpts, ID string) 
 	*/
 
 	sigid := &msp.SigningIdentityInfo{PublicSigner: signcert[0], PrivateSigner: nil}
-
-	return getMspConfig(dir, ID, sigid)
+	var mspType int32
+	switch bccspConfig.ProviderName {
+		case "SW":
+			mspType = int32(FABRIC)
+		case "GM":
+			mspType = int32(GM)
+		case  "pkcs11":
+			mspType = int32(IDEMIX)
+		default:
+			return nil, errors.Errorf("unknown ProviderName type '%s'", bccspConfig.ProviderName)
+	}
+	return getMspConfig(dir, ID, sigid,mspType)
 }
 
 // GetVerifyingMspConfig returns an MSP config given directory, ID and type
 func GetVerifyingMspConfig(dir, ID, mspType string) (*msp.MSPConfig, error) {
 	switch mspType {
 	case ProviderTypeToString(FABRIC):
-		return getMspConfig(dir, ID, nil)
+		return getMspConfig(dir, ID, nil, int32(FABRIC))
 	case ProviderTypeToString(IDEMIX):
 		return GetIdemixMspConfig(dir, ID)
+	case ProviderTypeToString(GM):
+		return getMspConfig(dir, ID, nil, int32(GM))
 	default:
 		return nil, errors.Errorf("unknown MSP type '%s'", mspType)
 	}
 }
 
-func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.MSPConfig, error) {
+func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo,mspType int32) (*msp.MSPConfig, error) {
 	cacertDir := filepath.Join(dir, cacerts)
 	admincertDir := filepath.Join(dir, admincerts)
 	intermediatecertsDir := filepath.Join(dir, intermediatecerts)
@@ -333,12 +346,6 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 		mspLogger.Debugf("MSP configuration file not found at [%s]: [%s]", configFile, err)
 	}
 
-	// Set FabricCryptoConfig
-	cryptoConfig := &msp.FabricCryptoConfig{
-		SignatureHashFamily:            bccsp.SHA2,
-		IdentityIdentifierHashFunction: bccsp.SHA256,
-	}
-
 	// Compose FabricMSPConfig
 	fmspconf := &msp.FabricMSPConfig{
 		Admins:                        admincert,
@@ -348,7 +355,7 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 		Name:                          ID,
 		OrganizationalUnitIdentifiers: ouis,
 		RevocationList:                crls,
-		CryptoConfig:                  cryptoConfig,
+		CryptoConfig:                  nil,
 		TlsRootCerts:                  tlsCACerts,
 		TlsIntermediateCerts:          tlsIntermediateCerts,
 		FabricNodeOus:                 nodeOUs,
@@ -356,7 +363,7 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 
 	fmpsjs, _ := proto.Marshal(fmspconf)
 
-	mspconf := &msp.MSPConfig{Config: fmpsjs, Type: int32(FABRIC)}
+	mspconf := &msp.MSPConfig{Config: fmpsjs, Type: mspType}
 
 	return mspconf, nil
 }

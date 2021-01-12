@@ -17,6 +17,8 @@ limitations under the License.
 package msp
 
 import (
+	"github.com/hyperledger/fabric/msp/factory"
+	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"path/filepath"
 	"testing"
 
@@ -84,13 +86,13 @@ func TestRevokedIntermediateCA(t *testing.T) {
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err := newBccspMsp(MSPv1_0, cryptoProvider)
+	thisMSP, err := sw2.newBccspMsp(factory.MSPv1_0, cryptoProvider)
 	assert.NoError(t, err)
 	ks, err := sw.NewFileBasedKeyStore(nil, filepath.Join(dir, "keystore"), true)
 	assert.NoError(t, err)
 	csp, err := sw.NewWithParams(256, "SHA2", ks)
 	assert.NoError(t, err)
-	thisMSP.(*bccspmsp).bccsp = csp
+	thisMSP.(*sw2.bccspmsp).bccsp = csp
 
 	err = thisMSP.Setup(conf)
 	assert.Error(t, err)

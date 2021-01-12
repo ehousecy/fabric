@@ -9,6 +9,9 @@ package signer
 import (
 	"crypto"
 	"crypto/x509"
+	"github.com/hyperledger/fabric/bccsp/gm"
+	"github.com/hyperledger/fabric/bccsp/sw"
+	"github.com/tjfoc/gmsm/sm2"
 	"io"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -46,13 +49,24 @@ func New(csp bccsp.BCCSP, key bccsp.Key) (crypto.Signer, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed marshalling public key")
 	}
+	switch csp.(type) {
+	case *sw.CSP:
+		pk, err := x509.ParsePKIXPublicKey(raw)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed marshalling der to public key")
+		}
 
-	pk, err := x509.ParsePKIXPublicKey(raw)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed marshalling der to public key")
+		return &bccspCryptoSigner{csp, key, pk}, nil
+	case *gm.Impl:
+		pk, err := sm2.ParsePKIXPublicKey(raw)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed marshalling der to public key")
+		}
+
+		return &gmCryptoSigner{csp, key, pk}, nil
+	default:
+		return nil, errors.New("unsupport bccsp type")
 	}
-
-	return &bccspCryptoSigner{csp, key, pk}, nil
 }
 
 // Public returns the public key corresponding to the opaque,

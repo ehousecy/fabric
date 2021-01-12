@@ -15,6 +15,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -592,7 +593,7 @@ func createMSPManager(t *testing.T, dir string, configs map[string]*msprotos.Fab
 		mspsOfChannel = append(mspsOfChannel, mspInstance)
 	}
 
-	mspMgr := msp.NewMSPManager()
+	mspMgr := sw2.NewMSPManager()
 	mspMgr.Setup(mspsOfChannel)
 	return mspMgr
 }

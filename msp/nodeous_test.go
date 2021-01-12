@@ -17,6 +17,9 @@ limitations under the License.
 package msp
 
 import (
+	"github.com/hyperledger/fabric/msp/factory"
+	"github.com/hyperledger/fabric/msp/gm"
+	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"path/filepath"
 	"testing"
 
@@ -30,13 +33,13 @@ func TestInvalidAdminNodeOU(t *testing.T) {
 	// testdata/nodeous1:
 	// the configuration enables NodeOUs but the administrator does not carry
 	// any valid NodeOUS. Therefore MSP initialization must fail
-	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous1", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous1", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	assert.Error(t, err)
 
 	// MSPv1_0 should not fail
-	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous1", MSPv1_0)
-	assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous1", factory.MSPv1_0)
+	assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	assert.NoError(t, err)
 }
 
@@ -45,8 +48,8 @@ func TestInvalidSigningIdentityNodeOU(t *testing.T) {
 		// testdata/nodeous2:
 		// the configuration enables NodeOUs but the signing identity does not carry
 		// any valid NodeOUS. Therefore signing identity validation should fail
-		thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous2", MSPv1_4_3)
-		assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+		thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous2", factory.MSPv1_4_3)
+		assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 		id, err := thisMSP.GetDefaultSigningIdentity()
 		assert.NoError(t, err)
@@ -59,8 +62,8 @@ func TestInvalidSigningIdentityNodeOU(t *testing.T) {
 		// testdata/nodeous2:
 		// the configuration enables NodeOUs but the signing identity does not carry
 		// any valid NodeOUS. Therefore signing identity validation should fail
-		thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous2", MSPv1_1)
-		assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+		thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous2", factory.MSPv1_1)
+		assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 		id, err := thisMSP.GetDefaultSigningIdentity()
 		assert.NoError(t, err)
@@ -71,8 +74,8 @@ func TestInvalidSigningIdentityNodeOU(t *testing.T) {
 
 	t.Run("signing_identity_validation_succeeds_with_MSPv1_0", func(t *testing.T) {
 		// MSPv1_0 should not fail, node OUs not yet implemented in 1_0
-		thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous1", MSPv1_0)
-		assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+		thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous1", factory.MSPv1_0)
+		assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 		assert.NoError(t, err)
 
 		id, err := thisMSP.GetDefaultSigningIdentity()
@@ -86,8 +89,8 @@ func TestInvalidSigningIdentityNodeOU(t *testing.T) {
 func TestValidMSPWithNodeOU(t *testing.T) {
 	// testdata/nodeous3:
 	// the configuration enables NodeOUs and admin and signing identity are valid
-	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous3", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous3", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	id, err := thisMSP.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
@@ -96,8 +99,8 @@ func TestValidMSPWithNodeOU(t *testing.T) {
 	assert.NoError(t, err)
 
 	// MSPv1_0 should not fail as well
-	thisMSP = getLocalMSPWithVersion(t, "testdata/nodeous3", MSPv1_0)
-	assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP = getLocalMSPWithVersion(t, "testdata/nodeous3", factory.MSPv1_0)
+	assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	id, err = thisMSP.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
@@ -109,8 +112,8 @@ func TestValidMSPWithNodeOU(t *testing.T) {
 func TestValidMSPWithNodeOUAndOrganizationalUnits(t *testing.T) {
 	// testdata/nodeous6:
 	// the configuration enables NodeOUs and OrganizationalUnits, and admin and signing identity are valid
-	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous6", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous6", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	id, err := thisMSP.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
@@ -119,8 +122,8 @@ func TestValidMSPWithNodeOUAndOrganizationalUnits(t *testing.T) {
 	assert.NoError(t, err)
 
 	// MSPv1_0 should not fail as well
-	thisMSP = getLocalMSPWithVersion(t, "testdata/nodeous6", MSPv1_0)
-	assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP = getLocalMSPWithVersion(t, "testdata/nodeous6", factory.MSPv1_0)
+	assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	id, err = thisMSP.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
@@ -134,15 +137,15 @@ func TestInvalidMSPWithNodeOUAndOrganizationalUnits(t *testing.T) {
 	// the configuration enables NodeOUs and OrganizationalUnits,
 	// and admin and signing identity are not valid because they don't have
 	// OU_common in their OUs.
-	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous7", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous7", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "could not validate identity's OUs: none of the identity's organizational units")
 	}
 
 	// MSPv1_0 should fail as well
-	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous7", MSPv1_0)
-	assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous7", factory.MSPv1_0)
+	assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "could not validate identity's OUs: none of the identity's organizational units")
 	}
@@ -151,36 +154,36 @@ func TestInvalidMSPWithNodeOUAndOrganizationalUnits(t *testing.T) {
 func TestInvalidAdminOU(t *testing.T) {
 	// testdata/nodeous4:
 	// the configuration enables NodeOUs and admin does not match the certifier chain specified at config
-	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous4", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous4", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "admin 0 is invalid: The identity is not valid under this MSP [SampleOrg]: could not validate identity's OUs: certifiersIdentifier does not match")
 
 	// MSPv1_0 should not fail as well
-	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous4", MSPv1_0)
-	assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous4", factory.MSPv1_0)
+	assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	assert.NoError(t, err)
 }
 
 func TestInvalidAdminOUNotAClient(t *testing.T) {
 	// testdata/nodeous4:
 	// the configuration enables NodeOUs and admin is not a client
-	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous8", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err := getLocalMSPWithVersionAndError(t, "testdata/nodeous8", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "The identity does not contain OU [CLIENT]")
 
 	// MSPv1_0 should not fail
-	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous8", MSPv1_0)
-	assert.False(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP, err = getLocalMSPWithVersionAndError(t, "testdata/nodeous8", factory.MSPv1_0)
+	assert.False(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 	assert.NoError(t, err)
 }
 
 func TestSatisfiesPrincipalPeer(t *testing.T) {
 	// testdata/nodeous3:
 	// the configuration enables NodeOUs and admin and signing identity are valid
-	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous3", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous3", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	// The default signing identity is a peer
 	id, err := thisMSP.GetDefaultSigningIdentity()
@@ -220,12 +223,12 @@ func TestSatisfiesPrincipalPeer(t *testing.T) {
 func TestSatisfiesPrincipalClient(t *testing.T) {
 	// testdata/nodeous3:
 	// the configuration enables NodeOUs and admin and signing identity are valid
-	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous3", MSPv1_1)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeous3", factory.MSPv1_1)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	// The admin of this msp is a client
-	assert.Equal(t, 1, len(thisMSP.(*bccspmsp).admins))
-	id := thisMSP.(*bccspmsp).admins[0]
+	assert.Equal(t, 1, len(thisMSP.(*sw2.bccspmsp).admins))
+	id := thisMSP.(*sw2.bccspmsp).admins[0]
 
 	err := id.Validate()
 	assert.NoError(t, err)
@@ -261,13 +264,13 @@ func TestSatisfiesPrincipalClient(t *testing.T) {
 func TestSatisfiesPrincipalAdmin(t *testing.T) {
 	// testdata/nodeouadmin:
 	// the configuration enables NodeOUs (with adminOU) and admin and signing identity are valid
-	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeouadmin", MSPv1_4_3)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeouadmin", factory.MSPv1_4_3)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
 	cert, err := readFile("testdata/nodeouadmin/adm/testadmincert.pem")
 	assert.NoError(t, err)
 
-	id, _, err := thisMSP.(*bccspmsp).getIdentityFromConf(cert)
+	id, _, err := thisMSP.(*sw2.bccspmsp).getIdentityFromConf(cert)
 	assert.NoError(t, err)
 
 	principalBytes, err := proto.Marshal(&msp.MSPRole{Role: msp.MSPRole_ADMIN, MspIdentifier: "SampleOrg"})
@@ -289,7 +292,7 @@ func TestLoad142MSPWithInvalidAdminConfiguration(t *testing.T) {
 	assert.NoError(t, err)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err := NewBccspMspWithKeyStore(MSPv1_4_3, ks, cryptoProvider)
+	thisMSP, err := gm.NewBccspMspWithKeyStore(factory.MSPv1_4_3, ks, cryptoProvider)
 	assert.NoError(t, err)
 
 	err = thisMSP.Setup(conf)
@@ -303,7 +306,7 @@ func TestLoad142MSPWithInvalidAdminConfiguration(t *testing.T) {
 
 	ks, err = sw.NewFileBasedKeyStore(nil, filepath.Join("testdata/nodeouadmin3", "keystore"), true)
 	assert.NoError(t, err)
-	thisMSP, err = NewBccspMspWithKeyStore(MSPv1_4_3, ks, cryptoProvider)
+	thisMSP, err = gm.NewBccspMspWithKeyStore(factory.MSPv1_4_3, ks, cryptoProvider)
 	assert.NoError(t, err)
 
 	err = thisMSP.Setup(conf)
@@ -321,12 +324,12 @@ func TestAdminInAdmincertsWith143MSP(t *testing.T) {
 	testFolders := []string{"testdata/nodeouadminclient", "testdata/nodeouadminclient2"}
 
 	for _, testFolder := range testFolders {
-		localMSP := getLocalMSPWithVersion(t, testFolder, MSPv1_4_3)
+		localMSP := getLocalMSPWithVersion(t, testFolder, factory.MSPv1_4_3)
 
 		cert, err := readFile(filepath.Join(testFolder, "admincerts", "admin.pem"))
 		assert.NoError(t, err)
 
-		id, _, err := localMSP.(*bccspmsp).getIdentityFromConf(cert)
+		id, _, err := localMSP.(*sw2.bccspmsp).getIdentityFromConf(cert)
 		assert.NoError(t, err)
 		for _, ou := range id.GetOrganizationalUnits() {
 			assert.NotEqual(t, "admin", ou.OrganizationalUnitIdentifier)
@@ -345,10 +348,10 @@ func TestAdminInAdmincertsWith143MSP(t *testing.T) {
 func TestSatisfiesPrincipalOrderer(t *testing.T) {
 	// testdata/nodeouorderer:
 	// the configuration enables NodeOUs (with orderOU)
-	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeouorderer", MSPv1_4_3)
-	assert.True(t, thisMSP.(*bccspmsp).ouEnforcement)
+	thisMSP := getLocalMSPWithVersion(t, "testdata/nodeouorderer", factory.MSPv1_4_3)
+	assert.True(t, thisMSP.(*sw2.bccspmsp).ouEnforcement)
 
-	id, err := thisMSP.(*bccspmsp).GetDefaultSigningIdentity()
+	id, err := thisMSP.(*sw2.bccspmsp).GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
 	principalBytes, err := proto.Marshal(&msp.MSPRole{Role: msp.MSPRole_ORDERER, MspIdentifier: "SampleOrg"})
@@ -370,12 +373,12 @@ func TestLoad142MSPWithInvalidOrdererConfiguration(t *testing.T) {
 	assert.NoError(t, err)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err := NewBccspMspWithKeyStore(MSPv1_4_3, ks, cryptoProvider)
+	thisMSP, err := gm.NewBccspMspWithKeyStore(factory.MSPv1_4_3, ks, cryptoProvider)
 	assert.NoError(t, err)
 
 	err = thisMSP.Setup(conf)
 	assert.NoError(t, err)
-	id, err := thisMSP.(*bccspmsp).GetDefaultSigningIdentity()
+	id, err := thisMSP.(*sw2.bccspmsp).GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
 	principalBytes, err := proto.Marshal(&msp.MSPRole{Role: msp.MSPRole_ORDERER, MspIdentifier: "SampleOrg"})
@@ -394,12 +397,12 @@ func TestLoad142MSPWithInvalidOrdererConfiguration(t *testing.T) {
 
 	ks, err = sw.NewFileBasedKeyStore(nil, filepath.Join("testdata/nodeouorderer3", "keystore"), true)
 	assert.NoError(t, err)
-	thisMSP, err = NewBccspMspWithKeyStore(MSPv1_4_3, ks, cryptoProvider)
+	thisMSP, err = gm.NewBccspMspWithKeyStore(factory.MSPv1_4_3, ks, cryptoProvider)
 	assert.NoError(t, err)
 
 	err = thisMSP.Setup(conf)
 	assert.NoError(t, err)
-	id, err = thisMSP.(*bccspmsp).GetDefaultSigningIdentity()
+	id, err = thisMSP.(*sw2.bccspmsp).GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
 	principalBytes, err = proto.Marshal(&msp.MSPRole{Role: msp.MSPRole_ORDERER, MspIdentifier: "SampleOrg"})
@@ -415,20 +418,20 @@ func TestLoad142MSPWithInvalidOrdererConfiguration(t *testing.T) {
 func TestValidMSPWithNodeOUMissingClassification(t *testing.T) {
 	// testdata/nodeousbadconf1:
 	// the configuration enables NodeOUs but client ou identifier is missing
-	_, err := getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf1", MSPv1_3)
+	_, err := getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf1", factory.MSPv1_3)
 	assert.Error(t, err)
 	assert.Equal(t, "Failed setting up NodeOUs. ClientOU must be different from nil.", err.Error())
 
-	_, err = getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf1", MSPv1_4_3)
+	_, err = getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf1", factory.MSPv1_4_3)
 	assert.Error(t, err)
 	assert.Equal(t, "admin 0 is invalid [cannot test for classification, node ou for type [CLIENT], not defined, msp: [SampleOrg],The identity does not contain OU [ADMIN], MSP: [SampleOrg]]", err.Error())
 
 	// testdata/nodeousbadconf2:
 	// the configuration enables NodeOUs but peer ou identifier is missing
-	_, err = getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf2", MSPv1_3)
+	_, err = getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf2", factory.MSPv1_3)
 	assert.Error(t, err)
 	assert.Equal(t, "Failed setting up NodeOUs. PeerOU must be different from nil.", err.Error())
 
-	_, err = getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf2", MSPv1_4_3)
+	_, err = getLocalMSPWithVersionAndError(t, "testdata/nodeousbadconf2", factory.MSPv1_4_3)
 	assert.NoError(t, err)
 }

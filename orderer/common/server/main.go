@@ -10,6 +10,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	factory2 "github.com/hyperledger/fabric/msp/factory"
+	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -86,12 +88,21 @@ func Main() {
 
 	prettyPrintStruct(conf)
 
-	cryptoProvider := factory.GetDefault()
+	bccspConfig := factory.GetDefaultOpts()
+	if config := conf.General.BCCSP; config != nil {
+		err = mapstructure.WeakDecode(config, bccspConfig)
+		if err != nil {
+			logger.Panic(err, "could not decode peer BCCSP configuration")
+		}
+	}
+
 
 	signer, signErr := loadLocalMSP(conf).GetDefaultSigningIdentity()
 	if signErr != nil {
 		logger.Panicf("Failed to get local MSP identity: %s", signErr)
 	}
+	factory.InitFactories(bccspConfig)
+	cryptoProvider := factory.GetDefault()
 
 	opsSystem := newOperationsSystem(conf.Operations, conf.Metrics)
 	metricsProvider := opsSystem.Provider
@@ -681,13 +692,12 @@ func loadLocalMSP(conf *localconfig.TopLevel) msp.MSP {
 		logger.Panicf("Failed to get local msp config: %v", err)
 	}
 
-	typ := msp.ProviderTypeToString(msp.FABRIC)
-	opts, found := msp.Options[typ]
+	opts, found := msp.Options[conf.General.LocalMSPType]
 	if !found {
-		logger.Panicf("MSP option for type %s is not found", typ)
+		logger.Panicf("MSP option for type %s is not found", conf.General.BCCSP.ProviderName)
 	}
 
-	localmsp, err := msp.New(opts, factory.GetDefault())
+	localmsp, err := factory2.GetDefault(opts, factory.GetDefault())
 	if err != nil {
 		logger.Panicf("Failed to load local MSP: %v", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/hyperledger/fabric/msp"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"github.com/hyperledger/fabric/core/config"
 	"github.com/hyperledger/fabric/core/scc/cscc"
 	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/hyperledger/fabric/msp"
 	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
 	"github.com/hyperledger/fabric/protoutil"
 	"github.com/mitchellh/mapstructure"
@@ -135,6 +135,9 @@ func InitCrypto(mspMgrConfigDir, localMSPID, localMSPType string) error {
 	SetBCCSPKeystorePath()
 	bccspConfig := factory.GetDefaultOpts()
 	if config := viper.Get("peer.BCCSP"); config != nil {
+		if _,ok := config.(map[string]interface{}); ok && viper.GetString("peer.BCCSP.Default") != ""{
+			config.(map[string]interface{})["Default"] = viper.GetString("peer.BCCSP.Default")
+		}
 		err = mapstructure.WeakDecode(config, bccspConfig)
 		if err != nil {
 			return errors.WithMessage(err, "could not decode peer BCCSP configuration")

@@ -3,87 +3,105 @@
 [rocketchat-url]: https://chat.hyperledger.org/channel/fabric
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
-[![Build Status](https://dev.azure.com/Hyperledger/Fabric/_apis/build/status/Merge?branchName=master)](https://dev.azure.com/Hyperledger/Fabric/_build/latest?definitionId=51&branchName=master)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/955/badge)](https://bestpractices.coreinfrastructure.org/projects/955)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hyperledger/fabric)](https://goreportcard.com/report/github.com/hyperledger/fabric)
-[![GoDoc](https://godoc.org/github.com/hyperledger/fabric?status.svg)](https://godoc.org/github.com/hyperledger/fabric)
-[![Documentation Status](https://readthedocs.org/projects/hyperledger-fabric/badge/?version=master)](http://hyperledger-fabric.readthedocs.io/en/master/?badge=master)
+>> 这是基于fabric-v2.2.0修改的支持国密算法的fabric，已通过命令行完成网络部署以及链码操作测试。
 
-This project is an _Active_ Hyperledger project. For more information on the history of this project see the [Fabric wiki page](https://wiki.hyperledger.org/display/fabric). Information on what _Active_ entails can be found in
-the [Hyperledger Project Lifecycle document](https://wiki.hyperledger.org/display/HYP/Project+Lifecycle).
-Hyperledger Fabric is a platform for distributed ledger solutions, underpinned
-by a modular architecture delivering high degrees of confidentiality,
-resiliency, flexibility and scalability. It is designed to support pluggable
-implementations of different components, and accommodate the complexity and
-intricacies that exist across the economic ecosystem.
+#### 待办事项
 
-Hyperledger Fabric delivers a uniquely elastic and extensible architecture,
-distinguishing it from alternative blockchain solutions. Planning for the
-future of enterprise blockchain requires building on top of a fully-vetted,
-open source architecture; Hyperledger Fabric is your starting point.
+- [ ] 证书生成工具兼容ecdsa和gm
+- [ ] TLS修改 （暂不支持TLS模式）
+- [ ] fabric-chaincode-go 依赖库支持国密
 
-## Releases
+#### 已做修改
 
-Fabric provides a release approximately once every four months with new features
-and improvements. Additionally, certain releases are designated as long-term
-support (LTS) releases. Important fixes will be backported to the most recent
-LTS release, and to the prior LTS release during periods of LTS release overlap.
-For more details see the [LTS strategy](https://github.com/hyperledger/fabric-rfcs/blob/master/text/0005-lts-release-strategy.md).
+- [ ] 新增国密bccsp实现
+- [ ] 新增国密msp实现
+- [ ] peer/orderer 代码适配
 
-LTS releases:
-- [v2.2.x](https://hyperledger-fabric.readthedocs.io/en/release-2.2/whatsnew.html) (current LTS release)
-- [v1.4.x](https://hyperledger-fabric.readthedocs.io/en/release-1.4/whatsnew.html) (prior LTS release, maintained through April 2021)
+#### 疑问点
+- 国密支持需要修改mspType?是否能通过增加国密bccsp实现
+- bccsp实现之一的IDEMIX本质上是依赖于SW的,那么新增了GM，IDEMIX如何适配？
+#### 项目测试
 
-Unless specified otherwise, all releases will be upgradable from the prior minor release.
-Additionally, each LTS release is upgradable to the next LTS release.
+- 下载&编译项目
+```
+git clone https://github.com/ehousecy/fabric
+cd fabric
+make native
+make docker
+cp build/bin/* /usr/local/bin/
+# 如果是国密的话，目前还需要依赖其他cryptogen工具来替代
+```
+- 下载测试库
+```
+git clone https://github.com/hyperledger/fabric-samples
+cd fabric-samples
+git checkout release-2.2
+```
+- 修改配置
+```
+# 3.1 修改fabric-samples/config下的配置文件使其支持国密
+# 3.2 修改yaml文件
+修改如下
+orderer:  
+      - ORDERER_GENERAL_TLS_ENABLED=false //禁用tls
+      - ORDERER_GENERAL_LOCALMSPTYPE=GM //msp的类型,目前有bccsp、idemix和GM三种
+      - ORDERER_GENERAL_BCCSP_DEFAULT=GM //bccsp实例，目前有SW、PKCS11和GM
+peer:
+      - CORE_PEER_TLS_ENABLED=false //禁用tls
+      - CORE_PEER_LOCALMSPTYPE=GM
+      - CORE_PEER_BCCSP_DEFAULT=GM           
+# 3.3 修改脚本
+envVar.sh：
+    export CORE_PEER_LOCALMSPTYPE=GM
+    export CORE_PEER_BCCSP_DEFAULT=GM
+    export CORE_PEER_TLS_ENABLED=false
+createChannel.sh、deployCC.sh：
+    禁用tls  
+# 3.4 修改configtx.yaml
+将共识算法改为solo:
+     OrdererType: solo
+修改组织mspType:
+    MSPType: GM //msp类型 bccsp/idemix/GM, 默认是bccsp，如果想切换到国密需修改为GM            
+```
 
-Fabric releases and release notes can be found on the [GitHub releases page](https://github.com/hyperledger/fabric/releases).
+- 启动测试
+```
+cd test-network
+./network.sh up -i 2.2.0
+./network.sh createChannel
+./network.sh deployCC -ccn fabcar -ccp ../chaincode/fabcar/go -ccl go -ccep "OR('Org1MSP.member','Org2MSP.member')" -ccv v1.0 -ccs 1
+```
 
-Please visit the [Hyperledger Fabric Jira dashboard](https://jira.hyperledger.org/secure/Dashboard.jspa?selectPageId=10104) for our release roadmap.
+#### 常见问题
 
-Follow the release discussion on the [#fabric-release](https://chat.hyperledger.org/channel/fabric-release) channel in RocketChat.
-
-## Documentation, Getting Started and Developer Guides
-
-Please visit our
-online documentation for
-information on getting started using and developing with the fabric, SDK and chaincode:
-- [v2.2](http://hyperledger-fabric.readthedocs.io/en/release-2.2/)
-- [v2.1](http://hyperledger-fabric.readthedocs.io/en/release-2.1/)
-- [v2.0](http://hyperledger-fabric.readthedocs.io/en/release-2.0/)
-- [v1.4](http://hyperledger-fabric.readthedocs.io/en/release-1.4/)
-- [v1.3](http://hyperledger-fabric.readthedocs.io/en/release-1.3/)
-- [v1.2](http://hyperledger-fabric.readthedocs.io/en/release-1.2/)
-- [v1.1](http://hyperledger-fabric.readthedocs.io/en/release-1.1/)
-- [v1.0](http://hyperledger-fabric.readthedocs.io/en/release-1.0/)
-- [master branch (development)](http://hyperledger-fabric.readthedocs.io/en/master/)
-
-It's recommended for first-time users to begin by going through the Getting Started section of the documentation in order to gain familiarity with the Hyperledger Fabric components and the basic transaction flow.
-
-## Contributing
-
-We welcome contributions to the Hyperledger Fabric project in many forms.
-There’s always plenty to do! Check [the documentation on how to contribute to this project](http://hyperledger-fabric.readthedocs.io/en/latest/CONTRIBUTING.html)
-for the full details.
-
-## Community
-
-[Hyperledger Community](https://www.hyperledger.org/community)
-
-[Hyperledger mailing lists and archives](http://lists.hyperledger.org/)
-
-[Hyperledger Chat](http://chat.hyperledger.org/channel/fabric)
-
-[Hyperledger Fabric Issue Tracking (JIRA)](https://jira.hyperledger.org/secure/Dashboard.jspa?selectPageId=10104)
-
-[Hyperledger Fabric Wiki](https://wiki.hyperledger.org/display/Fabric)
-
-[Hyperledger Wiki](https://wiki.hyperledger.org/)
-
-[Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct)
-
-[Community Calendar](https://wiki.hyperledger.org/display/HYP/Calendar+of+Public+Meetings)
-
-## License <a name="license"></a>
-
-Hyperledger Project source code files are made available under the Apache License, Version 2.0 (Apache-2.0), located in the [LICENSE](LICENSE) file. Hyperledger Project documentation files are made available under the Creative Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/.
+```
+Error starting fabcar chaincode: failed to parse client key pair
+#解决方案：合约依赖改为国密支持的
+```
+```
+import cycle not allowed
+package github.com/hyperledger/fabric/cmd/peer
+imports github.com/hyperledger/fabric/internal/peer/chaincode
+imports github.com/hyperledger/fabric/core/common/ccprovider
+imports github.com/hyperledger/fabric/core/common/privdata
+imports github.com/hyperledger/fabric/common/cauthdsl
+imports github.com/hyperledger/fabric/common/policies
+imports github.com/hyperledger/fabric/msp
+imports github.com/hyperledger/fabric/msp/gm
+imports github.com/hyperledger/fabric/msp
+#解决方案：重新梳理代码层级结构
+```
+```
+2021-01-04 14:50:44.253 CST [nodeCmd] serve -> FATA 01e Failed to set TLS client certificate (error parsing client TLS key pair: x509: unsupported elliptic curve)
+##解决方案：暂且禁用TLS
+```
+```
+2021-01-08 10:20:52.197 CST [orderer.common.server] reuseListener -> PANI 015 TLS is required for running ordering nodes of cluster type.
+panic: TLS is required for running ordering nodes of cluster type.
+#解决方案：暂时用solo共识
+```
+```
+2021-01-11 18:18:38.572 CST [common.tools.configtxgen] main -> FATA 004 Error on inspectBlock: malformed block contents: *common.Block: error in PopulateTo for field data for message *common.Block: *commonext.BlockData: error in PopulateTo for slice field data at index 0 for message *commonext.BlockData: *commonext.Envelope: error in PopulateTo for field payload for message *commonext.Envelope: *commonext.Payload: error in PopulateTo for field data for message *commonext.Payload: *common.ConfigEnvelope: error in PopulateTo for field config for message *common.ConfigEnvelope: *commonext.Config: error in PopulateTo for field channel_group for message *commonext.Config: *commonext.DynamicChannelGroup: error in PopulateTo for map field groups and key Orderer for message *commonext.DynamicChannelGroup: *ordererext.DynamicOrdererGroup: error in PopulateTo for map field groups and key OrdererOrg for message *ordererext.DynamicOrdererGroup: *ordererext.DynamicOrdererOrgGroup: error in PopulateTo for map field values and key MSP for message *ordererext.DynamicOrdererOrgGroup: *ordererext.DynamicOrdererOrgConfigValue: error in PopulateTo for field value for message *ordererext.DynamicOrdererOrgConfigValue: *mspext.MSPConfig: error in PopulateTo for field config for message *mspext.MSPConfig: unable to decode MSP type: 3
+Exiting.
+#解决方案：修改mspext.MspConfig新增mspType GM
+```

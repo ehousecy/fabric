@@ -7,10 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package mocks
 
 import (
+	"github.com/hyperledger/fabric/msp"
+	"github.com/hyperledger/fabric/msp/factory"
 	"time"
 
 	pmsp "github.com/hyperledger/fabric-protos-go/msp"
-	"github.com/hyperledger/fabric/msp"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -32,9 +33,9 @@ func (m *MockMSP) Setup(config *pmsp.MSPConfig) error {
 	return args.Error(0)
 }
 
-func (m *MockMSP) GetVersion() msp.MSPVersion {
+func (m *MockMSP) GetVersion() factory.MSPVersion {
 	args := m.Called()
-	return args.Get(0).(msp.MSPVersion)
+	return args.Get(0).(factory.MSPVersion)
 }
 
 func (m *MockMSP) GetType() msp.ProviderType {
