@@ -13,9 +13,9 @@
 
 #### 已做修改
 
-- [ ] 新增国密bccsp实现
-- [ ] 新增国密msp实现
-- [ ] peer/orderer 代码适配
+- [x] 新增国密bccsp实现
+- [x] 新增国密msp实现
+- [x] peer/orderer 代码适配
 
 #### 疑问点
 - 国密支持需要修改mspType?是否能通过增加国密bccsp实现
@@ -25,7 +25,7 @@
 - 下载&编译项目
 ```
 git clone https://github.com/ehousecy/fabric
-cd fabric
+cd fabric && git checkout develop
 make native
 make docker
 cp build/bin/* /usr/local/bin/
@@ -34,8 +34,6 @@ cp build/bin/* /usr/local/bin/
 - 下载测试库
 ```
 git clone https://github.com/hyperledger/fabric-samples
-cd fabric-samples
-git checkout release-2.2
 ```
 - 修改配置
 ```
