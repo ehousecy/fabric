@@ -7,8 +7,8 @@
 
 #### 待办事项
 
-- [ ] 证书生成工具兼容ecdsa和gm
 - [ ] TLS修改 （暂不支持TLS模式）
+  - [ ] 先打算TLS部分使用ECDSA调试
 - [ ] fabric-chaincode-go 依赖库支持国密
 
 #### 已做修改
@@ -16,6 +16,8 @@
 - [x] 新增国密bccsp实现
 - [x] 新增国密msp实现
 - [x] peer/orderer 代码适配
+- [x] 证书生成工具兼容ecdsa和gm
+  - [x] cryptogen generate新增--useGM选项,需要生成国密证书时需加入这个参数(!注意这个参与不需要赋值--useGM 指定即可)
 
 #### 疑问点
 - 国密支持需要修改mspType?是否能通过增加国密bccsp实现

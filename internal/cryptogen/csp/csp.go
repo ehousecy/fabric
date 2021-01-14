@@ -13,6 +13,9 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
+	"github.com/hyperledger/fabric/bccsp/gm"
+	"github.com/tjfoc/gmsm/sm2"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -96,6 +99,72 @@ func GeneratePrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
 	}
 
 	return priv, err
+}
+
+func GenerateSM2PrivateKey(keystorePath string) (*sm2.PrivateKey, error) {
+
+	priv, err := sm2.GenerateKey()
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to generate private key")
+	}
+
+	pkcs8Encoded, err := sm2.MarshalSm2PrivateKey(priv,nil)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to marshal private key")
+	}
+
+	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Encoded})
+
+	keyFile := filepath.Join(keystorePath, "priv_sk")
+	err = ioutil.WriteFile(keyFile, pemEncoded, 0600)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to save private key to file %s", keyFile)
+	}
+
+	return priv, err
+}
+
+type SM2Signer struct {
+	PrivateKey *sm2.PrivateKey
+}
+
+func (e *SM2Signer) Public () crypto.PublicKey {
+	return &e.PrivateKey.PublicKey
+}
+
+func (e *SM2Signer) Sign (rand io.Reader, digest []byte, opts crypto.SignerOpts)([]byte,error) {
+	r, s, err := sm2.Sm2Sign(e.PrivateKey, digest, nil)
+	if err != nil {
+		return nil,err
+	}
+	// ensure Low S signatures
+
+	sig := gm.SM2Signature{
+		R:r,
+		S:s,
+	}
+	//key := e.PrivateKey
+	//// calculate half order of the curve
+	//halfOrder := new(big.Int).Div(key.Curve.Params().N, big.NewInt(2))
+	//// check if s is greater than half order of curve
+	//if sig.S.Cmp(halfOrder) == 1 {
+	//	// Set s to N - s so that s will be less than or equal to half order
+	//	sig.S.Sub(key.Params().N, sig.S)
+	//}
+	signature,err := asn1.Marshal(sig)
+	switch pub := e.Public().(type) {
+	case *ecdsa.PublicKey:
+		switch pub.Curve {
+		case sm2.P256Sm2():
+			sm2pub := &sm2.PublicKey{
+				Curve: pub.Curve,
+				X:     pub.X,
+				Y:     pub.Y,
+			}
+			fmt.Sprintf("verify : %v",sm2.Verify(sm2pub, signature, sig.R, sig.S))
+		}
+	}
+	return signature, nil
 }
 
 /**

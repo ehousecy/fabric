@@ -732,17 +732,6 @@ func (gmmsp *gmmsp) getUniqueValidationChain(cert *sm2.Certificate, opts sm2.Ver
 		return nil, errors.New("the supplied identity has no verify options")
 	}
 	//TODO
-	/*mspLogger.Infof("msp.opts111+++---+++%v", msp.opts)
-	mspLogger.Infof("cert111+++---+++%v", cert)
-	mspLogger.Infof("msp.opts+++---+++%v", msp.opts.Intermediates)
-	mspLogger.Infof("msp.opts+++---+++%v", msp.opts.DNSName)
-	mspLogger.Infof("msp.opts+++---+++%v", msp.opts.KeyUsages)
-	mspLogger.Infof("cert+++---+++%v", cert.DNSNames)
-	mspLogger.Infof("cert+++---+++%v", cert.Extensions)
-	mspLogger.Infof("cert+++---+++%v", cert.ExtKeyUsage)
-	mspLogger.Infof("cert+++---+++%v", cert.Subject)
-	mspLogger.Infof("cert+++---+++%v", string(cert.RawSubject))
-	mspLogger.Infof("cert+++---+++%v", cert.Signature)*/
 	validationChains, err := cert.Verify(opts)
 	if err != nil {
 		return nil, errors.WithMessage(err, "the supplied identity is not valid")
