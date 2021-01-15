@@ -8,7 +8,7 @@
 #### 待办事项
 
 - [ ] TLS修改 （暂不支持TLS模式）
-  - [ ] 先打算TLS部分使用ECDSA调试
+  - [x] 先打算TLS部分使用ECDSA调试(测试通过)
 - [ ] fabric-chaincode-go 依赖库支持国密
 
 #### 已做修改

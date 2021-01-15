@@ -83,7 +83,7 @@ func (id *signingidentity) Sign(msg []byte) ([]byte, error) {
 	mspLogger.Debugf("Sign: digest: %X \n", digest)
 
 	// Sign
-	return id.signer.Sign(rand.Reader, digest, nil)
+	return id.signer.Sign(rand.Reader, msg, nil)
 }
 
 // GetPublicVersion returns the public version of this identity,
@@ -148,9 +148,6 @@ func (id *identity) Validate() error {
 	return id.msp.Validate(id)
 }
 
-
-
-
 // GetOrganizationalUnits returns the OU for this instance
 func (id *identity) GetOrganizationalUnits() []*msp2.OUIdentifier {
 	if id.cert == nil {
@@ -159,8 +156,6 @@ func (id *identity) GetOrganizationalUnits() []*msp2.OUIdentifier {
 
 	cid, err := id.msp.getCertificationChainIdentifier(id)
 	if err != nil {
-		//msp2.mspIdentityLogger.Errorf("Failed getting certification chain identifier for [%v]: [%+v]", id, err)
-
 		return nil
 	}
 
@@ -199,7 +194,7 @@ func (id *identity) Verify(msg []byte, sig []byte) error {
 		mspLogger.Debugf("Verify: digest = %s", hex.Dump(digest))
 		mspLogger.Debugf("Verify: sig = %s", hex.Dump(sig))
 	}
-	valid, err := id.msp.bccsp.Verify(id.pk, sig, digest, nil)
+	valid, err := id.msp.bccsp.Verify(id.pk, sig, msg, nil)
 	if err != nil {
 		return errors.WithMessage(err, "could not determine the validity of the signature")
 	} else if !valid {

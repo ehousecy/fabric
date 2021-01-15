@@ -338,6 +338,9 @@ github.com/tedsuo/ifrit/grouper
 github.com/tjfoc/gmsm/sm2
 github.com/tjfoc/gmsm/sm3
 github.com/tjfoc/gmsm/sm4
+# github.com/tjfoc/gmtls v1.2.1
+## explicit
+github.com/tjfoc/gmtls
 # github.com/willf/bitset v1.1.10
 ## explicit
 github.com/willf/bitset
@@ -369,9 +372,14 @@ go.uber.org/zap/zapgrpc
 go.uber.org/zap/zaptest/observer
 # golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
 ## explicit
+golang.org/x/crypto/chacha20
+golang.org/x/crypto/chacha20poly1305
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/internal/subtle
+golang.org/x/crypto/poly1305
 golang.org/x/crypto/ripemd160
 golang.org/x/crypto/sha3
-# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset

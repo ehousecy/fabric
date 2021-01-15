@@ -19,7 +19,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
+	"github.com/tjfoc/gmtls"
 	"io"
 	"math/big"
 
@@ -195,6 +197,15 @@ func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
 	}
 
 	return sm2cert
+}
+
+func ParseGMTLSCertificate2TlsCertificate(certificate gmtls.Certificate) *tls.Certificate {
+	cert := &tls.Certificate{
+		Certificate:certificate.Certificate,
+		PrivateKey: certificate.PrivateKey,
+		Leaf: ParseSm2Certificate2X509(certificate.Leaf),
+	}
+	return cert
 }
 
 //sm2 证书转换 x509 证书
