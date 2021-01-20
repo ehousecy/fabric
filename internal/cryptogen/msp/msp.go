@@ -160,7 +160,7 @@ func GenerateLocalMSP(
 
 
 	// generate X509 certificate using TLS CA
-	if useGM && useGMTLS{
+	if useGM {
 		// generate private key
 		tlsPrivKey, err := csp.GenerateSM2PrivateKey(tlsDir)
 		if err != nil {
@@ -270,7 +270,7 @@ func GenerateVerifyingMSP(
 	if err != nil {
 		return errors.WithMessage(err, "failed to create keystore directory")
 	}
-	if useGM && useGMTLS{
+	if useGM {
 		priv, err := csp.GenerateSM2PrivateKey(ksDir)
 		if err != nil {
 			return err
