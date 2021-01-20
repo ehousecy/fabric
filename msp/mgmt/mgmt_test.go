@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package mgmt
 
 import (
-	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"testing"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -35,7 +34,7 @@ func TestGetManagerForChains(t *testing.T) {
 }
 
 func TestGetManagerForChains_usingMSPConfigHandlers(t *testing.T) {
-	XXXSetMSPManager("foo", sw2.NewMSPManager())
+	XXXSetMSPManager("foo", msp.NewMSPManager())
 	msp2 := GetManagerForChain("foo")
 	// return value should be set because the MSPManager was initialized
 	if msp2 == nil {
@@ -47,7 +46,7 @@ func TestGetIdentityDeserializer(t *testing.T) {
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
 
-	XXXSetMSPManager("baz", sw2.NewMSPManager())
+	XXXSetMSPManager("baz", msp.NewMSPManager())
 	ids := GetIdentityDeserializer("baz", cryptoProvider)
 	assert.NotNil(t, ids)
 	ids = GetIdentityDeserializer("", cryptoProvider)

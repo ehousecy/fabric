@@ -13,8 +13,6 @@ import (
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/msp"
 	"github.com/hyperledger/fabric/msp/cache"
-	"github.com/hyperledger/fabric/msp/factory"
-	"github.com/hyperledger/fabric/msp/sw"
 	"github.com/pkg/errors"
 )
 
@@ -46,10 +44,14 @@ func (bh *MSPConfigHandler) ProposeMSP(mspConfig *mspprotos.MSPConfig) (msp.MSP,
 	switch mspConfig.Type {
 	case int32(msp.FABRIC):
 		// create the bccsp msp instance
-		mspInst, err := factory.GetDefault(&msp.BCCSPNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: bh.version}},bh.bccsp)
+		mspInst, err := msp.New(
+			&msp.BCCSPNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: bh.version}},
+			bh.bccsp,
+		)
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating the MSP manager failed")
 		}
+
 		// add a cache layer on top
 		theMsp, err = cache.New(mspInst)
 		if err != nil {
@@ -57,20 +59,12 @@ func (bh *MSPConfigHandler) ProposeMSP(mspConfig *mspprotos.MSPConfig) (msp.MSP,
 		}
 	case int32(msp.IDEMIX):
 		// create the idemix msp instance
-		theMsp, err = factory.GetDefault(&msp.IdemixNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: bh.version}},bh.bccsp)
+		theMsp, err = msp.New(
+			&msp.IdemixNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: bh.version}},
+			bh.bccsp,
+		)
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating the MSP manager failed")
-		}
-	case int32(msp.GM):
-		// create the GM msp instance
-		mspInst, err := factory.GetDefault(&msp.GMNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: bh.version}},bh.bccsp)
-		if err != nil {
-			return nil, errors.WithMessage(err, "creating the MSP manager failed")
-		}
-		// add a cache layer on top
-		theMsp, err = cache.New(mspInst)
-		if err != nil {
-			return nil, errors.WithMessage(err, "creating the MSP cache failed")
 		}
 	default:
 		return nil, errors.New(fmt.Sprintf("Setup error: unsupported msp type %d", mspConfig.Type))
@@ -108,7 +102,7 @@ func (bh *MSPConfigHandler) CreateMSPManager() (msp.MSPManager, error) {
 		i++
 	}
 
-	manager := sw.NewMSPManager()
+	manager := msp.NewMSPManager()
 	err := manager.Setup(mspList)
 	return manager, err
 }

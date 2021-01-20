@@ -11,6 +11,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	sm2X509 "github.com/tjfoc/gmsm/sm2"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
@@ -170,6 +171,10 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 	}
 
 	if key, err = x509.ParseECPrivateKey(der); err == nil {
+		return
+	}
+
+	if key, err = sm2X509.ParsePKCS8UnecryptedPrivateKey(der); err == nil {
 		return
 	}
 

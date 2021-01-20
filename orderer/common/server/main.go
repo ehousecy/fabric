@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	factory2 "github.com/hyperledger/fabric/msp/factory"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net"
@@ -692,12 +691,14 @@ func loadLocalMSP(conf *localconfig.TopLevel) msp.MSP {
 		logger.Panicf("Failed to get local msp config: %v", err)
 	}
 
-	opts, found := msp.Options[conf.General.LocalMSPType]
+	typ := msp.ProviderTypeToString(msp.FABRIC)
+
+	opts, found := msp.Options[typ]
 	if !found {
 		logger.Panicf("MSP option for type %s is not found", conf.General.BCCSP.ProviderName)
 	}
 
-	localmsp, err := factory2.GetDefault(opts, factory.GetDefault())
+	localmsp, err := msp.New(opts, factory.GetDefault())
 	if err != nil {
 		logger.Panicf("Failed to load local MSP: %v", err)
 	}

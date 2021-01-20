@@ -14,7 +14,7 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
-	"github.com/hyperledger/fabric/bccsp/gm"
+	"github.com/hyperledger/fabric/bccsp/sw"
 	"github.com/tjfoc/gmsm/sm2"
 	"io"
 	"io/ioutil"
@@ -139,7 +139,7 @@ func (e *SM2Signer) Sign (rand io.Reader, digest []byte, opts crypto.SignerOpts)
 	}
 	// ensure Low S signatures
 
-	sig := gm.SM2Signature{
+	sig := sw.SM2Signature{
 		R:r,
 		S:s,
 	}

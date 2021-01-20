@@ -8,10 +8,8 @@ package signer
 
 import (
 	"crypto"
-	"crypto/x509"
-	"github.com/hyperledger/fabric/bccsp/gm"
+	x509 "github.com/tjfoc/gmsm/sm2"
 	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/tjfoc/gmsm/sm2"
 	"io"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -57,13 +55,6 @@ func New(csp bccsp.BCCSP, key bccsp.Key) (crypto.Signer, error) {
 		}
 
 		return &bccspCryptoSigner{csp, key, pk}, nil
-	case *gm.Impl:
-		pk, err := sm2.ParsePKIXPublicKey(raw)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed marshalling der to public key")
-		}
-
-		return &gmCryptoSigner{csp, key, pk}, nil
 	default:
 		return nil, errors.New("unsupport bccsp type")
 	}

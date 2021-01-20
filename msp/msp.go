@@ -12,15 +12,6 @@ import (
 	"github.com/hyperledger/fabric-protos-go/msp"
 )
 
-type MSPVersion int
-
-const (
-	MSPv1_0 = iota
-	MSPv1_1
-	MSPv1_3
-	MSPv1_4_3
-)
-
 // IdentityDeserializer is implemented by both MSPManger and MSP
 type IdentityDeserializer interface {
 	// DeserializeIdentity deserializes an identity.
@@ -210,52 +201,19 @@ const (
 	FABRIC ProviderType = iota // MSP is of FABRIC type
 	IDEMIX                     // MSP is of IDEMIX type
 	OTHER                      // MSP is of OTHER TYPE
-	GM                         // MSP is of GM TYPE
 
 	// NOTE: as new types are added to this set,
 	// the mspTypes map below must be extended
 )
 
-// NewOpts represent
-type NewOpts interface {
-	// GetVersion returns the MSP's version to be instantiated
-	GetVersion() MSPVersion
-}
-
-// NewBaseOpts is the default base type for all MSP instantiation Opts
-type NewBaseOpts struct {
-	Version MSPVersion
-}
-
-func (o *NewBaseOpts) GetVersion() MSPVersion {
-	return o.Version
-}
-
-// BCCSPNewOpts contains the options to instantiate a new BCCSP-based (X509) MSP
-type BCCSPNewOpts struct {
-	NewBaseOpts
-}
-
-// IdemixNewOpts contains the options to instantiate a new Idemix-based MSP
-type IdemixNewOpts struct {
-	NewBaseOpts
-}
-
-// IdemixNewOpts contains the options to instantiate a new Idemix-based MSP
-type GMNewOpts struct {
-	NewBaseOpts
-}
-
 var mspTypeStrings = map[ProviderType]string{
 	FABRIC: "bccsp",
 	IDEMIX: "idemix",
-	GM:     "GM",
 }
 
 var Options = map[string]NewOpts{
 	ProviderTypeToString(FABRIC): &BCCSPNewOpts{NewBaseOpts: NewBaseOpts{Version: MSPv1_4_3}},
 	ProviderTypeToString(IDEMIX): &IdemixNewOpts{NewBaseOpts: NewBaseOpts{Version: MSPv1_1}},
-	ProviderTypeToString(GM):     &GMNewOpts{NewBaseOpts: NewBaseOpts{Version: MSPv1_4_3}},
 }
 
 // ProviderTypeToString returns a string that represents the ProviderType integer

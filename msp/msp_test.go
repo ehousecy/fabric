@@ -9,14 +9,12 @@ package msp
 
 import (
 	"crypto/ecdsa"
-	"crypto/x509"
+	x509 "github.com/tjfoc/gmsm/sm2"
 	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/hyperledger/fabric/msp/gm"
-	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -46,36 +44,36 @@ FRBbKkDnSpaVcZgjns+mLdHV2JkF0gk=
 -----END X509 CRL-----`
 
 func TestMSPParsers(t *testing.T) {
-	_, _, err := localMsp.(*sw2.bccspmsp).getIdentityFromConf(nil)
+	_, _, err := localMsp.(*bccspmsp).getIdentityFromConf(nil)
 	assert.Error(t, err)
-	_, _, err = localMsp.(*sw2.bccspmsp).getIdentityFromConf([]byte("barf"))
+	_, _, err = localMsp.(*bccspmsp).getIdentityFromConf([]byte("barf"))
 	assert.Error(t, err)
-	_, _, err = localMsp.(*sw2.bccspmsp).getIdentityFromConf([]byte(notACert))
+	_, _, err = localMsp.(*bccspmsp).getIdentityFromConf([]byte(notACert))
 	assert.Error(t, err)
 
-	_, err = localMsp.(*sw2.bccspmsp).getSigningIdentityFromConf(nil)
+	_, err = localMsp.(*bccspmsp).getSigningIdentityFromConf(nil)
 	assert.Error(t, err)
 
 	sigid := &msp.SigningIdentityInfo{PublicSigner: []byte("barf"), PrivateSigner: nil}
-	_, err = localMsp.(*sw2.bccspmsp).getSigningIdentityFromConf(sigid)
+	_, err = localMsp.(*bccspmsp).getSigningIdentityFromConf(sigid)
 	assert.Error(t, err)
 
 	keyinfo := &msp.KeyInfo{KeyIdentifier: "PEER", KeyMaterial: nil}
 	sigid = &msp.SigningIdentityInfo{PublicSigner: []byte("barf"), PrivateSigner: keyinfo}
-	_, err = localMsp.(*sw2.bccspmsp).getSigningIdentityFromConf(sigid)
+	_, err = localMsp.(*bccspmsp).getSigningIdentityFromConf(sigid)
 	assert.Error(t, err)
 }
 
 func TestGetSigningIdentityFromConfWithWrongPrivateCert(t *testing.T) {
 	// Temporary Replace root certs
-	oldRoots := localMsp.(*sw2.bccspmsp).opts.Roots
+	oldRoots := localMsp.(*bccspmsp).opts.Roots
 	defer func() {
 		// Restore original root certs
-		localMsp.(*sw2.bccspmsp).opts.Roots = oldRoots
+		localMsp.(*bccspmsp).opts.Roots = oldRoots
 	}()
-	_, cert := sw2.generateSelfSignedCert(t, time.Now())
-	localMsp.(*sw2.bccspmsp).opts.Roots = x509.NewCertPool()
-	localMsp.(*sw2.bccspmsp).opts.Roots.AddCert(cert)
+	_, cert := generateSelfSignedCert(t, time.Now())
+	localMsp.(*bccspmsp).opts.Roots = x509.NewCertPool()
+	localMsp.(*bccspmsp).opts.Roots.AddCert(cert)
 
 	// Use self signed cert as public key. Convert DER to PEM format
 	pem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
@@ -86,7 +84,7 @@ func TestGetSigningIdentityFromConfWithWrongPrivateCert(t *testing.T) {
 		KeyIdentifier: "MyPrivateKey",
 	}
 	sigid := &msp.SigningIdentityInfo{PublicSigner: pem, PrivateSigner: keyinfo}
-	_, err := localMsp.(*sw2.bccspmsp).getSigningIdentityFromConf(sigid)
+	_, err := localMsp.(*bccspmsp).getSigningIdentityFromConf(sigid)
 	assert.EqualError(t, err, "MyPrivateKey: wrong PEM encoding")
 }
 
@@ -110,7 +108,7 @@ func TestMSPSetupNoCryptoConf(t *testing.T) {
 	b, err := proto.Marshal(mspconf)
 	assert.NoError(t, err)
 	conf.Config = b
-	newmsp, err := sw2.newBccspMsp(factory2.MSPv1_0, factory.GetDefault())
+	newmsp, err := NewBccspMsp(MSPv1_0, factory.GetDefault())
 	assert.NoError(t, err)
 	err = newmsp.Setup(conf)
 	assert.NoError(t, err)
@@ -123,7 +121,7 @@ func TestMSPSetupNoCryptoConf(t *testing.T) {
 	b, err = proto.Marshal(mspconf)
 	assert.NoError(t, err)
 	conf.Config = b
-	newmsp, err = sw2.newBccspMsp(factory2.MSPv1_0, factory.GetDefault())
+	newmsp, err = NewBccspMsp(MSPv1_0, factory.GetDefault())
 	assert.NoError(t, err)
 	err = newmsp.Setup(conf)
 	assert.NoError(t, err)
@@ -135,7 +133,7 @@ func TestMSPSetupNoCryptoConf(t *testing.T) {
 	b, err = proto.Marshal(mspconf)
 	assert.NoError(t, err)
 	conf.Config = b
-	newmsp, err = sw2.newBccspMsp(factory2.MSPv1_0, factory.GetDefault())
+	newmsp, err = NewBccspMsp(MSPv1_0, factory.GetDefault())
 	assert.NoError(t, err)
 	err = newmsp.Setup(conf)
 	assert.NoError(t, err)
@@ -155,7 +153,7 @@ func TestMSPSetupBad(t *testing.T) {
 		return
 	}
 
-	mgr := sw2.NewMSPManager()
+	mgr := NewMSPManager()
 	err = mgr.Setup(nil)
 	assert.NoError(t, err)
 	err = mgr.Setup([]MSP{})
@@ -185,13 +183,13 @@ func TestNotFoundInBCCSP(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	thisMSP, err := sw2.newBccspMsp(factory2.MSPv1_0, cryptoProvider)
+	thisMSP, err := NewBccspMsp(MSPv1_0, cryptoProvider)
 	assert.NoError(t, err)
 	ks, err := sw.NewFileBasedKeyStore(nil, filepath.Join(dir, "keystore"), true)
 	assert.NoError(t, err)
 	csp, err := sw.NewWithParams(256, "SHA2", ks)
 	assert.NoError(t, err)
-	thisMSP.(*sw2.bccspmsp).bccsp = &bccspNoKeyLookupKS{csp}
+	thisMSP.(*bccspmsp).bccsp = &bccspNoKeyLookupKS{csp}
 
 	err = thisMSP.Setup(conf)
 	assert.Error(t, err)
@@ -234,7 +232,7 @@ func TestGetSigningIdentityFromVerifyingMSP(t *testing.T) {
 		os.Exit(-1)
 	}
 
-	newmsp, err := sw2.newBccspMsp(factory2.MSPv1_0, cryptoProvider)
+	newmsp, err := NewBccspMsp(MSPv1_0, cryptoProvider)
 	assert.NoError(t, err)
 	err = newmsp.Setup(conf)
 	assert.NoError(t, err)
@@ -285,7 +283,7 @@ func TestSerializeIdentities(t *testing.T) {
 }
 
 func TestIsWellFormed(t *testing.T) {
-	mspMgr := sw2.NewMSPManager()
+	mspMgr := NewMSPManager()
 
 	id, err := localMsp.GetDefaultSigningIdentity()
 	if err != nil {
@@ -367,7 +365,7 @@ func TestIsWellFormed(t *testing.T) {
 		T: big.NewInt(100),
 	})
 	assert.NoError(t, err)
-	newCert, err := sw2.certFromX509Cert(cert)
+	newCert, err := certFromX509Cert(cert)
 	assert.NoError(t, err)
 	newCert.SignatureValue.Bytes = modifiedSig
 	newCert.SignatureValue.BitLength = len(newCert.SignatureValue.Bytes) * 8
@@ -400,13 +398,13 @@ func TestBadAdminIdentity(t *testing.T) {
 	conf, err := GetLocalMspConfig("testdata/badadmin", nil, "SampleOrg")
 	assert.NoError(t, err)
 
-	thisMSP, err := sw2.newBccspMsp(factory2.MSPv1_0, cryptoProvider)
+	thisMSP, err := NewBccspMsp(MSPv1_0, cryptoProvider)
 	assert.NoError(t, err)
 	ks, err := sw.NewFileBasedKeyStore(nil, filepath.Join("testdata/badadmin", "keystore"), true)
 	assert.NoError(t, err)
 	csp, err := sw.NewWithParams(256, "SHA2", ks)
 	assert.NoError(t, err)
-	thisMSP.(*sw2.bccspmsp).bccsp = csp
+	thisMSP.(*bccspmsp).bccsp = csp
 
 	err = thisMSP.Setup(conf)
 	assert.Error(t, err)
@@ -546,13 +544,13 @@ func TestSignAndVerifyFailures(t *testing.T) {
 		return
 	}
 
-	hash := id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily
-	id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily = "barf"
+	hash := id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily
+	id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily = "barf"
 
 	_, err = id.Sign(msg)
 	assert.Error(t, err)
 
-	id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily = hash
+	id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily = hash
 
 	sig, err := id.Sign(msg)
 	if err != nil {
@@ -560,12 +558,12 @@ func TestSignAndVerifyFailures(t *testing.T) {
 		return
 	}
 
-	id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily = "barf"
+	id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily = "barf"
 
 	err = id.Verify(msg, sig)
 	assert.Error(t, err)
 
-	id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily = hash
+	id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily = hash
 }
 
 func TestSignAndVerifyOtherHash(t *testing.T) {
@@ -575,8 +573,8 @@ func TestSignAndVerifyOtherHash(t *testing.T) {
 		return
 	}
 
-	hash := id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily
-	id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily = bccsp.SHA3
+	hash := id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily
+	id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily = bccsp.SHA3
 
 	msg := []byte("foo")
 	sig, err := id.Sign(msg)
@@ -588,7 +586,7 @@ func TestSignAndVerifyOtherHash(t *testing.T) {
 	err = id.Verify(msg, sig)
 	assert.NoError(t, err)
 
-	id.(*sw2.signingidentity).msp.cryptoConfig.SignatureHashFamily = hash
+	id.(*signingidentity).msp.cryptoConfig.SignatureHashFamily = hash
 }
 
 func TestSignAndVerify_longMessage(t *testing.T) {
@@ -647,34 +645,34 @@ func TestGetOUFail(t *testing.T) {
 		return
 	}
 
-	certTmp := id.(*sw2.signingidentity).cert
-	id.(*sw2.signingidentity).cert = nil
+	certTmp := id.(*signingidentity).cert
+	id.(*signingidentity).cert = nil
 	ou := id.GetOrganizationalUnits()
 	assert.Nil(t, ou)
 
-	id.(*sw2.signingidentity).cert = certTmp
+	id.(*signingidentity).cert = certTmp
 
-	opts := id.(*sw2.signingidentity).msp.opts
-	id.(*sw2.signingidentity).msp.opts = nil
+	opts := id.(*signingidentity).msp.opts
+	id.(*signingidentity).msp.opts = nil
 	ou = id.GetOrganizationalUnits()
 	assert.Nil(t, ou)
 
-	id.(*sw2.signingidentity).msp.opts = opts
+	id.(*signingidentity).msp.opts = opts
 }
 
 func TestCertificationIdentifierComputation(t *testing.T) {
 	id, err := localMsp.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
-	chain, err := localMsp.(*sw2.bccspmsp).getCertificationChain(id.GetPublicVersion())
+	chain, err := localMsp.(*bccspmsp).getCertificationChain(id.GetPublicVersion())
 	assert.NoError(t, err)
 
 	// Hash the chain
 	// Use the hash of the identity's certificate as id in the IdentityIdentifier
-	hashOpt, err := bccsp.GetHashOpt(localMsp.(*sw2.bccspmsp).cryptoConfig.IdentityIdentifierHashFunction)
+	hashOpt, err := bccsp.GetHashOpt(localMsp.(*bccspmsp).cryptoConfig.IdentityIdentifierHashFunction)
 	assert.NoError(t, err)
 
-	hf, err := localMsp.(*sw2.bccspmsp).bccsp.GetHash(hashOpt)
+	hf, err := localMsp.(*bccspmsp).bccsp.GetHash(hashOpt)
 	assert.NoError(t, err)
 	// Skipping first cert because it belongs to the identity
 	for i := 1; i < len(chain); i++ {
@@ -689,7 +687,7 @@ func TestOUPolicyPrincipal(t *testing.T) {
 	id, err := localMsp.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
-	cid, err := localMsp.(*sw2.bccspmsp).getCertificationChainIdentifier(id.GetPublicVersion())
+	cid, err := localMsp.(*bccspmsp).getCertificationChainIdentifier(id.GetPublicVersion())
 	assert.NoError(t, err)
 
 	ou := &msp.OrganizationUnit{
@@ -726,7 +724,7 @@ func TestOUPolicyPrincipalBadMSPID(t *testing.T) {
 	id, err := localMsp.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
-	cid, err := localMsp.(*sw2.bccspmsp).getCertificationChainIdentifier(id.GetPublicVersion())
+	cid, err := localMsp.(*bccspmsp).getCertificationChainIdentifier(id.GetPublicVersion())
 	assert.NoError(t, err)
 
 	ou := &msp.OrganizationUnit{
@@ -960,7 +958,7 @@ func TestAdminPolicyPrincipalFails(t *testing.T) {
 		Principal:               principalBytes}
 
 	// remove the admin so validation will fail
-	localMspV13.(*sw2.bccspmsp).admins = make([]Identity, 0)
+	localMspV13.(*bccspmsp).admins = make([]Identity, 0)
 
 	err = id.SatisfiesPrincipal(principal)
 	assert.Error(t, err)
@@ -985,7 +983,7 @@ func TestMultilevelAdminAndMemberPolicyPrincipalFails(t *testing.T) {
 		Principal:               memberPrincipalBytes}
 
 	// remove the admin so validation will fail
-	localMspV13.(*sw2.bccspmsp).admins = make([]Identity, 0)
+	localMspV13.(*bccspmsp).admins = make([]Identity, 0)
 
 	// CombinedPrincipal with Admin and Member principals
 	levelOneCombinedPrincipal, err := createCombinedPrincipal(adminPrincipal, memberPrincipal)
@@ -1023,7 +1021,7 @@ func TestIdentityExpired(t *testing.T) {
 	conf, err := GetLocalMspConfig(expiredCertsDir, nil, "SampleOrg")
 	assert.NoError(t, err)
 
-	thisMSP, err := sw2.newBccspMsp(factory2.MSPv1_0, cryptoProvider)
+	thisMSP, err := NewBccspMsp(MSPv1_0, cryptoProvider)
 	assert.NoError(t, err)
 
 	ks, err := sw.NewFileBasedKeyStore(nil, filepath.Join(expiredCertsDir, "keystore"), true)
@@ -1031,7 +1029,7 @@ func TestIdentityExpired(t *testing.T) {
 
 	csp, err := sw.NewWithParams(256, "SHA2", ks)
 	assert.NoError(t, err)
-	thisMSP.(*sw2.bccspmsp).bccsp = csp
+	thisMSP.(*bccspmsp).bccsp = csp
 
 	err = thisMSP.Setup(conf)
 	if err != nil {
@@ -1070,8 +1068,8 @@ func TestIdentityPolicyPrincipalBadBytes(t *testing.T) {
 
 func TestMSPOus(t *testing.T) {
 	// Set the OUIdentifiers
-	backup := localMsp.(*sw2.bccspmsp).ouIdentifiers
-	defer func() { localMsp.(*sw2.bccspmsp).ouIdentifiers = backup }()
+	backup := localMsp.(*bccspmsp).ouIdentifiers
+	defer func() { localMsp.(*bccspmsp).ouIdentifiers = backup }()
 	sid, err := localMsp.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 	sidBytes, err := sid.Serialize()
@@ -1079,7 +1077,7 @@ func TestMSPOus(t *testing.T) {
 	id, err := localMsp.DeserializeIdentity(sidBytes)
 	assert.NoError(t, err)
 
-	localMsp.(*sw2.bccspmsp).ouIdentifiers = map[string][][]byte{
+	localMsp.(*bccspmsp).ouIdentifiers = map[string][][]byte{
 		"COP": {id.GetOrganizationalUnits()[0].CertifiersIdentifier},
 	}
 	assert.NoError(t, localMsp.Validate(id))
@@ -1087,7 +1085,7 @@ func TestMSPOus(t *testing.T) {
 	id, err = localMsp.DeserializeIdentity(sidBytes)
 	assert.NoError(t, err)
 
-	localMsp.(*sw2.bccspmsp).ouIdentifiers = map[string][][]byte{
+	localMsp.(*bccspmsp).ouIdentifiers = map[string][][]byte{
 		"COP2": {id.GetOrganizationalUnits()[0].CertifiersIdentifier},
 	}
 	assert.Error(t, localMsp.Validate(id))
@@ -1095,7 +1093,7 @@ func TestMSPOus(t *testing.T) {
 	id, err = localMsp.DeserializeIdentity(sidBytes)
 	assert.NoError(t, err)
 
-	localMsp.(*sw2.bccspmsp).ouIdentifiers = map[string][][]byte{
+	localMsp.(*bccspmsp).ouIdentifiers = map[string][][]byte{
 		"COP": {{0, 1, 2, 3, 4}},
 	}
 	assert.Error(t, localMsp.Validate(id))
@@ -1126,7 +1124,7 @@ func TestIdentityPolicyPrincipalFails(t *testing.T) {
 	id, err := localMsp.GetDefaultSigningIdentity()
 	assert.NoError(t, err)
 
-	sid, err := sw2.NewSerializedIdentity("SampleOrg", []byte(othercert))
+	sid, err := NewSerializedIdentity("SampleOrg", []byte(othercert))
 	assert.NoError(t, err)
 
 	principal := &msp.MSPPrincipal{
@@ -1156,25 +1154,25 @@ func TestMain(m *testing.M) {
 		os.Exit(-1)
 	}
 
-	localMsp, err = sw2.newBccspMsp(factory2.MSPv1_0, factory.GetDefault())
+	localMsp, err = NewBccspMsp(MSPv1_0, factory.GetDefault())
 	if err != nil {
 		fmt.Printf("Constructor for msp should have succeeded, got err %s instead", err)
 		os.Exit(-1)
 	}
 
-	localMspBad, err = sw2.newBccspMsp(factory2.MSPv1_0, factory.GetDefault())
+	localMspBad, err = NewBccspMsp(MSPv1_0, factory.GetDefault())
 	if err != nil {
 		fmt.Printf("Constructor for msp should have succeeded, got err %s instead", err)
 		os.Exit(-1)
 	}
 
-	localMspV13, err = sw2.newBccspMsp(factory2.MSPv1_3, factory.GetDefault())
+	localMspV13, err = NewBccspMsp(MSPv1_3, factory.GetDefault())
 	if err != nil {
 		fmt.Printf("Constructor for V1.3 msp should have succeeded, got err %s instead", err)
 		os.Exit(-1)
 	}
 
-	localMspV11, err = sw2.newBccspMsp(factory2.MSPv1_1, factory.GetDefault())
+	localMspV11, err = NewBccspMsp(MSPv1_1, factory.GetDefault())
 	if err != nil {
 		fmt.Printf("Constructor for V1.1 msp should have succeeded, got err %s instead", err)
 		os.Exit(-1)
@@ -1204,7 +1202,7 @@ func TestMain(m *testing.M) {
 		os.Exit(-1)
 	}
 
-	mspMgr = sw2.NewMSPManager()
+	mspMgr = NewMSPManager()
 	err = mspMgr.Setup([]MSP{localMsp})
 	if err != nil {
 		fmt.Printf("Setup for msp manager should have succeeded, got err %s instead", err)
@@ -1237,13 +1235,13 @@ func getIdentity(t *testing.T, path string) Identity {
 	pems, err := getPemMaterialFromDir(filepath.Join(mspDir, path))
 	assert.NoError(t, err)
 
-	id, _, err := localMsp.(*sw2.bccspmsp).getIdentityFromConf(pems[0])
+	id, _, err := localMsp.(*bccspmsp).getIdentityFromConf(pems[0])
 	assert.NoError(t, err)
 
 	return id
 }
 
-func getLocalMSPWithVersionAndError(t *testing.T, dir string, version factory2.MSPVersion) (MSP, error) {
+func getLocalMSPWithVersionAndError(t *testing.T, dir string, version MSPVersion) (MSP, error) {
 	conf, err := GetLocalMspConfig(dir, nil, "SampleOrg")
 	assert.NoError(t, err)
 
@@ -1251,7 +1249,7 @@ func getLocalMSPWithVersionAndError(t *testing.T, dir string, version factory2.M
 	assert.NoError(t, err)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err := gm.NewBccspMspWithKeyStore(version, ks, cryptoProvider)
+	thisMSP, err := NewBccspMspWithKeyStore(version, ks, cryptoProvider)
 	assert.NoError(t, err)
 
 	return thisMSP, thisMSP.Setup(conf)
@@ -1266,7 +1264,7 @@ func getLocalMSP(t *testing.T, dir string) MSP {
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err := gm.NewBccspMspWithKeyStore(factory2.MSPv1_0, ks, cryptoProvider)
+	thisMSP, err := NewBccspMspWithKeyStore(MSPv1_0, ks, cryptoProvider)
 	assert.NoError(t, err)
 	err = thisMSP.Setup(conf)
 	assert.NoError(t, err)
@@ -1274,7 +1272,7 @@ func getLocalMSP(t *testing.T, dir string) MSP {
 	return thisMSP
 }
 
-func getLocalMSPWithVersion(t *testing.T, dir string, version factory2.MSPVersion) MSP {
+func getLocalMSPWithVersion(t *testing.T, dir string, version MSPVersion) MSP {
 	conf, err := GetLocalMspConfig(dir, nil, "SampleOrg")
 	assert.NoError(t, err)
 
@@ -1282,7 +1280,7 @@ func getLocalMSPWithVersion(t *testing.T, dir string, version factory2.MSPVersio
 	assert.NoError(t, err)
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err := gm.NewBccspMspWithKeyStore(version, ks, cryptoProvider)
+	thisMSP, err := NewBccspMspWithKeyStore(version, ks, cryptoProvider)
 	assert.NoError(t, err)
 
 	err = thisMSP.Setup(conf)
@@ -1297,7 +1295,7 @@ func TestCollectEmptyCombinedPrincipal(t *testing.T) {
 	combinedPrincipalBytes, err := proto.Marshal(combinedPrincipal)
 	assert.NoError(t, err, "Error marshalling empty combined principal")
 	principalsCombined := &msp.MSPPrincipal{PrincipalClassification: msp.MSPPrincipal_COMBINED, Principal: combinedPrincipalBytes}
-	_, err = sw2.collectPrincipals(principalsCombined, factory2.MSPv1_3)
+	_, err = collectPrincipals(principalsCombined, MSPv1_3)
 	assert.Error(t, err)
 }
 
@@ -1309,7 +1307,7 @@ func TestCollectPrincipalContainingEmptyCombinedPrincipal(t *testing.T) {
 	emptyPrincipal := &msp.MSPPrincipal{PrincipalClassification: msp.MSPPrincipal_COMBINED, Principal: combinedPrincipalBytes}
 	levelOneCombinedPrincipal, err := createCombinedPrincipal(emptyPrincipal)
 	assert.NoError(t, err)
-	_, err = sw2.collectPrincipals(levelOneCombinedPrincipal, factory2.MSPv1_3)
+	_, err = collectPrincipals(levelOneCombinedPrincipal, MSPv1_3)
 	assert.Error(t, err)
 }
 
@@ -1343,7 +1341,7 @@ func TestMSPIdentityIdentifier(t *testing.T) {
 	certFromFile, err := x509.ParseCertificate(bl.Bytes)
 	assert.NoError(t, err)
 	// Check that the certificates' raws are different, meaning that the identity has been sanitised
-	assert.NotEqual(t, certFromFile.Raw, id.(*sw2.signingidentity).cert)
+	assert.NotEqual(t, certFromFile.Raw, id.(*signingidentity).cert)
 
 	// Check that certFromFile is in HighS
 	_, S, err := utils.UnmarshalECDSASignature(certFromFile.Signature)
@@ -1353,14 +1351,14 @@ func TestMSPIdentityIdentifier(t *testing.T) {
 	assert.False(t, lowS)
 
 	// Check that id.(*signingidentity).cert is in LoswS
-	_, S, err = utils.UnmarshalECDSASignature(id.(*sw2.signingidentity).cert.Signature)
+	_, S, err = utils.UnmarshalECDSASignature(id.(*signingidentity).cert.Signature)
 	assert.NoError(t, err)
 	lowS, err = utils.IsLowS(caCertFromFile.PublicKey.(*ecdsa.PublicKey), S)
 	assert.NoError(t, err)
 	assert.True(t, lowS)
 
 	// Compute the digest for certFromFile
-	thisBCCSPMsp := thisMSP.(*sw2.bccspmsp)
+	thisBCCSPMsp := thisMSP.(*bccspmsp)
 	hashOpt, err := bccsp.GetHashOpt(thisBCCSPMsp.cryptoConfig.IdentityIdentifierHashFunction)
 	assert.NoError(t, err)
 	digest, err := thisBCCSPMsp.bccsp.Hash(certFromFile.Raw, hashOpt)
