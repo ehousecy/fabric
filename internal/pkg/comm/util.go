@@ -12,6 +12,10 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/hyperledger/fabric/orderer/common/localconfig"
+	"github.com/spf13/viper"
+	"github.com/tjfoc/gmsm/sm2"
+	"io/ioutil"
 	"net"
 
 	"github.com/golang/protobuf/proto"
@@ -30,6 +34,53 @@ func AddPemToCertPool(pemCerts []byte, pool *x509.CertPool) error {
 		pool.AddCert(cert)
 	}
 	return nil
+}
+
+// AddPemToCertPool adds PEM-encoded certs to a cert pool
+func AddGMPemToCertPool(pemCerts []byte, pool *sm2.CertPool) error {
+	certs, err := pemToSM2Certs(pemCerts)
+	if err != nil {
+		return err
+	}
+	for _, cert := range certs {
+		pool.AddCert(cert)
+	}
+	return nil
+}
+
+func IsSM2Certificate (pemCert []byte) bool {
+	var block *pem.Block
+	block,_ = pem.Decode(pemCert)
+	cert, err := sm2.ParseCertificate(block.Bytes)
+	if err == nil {
+		return cert.SignatureAlgorithm == sm2.SM2WithSM3
+	}
+	return false
+}
+
+func IsGM() bool {
+	peerTlsCertPath := viper.GetString("peer.tls.rootcert.file")
+	if peerTlsCertPath != "" {
+		clientCert, err := ioutil.ReadFile(peerTlsCertPath)
+		if err != nil {
+			panic(errors.WithMessage(err, "error read peer TLS certificate"))
+		}
+		isGM := IsSM2Certificate(clientCert)
+		commLogger.Debugf("peerTlsCert is gm cert : %v", isGM)
+		return isGM
+	}else if conf, err := localconfig.Load(); err == nil {
+		ordererTlsCert, err := ioutil.ReadFile(conf.General.TLS.RootCAs[0])
+		if err != nil {
+			panic( errors.WithMessage(err, "error read orderer TLS certificate"))
+		}
+		isGM := IsSM2Certificate(ordererTlsCert)
+		commLogger.Debugf("ordererTlsCert is gm cert : %v", isGM)
+		return isGM
+	} else {
+		peerUseGM := viper.GetString("peer.BCCSP.Default") == "GM"
+		commLogger.Debugf("peerUseGM : %v", peerUseGM)
+		return peerUseGM
+	}
 }
 
 // parse PEM-encoded certs
@@ -54,6 +105,50 @@ func pemToX509Certs(pemCerts []byte) ([]*x509.Certificate, error) {
 
 	return certs, nil
 }
+
+// parse PEM-encoded certs
+func pemToSM2Certs(pemCerts []byte) ([]*sm2.Certificate, error) {
+	var certs []*sm2.Certificate
+
+	// it's possible that multiple certs are encoded
+	for len(pemCerts) > 0 {
+		var block *pem.Block
+		block, pemCerts = pem.Decode(pemCerts)
+		if block == nil {
+			break
+		}
+
+		cert, err := sm2.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		certs = append(certs, cert)
+	}
+
+	return certs, nil
+}
+
+func ParseCertificate (cert []byte) (interface{},error) {
+	pemBlock, _ := pem.Decode(cert)
+	if pemBlock == nil {
+		return &x509.Certificate{}, errors.Errorf("no PEM data found in cert[% x]", cert)
+	}
+	if IsGM() {
+		certificate, err := sm2.ParseCertificate(pemBlock.Bytes)
+		if err != nil {
+			return nil, errors.Errorf("%s parse sm2 certificate error %s", err, string(pemBlock.Bytes))
+		}
+		return certificate, nil
+	}else {
+		certificate, err := x509.ParseCertificate(pemBlock.Bytes)
+		if err != nil {
+			return nil, errors.Errorf("%s parse x509 certificate error %s", err, string(pemBlock.Bytes))
+		}
+		return certificate, nil
+	}
+}
+
 
 // BindingInspector receives as parameters a gRPC context and an Envelope,
 // and verifies whether the message contains an appropriate binding to the context
