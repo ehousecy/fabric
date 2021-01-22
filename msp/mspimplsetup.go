@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"crypto/x509/pkix"
 	"fmt"
-	x509 "github.com/tjfoc/gmsm/sm2"
+	x509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"time"
 
 	"github.com/golang/protobuf/proto"

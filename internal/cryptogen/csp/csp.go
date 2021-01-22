@@ -15,7 +15,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/hyperledger/fabric/bccsp/sw"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"io"
 	"io/ioutil"
 	"math/big"

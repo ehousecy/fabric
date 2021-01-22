@@ -12,7 +12,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	x509 "github.com/tjfoc/gmsm/sm2"
+	x509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"sync"
 	"time"
 

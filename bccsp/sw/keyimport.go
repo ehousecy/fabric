@@ -11,9 +11,8 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"github.com/hyperledger/fabric/bccsp/utils"
-	"github.com/tjfoc/gmsm/sm2"
-	x509 "github.com/tjfoc/gmsm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	x509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"reflect"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -114,24 +113,6 @@ func (*ecdsaGoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 	return &ecdsaPublicKey{lowLevelKey}, nil
 }
 
-
-//实现内部的 KeyImporter 接口
-type sm4ImportKeyOptsKeyImporter struct{}
-
-func (*sm4ImportKeyOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
-	sm4Raw, ok := raw.([]byte)
-	if !ok {
-		return nil, errors.New("Invalid raw material. Expected byte array.")
-	}
-
-	if sm4Raw == nil {
-		return nil, errors.New("Invalid raw material. It must not be nil.")
-	}
-
-	return &gmsm4PrivateKey{utils.Clone(sm4Raw), false}, nil
-}
-
-
 type sm2PrivateKeyImportOptsKeyImporter struct{}
 
 func (*sm2PrivateKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
@@ -145,7 +126,12 @@ func (*sm2PrivateKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp
 		return nil, errors.New("[GMSM2PrivateKeyImportOpts] Invalid raw. It must not be nil.")
 	}
 
-	sm2SK, err := sm2.ParsePKCS8UnecryptedPrivateKey(der)
+	lowLevelKey, err := derToPrivateKey(der)
+	if err != nil {
+		return nil, fmt.Errorf("Failed converting PKIX to ECDSA public key [%s]", err)
+	}
+
+	sm2SK, ok := lowLevelKey.(*sm2.PrivateKey)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed converting to GMSM2 private key [%s]", err)
@@ -180,7 +166,7 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 	switch pk := pk.(type) {
 	case *ecdsa.PublicKey:
 		switch pk.Curve {
-		case sm2.P256Sm2() :
+		case sm2.P256() :
 			sm2pk := &sm2.PublicKey{
 				Curve : pk.Curve,
 				X : pk.X,

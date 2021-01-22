@@ -19,7 +19,7 @@ import (
 	"github.com/hyperledger/fabric/bccsp/sw"
 	"github.com/hyperledger/fabric/bccsp/utils"
 	"github.com/pkg/errors"
-	x509 "github.com/tjfoc/gmsm/sm2"
+	x509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 )
 
 // mspSetupFuncType is the prototype of the setup function

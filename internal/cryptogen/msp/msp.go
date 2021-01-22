@@ -8,7 +8,7 @@ package msp
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"os"
 	"path/filepath"
 
@@ -149,9 +149,11 @@ func GenerateLocalMSP(
 	// cleared up anyway by copyAdminCert, but
 	// we leave a valid admin for now for the sake
 	// of unit tests
-	err = x509Export(filepath.Join(mspDir, "admincerts", x509Filename(name)), cert)
-	if err != nil {
-		return err
+	if ous[0] == ADMINOU {
+		err = x509Export(filepath.Join(mspDir, "admincerts", x509Filename(name)), cert)
+		if err != nil {
+			return err
+		}
 	}
 
 	/*
@@ -160,7 +162,7 @@ func GenerateLocalMSP(
 
 
 	// generate X509 certificate using TLS CA
-	if useGM {
+	if useGMTLS {
 		// generate private key
 		tlsPrivKey, err := csp.GenerateSM2PrivateKey(tlsDir)
 		if err != nil {
@@ -257,6 +259,10 @@ func GenerateVerifyingMSP(
 	// generate config.yaml if required
 	if nodeOUs {
 		exportConfig(baseDir, "cacerts/"+x509Filename(signCA.Name), true)
+	}
+
+	if nodeOUs {
+		return nil
 	}
 
 	// create a throwaway cert to act as an admin cert

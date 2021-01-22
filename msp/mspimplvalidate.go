@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	x509 "github.com/tjfoc/gmsm/sm2"
+	x509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"math/big"
 	"reflect"
 	"time"
