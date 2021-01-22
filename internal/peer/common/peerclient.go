@@ -8,7 +8,7 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
+	"github.com/tjfoc/gmtls"
 	"io/ioutil"
 	"time"
 
@@ -89,7 +89,7 @@ func newPeerClientForClientConfig(address, override string, clientConfig comm.Cl
 	}
 	pClient := &PeerClient{
 		CommonClient: CommonClient{
-			GRPCClient: gClient,
+			IGRPCClient: gClient,
 			Address:    address,
 			sn:         override}}
 	return pClient, nil
@@ -97,7 +97,7 @@ func newPeerClientForClientConfig(address, override string, clientConfig comm.Cl
 
 // Endorser returns a client for the Endorser service
 func (pc *PeerClient) Endorser() (pb.EndorserClient, error) {
-	conn, err := pc.CommonClient.NewConnection(pc.Address, comm.ServerNameOverride(pc.sn))
+	conn, err := pc.CommonClient.NewConnection(pc.Address, pc.CommonClient.ServerNameOverride(pc.sn))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "endorser client failed to connect to %s", pc.Address)
 	}
@@ -106,7 +106,7 @@ func (pc *PeerClient) Endorser() (pb.EndorserClient, error) {
 
 // Deliver returns a client for the Deliver service
 func (pc *PeerClient) Deliver() (pb.Deliver_DeliverClient, error) {
-	conn, err := pc.CommonClient.NewConnection(pc.Address, comm.ServerNameOverride(pc.sn))
+	conn, err := pc.CommonClient.NewConnection(pc.Address, pc.CommonClient.ServerNameOverride(pc.sn))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "deliver client failed to connect to %s", pc.Address)
 	}
@@ -116,7 +116,7 @@ func (pc *PeerClient) Deliver() (pb.Deliver_DeliverClient, error) {
 // PeerDeliver returns a client for the Deliver service for peer-specific use
 // cases (i.e. DeliverFiltered)
 func (pc *PeerClient) PeerDeliver() (pb.DeliverClient, error) {
-	conn, err := pc.CommonClient.NewConnection(pc.Address, comm.ServerNameOverride(pc.sn))
+	conn, err := pc.CommonClient.NewConnection(pc.Address, pc.CommonClient.ServerNameOverride(pc.sn))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "deliver client failed to connect to %s", pc.Address)
 	}
@@ -124,7 +124,7 @@ func (pc *PeerClient) PeerDeliver() (pb.DeliverClient, error) {
 }
 
 // Certificate returns the TLS client certificate (if available)
-func (pc *PeerClient) Certificate() tls.Certificate {
+func (pc *PeerClient) Certificate() interface{} {
 	return pc.CommonClient.Certificate()
 }
 
@@ -147,10 +147,10 @@ func GetEndorserClient(address, tlsRootCertFile string) (pb.EndorserClient, erro
 }
 
 // GetCertificate returns the client's TLS certificate
-func GetCertificate() (tls.Certificate, error) {
+func GetCertificate() (interface{}, error) {
 	peerClient, err := NewPeerClientFromEnv()
 	if err != nil {
-		return tls.Certificate{}, err
+		return gmtls.Certificate{}, err
 	}
 	return peerClient.Certificate(), nil
 }

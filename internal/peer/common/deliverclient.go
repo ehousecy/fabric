@@ -11,7 +11,6 @@ import (
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/util"
 	"github.com/hyperledger/fabric/internal/pkg/identity"
 	"github.com/hyperledger/fabric/protoutil"
 	"github.com/pkg/errors"
@@ -174,9 +173,7 @@ func NewDeliverClientForOrderer(channelID string, signer identity.SignerSerializ
 	}
 	// check for client certificate and create hash if present
 	var tlsCertHash []byte
-	if len(oc.Certificate().Certificate) > 0 {
-		tlsCertHash = util.ComputeSHA256(oc.Certificate().Certificate[0])
-	}
+		tlsCertHash = oc.CertificateHash()
 	ds := &ordererDeliverService{dc}
 	o := &DeliverClient{
 		Signer:      signer,
@@ -206,9 +203,8 @@ func NewDeliverClientForPeer(channelID string, signer identity.SignerSerializer,
 	}
 
 	// check for client certificate and create hash if present
-	if len(pc.Certificate().Certificate) > 0 {
-		tlsCertHash = util.ComputeSHA256(pc.Certificate().Certificate[0])
-	}
+		tlsCertHash = pc.CertificateHash()
+
 	ds := &peerDeliverService{d}
 	p := &DeliverClient{
 		Signer:      signer,

@@ -9,6 +9,8 @@ package etcdraft
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/tjfoc/gmsm/sm2"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -206,7 +208,7 @@ func ConsensusMetadataFromConfigBlock(block *common.Block) (*etcdraft.ConfigMeta
 
 // VerifyConfigMetadata validates Raft config metadata.
 // Note: ignores certificates expiration.
-func VerifyConfigMetadata(metadata *etcdraft.ConfigMetadata, verifyOpts x509.VerifyOptions) error {
+func VerifyConfigMetadata(metadata *etcdraft.ConfigMetadata, verifyOpts interface{}) error {
 	if metadata == nil {
 		// defensive check. this should not happen as CheckConfigMetadata
 		// should always be called with non-nil config metadata
@@ -287,7 +289,33 @@ func parseCertificateListFromBytes(certs [][]byte) ([]*x509.Certificate, error) 
 	return certificateList, nil
 }
 
-func createX509VerifyOptions(ordererConfig channelconfig.Orderer) (x509.VerifyOptions, error) {
+func createVerifyOptions(ordererConfig channelconfig.Orderer) (interface{}, error) {
+	if comm.IsGM() {
+		tlsRoots := sm2.NewCertPool()
+		tlsIntermediates := sm2.NewCertPool()
+		for _, org := range ordererConfig.Organizations() {
+			for _, rootCert := range org.MSP().GetTLSRootCerts() {
+				err := comm.AddGMPemToCertPool(rootCert, tlsRoots)
+				if err != nil {
+					return sm2.VerifyOptions{}, errors.Wrap(err, "parsing tls root certs")
+				}
+			}
+			for _, intermediateCert := range org.MSP().GetTLSIntermediateCerts() {
+				err := comm.AddGMPemToCertPool(intermediateCert, tlsIntermediates)
+				if err != nil {
+					return sm2.VerifyOptions{}, errors.Wrap(err, "parsing tls intermediate certs")
+				}
+			}
+		}
+		return sm2.VerifyOptions{
+			Roots:         tlsRoots,
+			Intermediates: tlsIntermediates,
+			KeyUsages: []sm2.ExtKeyUsage{
+				sm2.ExtKeyUsageClientAuth,
+				sm2.ExtKeyUsageServerAuth,
+			},
+		}, nil
+	}
 	tlsRoots := x509.NewCertPool()
 	tlsIntermediates := x509.NewCertPool()
 
@@ -321,22 +349,38 @@ func createX509VerifyOptions(ordererConfig channelconfig.Orderer) (x509.VerifyOp
 }
 
 //validateConsenterTLSCerts decodes PEM cert, parses and validates it.
-func validateConsenterTLSCerts(c *etcdraft.Consenter, opts x509.VerifyOptions, ignoreExpiration bool) error {
-	clientCert, err := parseCertificateFromBytes(c.ClientTlsCert)
+func validateConsenterTLSCerts(c *etcdraft.Consenter, opts interface{}, ignoreExpiration bool) error {
+	clientCert, err := comm.ParseCertificate(c.ClientTlsCert)
 	if err != nil {
 		return errors.Wrapf(err, "parsing tls client cert of %s:%d", c.Host, c.Port)
 	}
 
-	serverCert, err := parseCertificateFromBytes(c.ServerTlsCert)
+	serverCert, err := comm.ParseCertificate(c.ServerTlsCert)
 	if err != nil {
 		return errors.Wrapf(err, "parsing tls server cert of %s:%d", c.Host, c.Port)
 	}
 
-	verify := func(certType string, cert *x509.Certificate, opts x509.VerifyOptions) error {
-		if _, err := cert.Verify(opts); err != nil {
-			if validationRes, ok := err.(x509.CertificateInvalidError); !ok || (!ignoreExpiration || validationRes.Reason != x509.Expired) {
-				return errors.Wrapf(err, "verifying tls %s cert with serial number %d", certType, cert.SerialNumber)
+	verify := func(certType string, cert interface{}, opts interface{}) error {
+		switch cert.(type) {
+		case *x509.Certificate:
+			cert := cert.(*x509.Certificate)
+			opts := opts.(x509.VerifyOptions)
+			if _, err := cert.Verify(opts); err != nil {
+				if validationRes, ok := err.(x509.CertificateInvalidError); !ok || (!ignoreExpiration || validationRes.Reason != x509.Expired) {
+					return errors.Wrapf(err, "verifying tls %s cert with serial number %d", certType, cert.SerialNumber)
+				}
 			}
+		case *sm2.Certificate:
+			cert := cert.(*sm2.Certificate)
+			opts := opts.(sm2.VerifyOptions)
+			if _, err := cert.Verify(opts); err != nil {
+				if validationRes, ok := err.(sm2.CertificateInvalidError); !ok || (!ignoreExpiration || validationRes.Reason != sm2.Expired) {
+					return errors.Wrapf(err, "verifying tls %s cert with serial number %d", certType, cert.SerialNumber)
+				}
+			}
+		default:
+			panic("UnSupport cert type")
+
 		}
 		return nil
 	}

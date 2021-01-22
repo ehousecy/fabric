@@ -8,7 +8,6 @@ package blocksprovider
 
 import (
 	"context"
-	"crypto/x509"
 	"math"
 	"time"
 
@@ -74,7 +73,7 @@ type OrdererConnectionSource interface {
 
 //go:generate counterfeiter -o fake/dialer.go --fake-name Dialer . Dialer
 type Dialer interface {
-	Dial(address string, certPool *x509.CertPool) (*grpc.ClientConn, error)
+	Dial(address string, certPool interface{}) (*grpc.ClientConn, error)
 }
 
 //go:generate counterfeiter -o fake/deliver_streamer.go --fake-name DeliverStreamer . DeliverStreamer

@@ -8,6 +8,7 @@ package comm
 
 import (
 	"context"
+	"github.com/tjfoc/gmtls/gmcredentials"
 
 	"github.com/hyperledger/fabric/common/util"
 	"google.golang.org/grpc/credentials"
@@ -33,14 +34,36 @@ func extractCertificateHashFromContext(ctx context.Context) []byte {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
-	if !isTLSConn {
-		return nil
+	switch authInfo.(type) {
+	case credentials.TLSInfo:
+		tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
+		if !isTLSConn {
+			return nil
+		}
+		certs := tlsInfo.State.PeerCertificates
+		if len(certs) == 0 {
+			return nil
+		}
+		raw := certs[0].Raw
+		if len(raw) == 0 {
+			return nil
+		}
+		return util.ComputeSHA256(raw)
+	case gmcredentials.AuthInfo:
+		tlsInfo, isTLSConn := authInfo.(gmcredentials.TLSInfo)
+		if !isTLSConn {
+			return nil
+		}
+		certs := tlsInfo.State.PeerCertificates
+		if len(certs) == 0 {
+			return nil
+		}
+		raw := certs[0].Raw
+		if len(raw) == 0 {
+			return nil
+		}
+		return util.ComputeSHA256(raw)
+	default:
+		panic("unsupport credential type")
 	}
-	certs := tlsInfo.State.PeerCertificates
-	if len(certs) == 0 {
-		return nil
-	}
-	raw := certs[0].Raw
-	return certHashFromRawCert(raw)
 }

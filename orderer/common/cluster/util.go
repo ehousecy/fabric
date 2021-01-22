@@ -14,6 +14,8 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -154,18 +156,33 @@ func (dialer *PredicateDialer) Dial(address string, verifyFunc RemoteVerifier) (
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return client.NewConnection(address, func(tlsConfig *tls.Config) {
-		// We need to dynamically overwrite the TLS root CAs,
-		// as they may be updated.
-		dialer.lock.RLock()
-		serverRootCAs := dialer.Config.Clone().SecOpts.ServerRootCAs
-		dialer.lock.RUnlock()
+	if comm.IsGM() {
+		return client.NewConnection(address, func(tlsConfig *gmtls.Config) {
+			// We need to dynamically overwrite the TLS root CAs,
+			// as they may be updated.
+			dialer.lock.RLock()
+			serverRootCAs := dialer.Config.Clone().SecOpts.ServerRootCAs
+			dialer.lock.RUnlock()
 
-		tlsConfig.RootCAs = x509.NewCertPool()
-		for _, pem := range serverRootCAs {
-			tlsConfig.RootCAs.AppendCertsFromPEM(pem)
-		}
-	})
+			tlsConfig.RootCAs = sm2.NewCertPool()
+			for _, pem := range serverRootCAs {
+				tlsConfig.RootCAs.AppendCertsFromPEM(pem)
+			}
+		})
+	}else{
+		return client.NewConnection(address, func(tlsConfig *tls.Config) {
+			// We need to dynamically overwrite the TLS root CAs,
+			// as they may be updated.
+			dialer.lock.RLock()
+			serverRootCAs := dialer.Config.Clone().SecOpts.ServerRootCAs
+			dialer.lock.RUnlock()
+
+			tlsConfig.RootCAs = x509.NewCertPool()
+			for _, pem := range serverRootCAs {
+				tlsConfig.RootCAs.AppendCertsFromPEM(pem)
+			}
+		})
+	}
 }
 
 // DERtoPEM returns a PEM representation of the DER

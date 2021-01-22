@@ -130,8 +130,8 @@ type DeliveryServiceFactory interface {
 
 type deliveryFactoryImpl struct {
 	signer               identity.SignerSerializer
-	credentialSupport    *corecomm.CredentialSupport
-	deliverGRPCClient    *corecomm.GRPCClient
+	credentialSupport    corecomm.ICredentialSupport
+	deliverGRPCClient    corecomm.IGRPCClient
 	deliverServiceConfig *deliverservice.DeliverServiceConfig
 }
 
@@ -240,8 +240,8 @@ func New(
 	mcs api.MessageCryptoService,
 	secAdv api.SecurityAdvisor,
 	secureDialOpts api.PeerSecureDialOpts,
-	credSupport *corecomm.CredentialSupport,
-	deliverGRPCClient *corecomm.GRPCClient,
+	credSupport corecomm.ICredentialSupport,
+	deliverGRPCClient corecomm.IGRPCClient,
 	gossipConfig *gossip.Config,
 	serviceConfig *ServiceConfig,
 	privdataConfig *gossipprivdata.PrivdataConfig,

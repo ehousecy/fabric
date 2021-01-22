@@ -95,6 +95,8 @@ General:
     # sample configuration provided has an MSP ID of "SampleOrg".
     LocalMSPID: SampleOrg
 
+    LocalMSPTYPE: GM
+
     # Enable an HTTP service for Go "pprof" profiling as documented at:
     # https://golang.org/pkg/net/http/pprof
     Profile:
@@ -109,7 +111,7 @@ General:
         # Valid providers are:
         #  - SW: a software based crypto provider
         #  - PKCS11: a CA hardware security module crypto provider.
-        Default: SW
+        Default: GM
 
         # SW configures the software based blockchain crypto provider.
         SW:

@@ -22,6 +22,7 @@ package peer
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/tjfoc/gmtls"
 	"io/ioutil"
 	"net"
 	"path/filepath"
@@ -368,6 +369,7 @@ func GetServerConfig() (comm.ServerConfig, error) {
 		if err != nil {
 			return serverConfig, fmt.Errorf("error loading TLS certificate (%s)", err)
 		}
+		// whether useGM according to the tls cert type
 		serverConfig.SecOpts.Certificate = serverCert
 		serverConfig.SecOpts.Key = serverKey
 		serverConfig.SecOpts.RequireClientCert = viper.GetBool("peer.tls.clientAuthRequired")
@@ -412,7 +414,7 @@ func GetServerConfig() (comm.ServerConfig, error) {
 
 // GetClientCertificate returns the TLS certificate to use for gRPC client
 // connections
-func GetClientCertificate() (tls.Certificate, error) {
+func GetClientCertificate() (interface{}, error) {
 	cert := tls.Certificate{}
 
 	keyPath := viper.GetString("peer.tls.clientKey.file")
@@ -458,10 +460,19 @@ func GetClientCertificate() (tls.Certificate, error) {
 		return cert, errors.WithMessage(err,
 			"error loading client TLS certificate")
 	}
-	cert, err = tls.X509KeyPair(clientCert, clientKey)
-	if err != nil {
-		return cert, errors.WithMessage(err,
-			"error parsing client TLS key pair")
+	if comm.IsSM2Certificate(clientCert) {
+		cert2, err := gmtls.X509KeyPair(clientCert, clientKey)
+		if err != nil {
+			return cert, errors.WithMessage(err,
+				"error parsing client TLS key pair")
+		}
+		return cert2, nil
+	}else{
+		cert2, err := tls.X509KeyPair(clientCert, clientKey)
+		if err != nil {
+			return cert, errors.WithMessage(err,
+				"error parsing client TLS key pair")
+		}
+		return cert2, nil
 	}
-	return cert, nil
 }

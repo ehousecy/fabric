@@ -341,6 +341,7 @@ github.com/tjfoc/gmsm/sm4
 # github.com/tjfoc/gmtls v1.2.1
 ## explicit
 github.com/tjfoc/gmtls
+github.com/tjfoc/gmtls/gmcredentials
 # github.com/willf/bitset v1.1.10
 ## explicit
 github.com/willf/bitset
@@ -380,6 +381,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/ripemd160
 golang.org/x/crypto/sha3
 # golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
+golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset

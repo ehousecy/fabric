@@ -8,12 +8,15 @@ package accesscontrol
 
 import (
 	"context"
+	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls/gmcredentials"
+	"google.golang.org/grpc/credentials"
 	"sync"
 	"time"
 
 	"github.com/hyperledger/fabric/common/crypto/tlsgen"
 	"github.com/hyperledger/fabric/common/util"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
 
@@ -62,8 +65,17 @@ func (r *certMapper) genCert(name string) (*tlsgen.CertKeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := util.ComputeSHA256(keyPair.TLSCert.Raw)
-	r.register(certHash(hash), name)
+	switch keyPair.TLSCert.(type) {
+	case *x509.Certificate:
+		hash := util.ComputeSHA256(keyPair.TLSCert.(*x509.Certificate).Raw)
+		r.register(certHash(hash), name)
+	case *sm2.Certificate:
+		hash := util.ComputeSHA256(keyPair.TLSCert.(*sm2.Certificate).Raw)
+		r.register(certHash(hash), name)
+	default:
+		panic("UnSupport certificate type")
+	}
+
 	return keyPair, nil
 }
 
@@ -73,23 +85,41 @@ func extractCertificateHashFromContext(ctx context.Context) []byte {
 	if !extracted {
 		return nil
 	}
-
 	authInfo := pr.AuthInfo
 	if authInfo == nil {
 		return nil
 	}
+	switch authInfo.(type) {
+	case credentials.TLSInfo:
+		tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
+		if !isTLSConn {
+			return nil
+		}
+		certs := tlsInfo.State.PeerCertificates
+		if len(certs) == 0 {
+			return nil
+		}
+		raw := certs[0].Raw
+		if len(raw) == 0 {
+			return nil
+		}
+		return util.ComputeSHA256(raw)
+	case gmcredentials.AuthInfo:
+		tlsInfo, isTLSConn := authInfo.(gmcredentials.TLSInfo)
+		if !isTLSConn {
+			return nil
+		}
+		certs := tlsInfo.State.PeerCertificates
+		if len(certs) == 0 {
+			return nil
+		}
+		raw := certs[0].Raw
+		if len(raw) == 0 {
+			return nil
+		}
+		return util.ComputeSHA256(raw)
+	default:
+		panic("unsupport credential type")
+	}
 
-	tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
-	if !isTLSConn {
-		return nil
-	}
-	certs := tlsInfo.State.PeerCertificates
-	if len(certs) == 0 {
-		return nil
-	}
-	raw := certs[0].Raw
-	if len(raw) == 0 {
-		return nil
-	}
-	return util.ComputeSHA256(raw)
 }

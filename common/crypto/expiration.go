@@ -10,6 +10,8 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/hyperledger/fabric/internal/pkg/comm"
+	"github.com/tjfoc/gmsm/sm2"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -137,9 +139,17 @@ func CertificatesWithSamePublicKey(der1, der2 []byte) error {
 
 // publicKeyFromCertificate returns the public key of the given ASN1 DER certificate.
 func publicKeyFromCertificate(der []byte) ([]byte, error) {
-	cert, err := x509.ParseCertificate(der)
-	if err != nil {
-		return nil, err
+	if comm.IsGM(){
+		cert, err := sm2.ParseCertificate(der)
+		if err != nil {
+			return nil, err
+		}
+		return sm2.MarshalPKIXPublicKey(cert.PublicKey)
+	}else {
+		cert, err := x509.ParseCertificate(der)
+		if err != nil {
+			return nil, err
+		}
+		return x509.MarshalPKIXPublicKey(cert.PublicKey)
 	}
-	return x509.MarshalPKIXPublicKey(cert.PublicKey)
 }

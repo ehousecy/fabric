@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"github.com/tjfoc/gmtls"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -422,7 +423,15 @@ func (c *commImpl) authenticateRemotePeer(stream stream, initiator, isProbe bool
 		if initiator {
 			certReference = c.tlsCerts.TLSClientCert
 		}
-		selfCertHash = certHashFromRawCert(certReference.Load().(*tls.Certificate).Certificate[0])
+		cert := certReference.Load()
+		switch cert.(type) {
+		case tls.Certificate:
+			selfCertHash = certHashFromRawCert(cert.(tls.Certificate).Certificate[0])
+		case gmtls.Certificate:
+			selfCertHash = certHashFromRawCert(cert.(gmtls.Certificate).Certificate[0])
+		default:
+			panic("unsupport certificate type")
+		}
 	}
 
 	signer := func(msg []byte) ([]byte, error) {

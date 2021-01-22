@@ -7,8 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package chaincode
 
 import (
-	"crypto/tls"
-
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/internal/peer/common"
@@ -23,7 +21,7 @@ type ClientConnections struct {
 	BroadcastClient common.BroadcastClient
 	DeliverClients  []pb.DeliverClient
 	EndorserClients []pb.EndorserClient
-	Certificate     tls.Certificate
+	Certificate     interface{}
 	Signer          identity.SignerSerializer
 	CryptoProvider  bccsp.BCCSP
 }

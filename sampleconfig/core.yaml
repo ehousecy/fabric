@@ -301,7 +301,7 @@ peer:
     # BCCSP (Blockchain crypto provider): Select which crypto implementation or
     # library to use
     BCCSP:
-        Default: SW
+        Default: GM
         # Settings for the SW crypto provider (i.e. when DEFAULT: SW)
         SW:
             # TODO: The default Hash and Security level needs refactoring to be
@@ -373,7 +373,7 @@ peer:
         #    caCertsFile:
 
     # Type for the local MSP - by default it's of type bccsp
-    localMspType: bccsp
+    localMspType: GM
 
     # Used with Go profiling tools only in none production environment. In
     # production, it should be disabled (eg enabled: false)

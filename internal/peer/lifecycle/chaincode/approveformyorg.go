@@ -8,7 +8,6 @@ package chaincode
 
 import (
 	"context"
-	"crypto/tls"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -27,7 +26,7 @@ import (
 // ApproverForMyOrg holds the dependencies needed to approve
 // a chaincode definition for an organization
 type ApproverForMyOrg struct {
-	Certificate     tls.Certificate
+	Certificate     interface{}
 	Command         *cobra.Command
 	BroadcastClient common.BroadcastClient
 	DeliverClients  []pb.DeliverClient

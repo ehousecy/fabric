@@ -175,7 +175,7 @@ func (c *configSupport) GetChannelConfig(cid string) cc.Config {
 // A Peer holds references to subsystems and channels associated with a Fabric peer.
 type Peer struct {
 	ServerConfig             comm.ServerConfig
-	CredentialSupport        *comm.CredentialSupport
+	CredentialSupport        comm.ICredentialSupport
 	StoreProvider            transientstore.StoreProvider
 	GossipService            *gossipservice.GossipService
 	LedgerMgr                *ledgermgmt.LedgerMgr
@@ -186,7 +186,7 @@ type Peer struct {
 	// go routines.
 	validationWorkersSemaphore semaphore.Semaphore
 
-	server             *comm.GRPCServer
+	server             comm.IGRPCServer
 	pluginMapper       plugin.Mapper
 	channelInitializer func(cid string)
 
@@ -478,7 +478,7 @@ func (p *Peer) GetApplicationConfig(cid string) (channelconfig.Application, bool
 // ready
 func (p *Peer) Initialize(
 	init func(string),
-	server *comm.GRPCServer,
+	server comm.IGRPCServer,
 	pm plugin.Mapper,
 	deployedCCInfoProvider ledger.DeployedChaincodeInfoProvider,
 	legacyLifecycleValidation plugindispatcher.LifecycleResources,

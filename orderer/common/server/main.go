@@ -171,7 +171,7 @@ func Main() {
 	var clusterDialer *cluster.PredicateDialer
 
 	var reuseGrpcListener bool
-	var serversToUpdate []*comm.GRPCServer
+	var serversToUpdate []comm.IGRPCServer
 
 	if isClusterType {
 		logger.Infof("Setting up cluster")
@@ -415,7 +415,7 @@ func handleSignals(handlers map[os.Signal]func()) {
 type loadPEMFunc func(string) ([]byte, error)
 
 // configureClusterListener returns a new ServerConfig and a new gRPC server (with its own TLS listener).
-func configureClusterListener(conf *localconfig.TopLevel, generalConf comm.ServerConfig, loadPEM loadPEMFunc) (comm.ServerConfig, *comm.GRPCServer) {
+func configureClusterListener(conf *localconfig.TopLevel, generalConf comm.ServerConfig, loadPEM loadPEMFunc) (comm.ServerConfig, comm.IGRPCServer) {
 	clusterConf := conf.General.Cluster
 
 	cert, err := loadPEM(clusterConf.ServerCertificate)
@@ -669,7 +669,7 @@ func consensusType(genesisBlock *cb.Block, bccsp bccsp.BCCSP) string {
 	return ordConf.ConsensusType()
 }
 
-func initializeGrpcServer(conf *localconfig.TopLevel, serverConfig comm.ServerConfig) *comm.GRPCServer {
+func initializeGrpcServer(conf *localconfig.TopLevel, serverConfig comm.ServerConfig) comm.IGRPCServer {
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.General.ListenAddress, conf.General.ListenPort))
 	if err != nil {
 		logger.Fatal("Failed to listen:", err)
@@ -721,7 +721,7 @@ func initializeMultichannelRegistrar(
 	repInitiator *onboarding.ReplicationInitiator,
 	clusterDialer *cluster.PredicateDialer,
 	srvConf comm.ServerConfig,
-	srv *comm.GRPCServer,
+	srv comm.IGRPCServer,
 	conf *localconfig.TopLevel,
 	signer identity.SignerSerializer,
 	metricsProvider metrics.Provider,
@@ -765,7 +765,7 @@ func initializeEtcdraftConsenter(
 	bootstrapBlock *cb.Block,
 	ri *onboarding.ReplicationInitiator,
 	srvConf comm.ServerConfig,
-	srv *comm.GRPCServer,
+	srv comm.IGRPCServer,
 	registrar *multichannel.Registrar,
 	metricsProvider metrics.Provider,
 	bccsp bccsp.BCCSP,
@@ -830,7 +830,7 @@ type caManager struct {
 
 func (mgr *caManager) updateTrustedRoots(
 	cm channelconfig.Resources,
-	servers ...*comm.GRPCServer,
+	servers ...comm.IGRPCServer,
 ) {
 	mgr.Lock()
 	defer mgr.Unlock()

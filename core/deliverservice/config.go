@@ -8,6 +8,7 @@ package deliverservice
 
 import (
 	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"time"
 
@@ -72,22 +73,42 @@ func LoadOverridesMap() (map[string]*orderers.Endpoint, error) {
 
 	overrideMap := map[string]*orderers.Endpoint{}
 	for _, override := range overrides {
-		certPool := x509.NewCertPool()
-		if override.CACertsFile != "" {
-			pem, err := ioutil.ReadFile(override.CACertsFile)
-			if err != nil {
-				logger.Warningf("could not read file '%s' specified for caCertsFile of orderer endpoint override from '%s' to '%s': %s", override.CACertsFile, override.From, override.To, err)
-				continue
+		if comm.IsGM() {
+			certPool := sm2.NewCertPool()
+			if override.CACertsFile != "" {
+				pem, err := ioutil.ReadFile(override.CACertsFile)
+				if err != nil {
+					logger.Warningf("could not read file '%s' specified for caCertsFile of orderer endpoint override from '%s' to '%s': %s", override.CACertsFile, override.From, override.To, err)
+					continue
+				}
+				success := certPool.AppendCertsFromPEM(pem)
+				if !success {
+					logger.Warningf("Attempted to create a cert pool for override of orderer address '%s' to '%s' but did not find any valid certs in '%s'", override.From, override.To, override.CACertsFile)
+					continue
+				}
 			}
-			success := certPool.AppendCertsFromPEM(pem)
-			if !success {
-				logger.Warningf("Attempted to create a cert pool for override of orderer address '%s' to '%s' but did not find any valid certs in '%s'", override.From, override.To, override.CACertsFile)
-				continue
+			overrideMap[override.From] = &orderers.Endpoint{
+				Address:  override.To,
+				CertPool: certPool,
 			}
-		}
-		overrideMap[override.From] = &orderers.Endpoint{
-			Address:  override.To,
-			CertPool: certPool,
+		}else{
+			certPool := x509.NewCertPool()
+			if override.CACertsFile != "" {
+				pem, err := ioutil.ReadFile(override.CACertsFile)
+				if err != nil {
+					logger.Warningf("could not read file '%s' specified for caCertsFile of orderer endpoint override from '%s' to '%s': %s", override.CACertsFile, override.From, override.To, err)
+					continue
+				}
+				success := certPool.AppendCertsFromPEM(pem)
+				if !success {
+					logger.Warningf("Attempted to create a cert pool for override of orderer address '%s' to '%s' but did not find any valid certs in '%s'", override.From, override.To, override.CACertsFile)
+					continue
+				}
+			}
+			overrideMap[override.From] = &orderers.Endpoint{
+				Address:  override.To,
+				CertPool: certPool,
+			}
 		}
 	}
 

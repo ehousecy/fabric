@@ -7,8 +7,6 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
-
 	ab "github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric/internal/pkg/comm"
 	"github.com/pkg/errors"
@@ -33,7 +31,7 @@ func NewOrdererClientFromEnv() (*OrdererClient, error) {
 	}
 	oClient := &OrdererClient{
 		CommonClient: CommonClient{
-			GRPCClient: gClient,
+			IGRPCClient: gClient,
 			Address:    address,
 			sn:         override,
 		},
@@ -43,7 +41,7 @@ func NewOrdererClientFromEnv() (*OrdererClient, error) {
 
 // Broadcast returns a broadcast client for the AtomicBroadcast service
 func (oc *OrdererClient) Broadcast() (ab.AtomicBroadcast_BroadcastClient, error) {
-	conn, err := oc.CommonClient.NewConnection(oc.Address, comm.ServerNameOverride(oc.sn))
+	conn, err := oc.CommonClient.NewConnection(oc.Address, oc.CommonClient.ServerNameOverride(oc.sn))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "orderer client failed to connect to %s", oc.Address)
 	}
@@ -53,7 +51,7 @@ func (oc *OrdererClient) Broadcast() (ab.AtomicBroadcast_BroadcastClient, error)
 
 // Deliver returns a deliver client for the AtomicBroadcast service
 func (oc *OrdererClient) Deliver() (ab.AtomicBroadcast_DeliverClient, error) {
-	conn, err := oc.CommonClient.NewConnection(oc.Address, comm.ServerNameOverride(oc.sn))
+	conn, err := oc.CommonClient.NewConnection(oc.Address, oc.CommonClient.ServerNameOverride(oc.sn))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "orderer client failed to connect to %s", oc.Address)
 	}
@@ -63,6 +61,6 @@ func (oc *OrdererClient) Deliver() (ab.AtomicBroadcast_DeliverClient, error) {
 }
 
 // Certificate returns the TLS client certificate (if available)
-func (oc *OrdererClient) Certificate() tls.Certificate {
+func (oc *OrdererClient) Certificate() interface{} {
 	return oc.CommonClient.Certificate()
 }

@@ -299,7 +299,7 @@ func New(
 	clusterDialer *cluster.PredicateDialer,
 	conf *localconfig.TopLevel,
 	srvConf comm.ServerConfig,
-	srv *comm.GRPCServer,
+	srv comm.IGRPCServer,
 	r *multichannel.Registrar,
 	icr InactiveChainRegistry,
 	metricsProvider metrics.Provider,

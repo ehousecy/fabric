@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"math/rand"
 	"sync"
 
@@ -29,7 +30,7 @@ type ConnectionSource struct {
 
 type Endpoint struct {
 	Address   string
-	CertPool  *x509.CertPool
+	CertPool  interface{}
 	Refreshed chan struct{}
 }
 
@@ -148,26 +149,52 @@ func (cs *ConnectionSource) Update(globalAddrs []string, orgs map[string]Orderer
 
 	cs.allEndpoints = nil
 
-	globalCertPool := x509.NewCertPool()
+	if comm.IsGM() {
+		globalCertPool := sm2.NewCertPool()
 
-	for orgName, org := range orgs {
-		certPool := x509.NewCertPool()
-		for _, rootCert := range org.RootCerts {
-			if hasOrgEndpoints {
-				if err := comm.AddPemToCertPool(rootCert, certPool); err != nil {
-					cs.logger.Warningf("Could not add orderer cert for org '%s' to cert pool: %s", orgName, err)
+		for orgName, org := range orgs {
+			certPool := sm2.NewCertPool()
+			for _, rootCert := range org.RootCerts {
+				if hasOrgEndpoints {
+					if err := comm.AddGMPemToCertPool(rootCert, certPool); err != nil {
+						cs.logger.Warningf("Could not add orderer cert for org '%s' to cert pool: %s", orgName, err)
+					}
+				} else {
+						if err := comm.AddGMPemToCertPool(rootCert, globalCertPool); err != nil {
+							cs.logger.Warningf("Could not add orderer cert for org '%s' to global cert pool: %s", orgName, err)
+					}
 				}
-			} else {
-				if err := comm.AddPemToCertPool(rootCert, globalCertPool); err != nil {
-					cs.logger.Warningf("Could not add orderer cert for org '%s' to global cert pool: %s", orgName, err)
+			}
 
+			// Note, if !hasOrgEndpoints, this for loop is a no-op, so
+			// certPool is never referenced.
+			for _, address := range org.Addresses {
+				overrideEndpoint, ok := cs.overrides[address]
+				if ok {
+					cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
+						Address:   overrideEndpoint.Address,
+						CertPool:  overrideEndpoint.CertPool,
+						Refreshed: make(chan struct{}),
+					})
+					continue
 				}
+
+				cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
+					Address:   address,
+					CertPool:  certPool,
+					Refreshed: make(chan struct{}),
+				})
 			}
 		}
 
-		// Note, if !hasOrgEndpoints, this for loop is a no-op, so
-		// certPool is never referenced.
-		for _, address := range org.Addresses {
+		if len(cs.allEndpoints) != 0 {
+			cs.logger.Debugf("Returning an orderer connection pool source with org specific endpoints only")
+			// There are some org specific endpoints, so we do not
+			// add any of the global endpoints to our pool.
+			return
+		}
+
+		for _, address := range globalAddrs {
 			overrideEndpoint, ok := cs.overrides[address]
 			if ok {
 				cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
@@ -180,35 +207,72 @@ func (cs *ConnectionSource) Update(globalAddrs []string, orgs map[string]Orderer
 
 			cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
 				Address:   address,
-				CertPool:  certPool,
+				CertPool:  globalCertPool,
 				Refreshed: make(chan struct{}),
 			})
 		}
-	}
+	}else {
+		globalCertPool := x509.NewCertPool()
 
-	if len(cs.allEndpoints) != 0 {
-		cs.logger.Debugf("Returning an orderer connection pool source with org specific endpoints only")
-		// There are some org specific endpoints, so we do not
-		// add any of the global endpoints to our pool.
-		return
-	}
+		for orgName, org := range orgs {
+			certPool := x509.NewCertPool()
+			for _, rootCert := range org.RootCerts {
+				if hasOrgEndpoints {
+					if err := comm.AddPemToCertPool(rootCert, certPool); err != nil {
+						cs.logger.Warningf("Could not add orderer cert for org '%s' to cert pool: %s", orgName, err)
+					}
+				} else {
+					if err := comm.AddPemToCertPool(rootCert, globalCertPool); err != nil {
+						cs.logger.Warningf("Could not add orderer cert for org '%s' to global cert pool: %s", orgName, err)
+					}
+				}
+			}
 
-	for _, address := range globalAddrs {
-		overrideEndpoint, ok := cs.overrides[address]
-		if ok {
+			// Note, if !hasOrgEndpoints, this for loop is a no-op, so
+			// certPool is never referenced.
+			for _, address := range org.Addresses {
+				overrideEndpoint, ok := cs.overrides[address]
+				if ok {
+					cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
+						Address:   overrideEndpoint.Address,
+						CertPool:  overrideEndpoint.CertPool,
+						Refreshed: make(chan struct{}),
+					})
+					continue
+				}
+
+				cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
+					Address:   address,
+					CertPool:  certPool,
+					Refreshed: make(chan struct{}),
+				})
+			}
+		}
+
+		if len(cs.allEndpoints) != 0 {
+			cs.logger.Debugf("Returning an orderer connection pool source with org specific endpoints only")
+			// There are some org specific endpoints, so we do not
+			// add any of the global endpoints to our pool.
+			return
+		}
+
+		for _, address := range globalAddrs {
+			overrideEndpoint, ok := cs.overrides[address]
+			if ok {
+				cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
+					Address:   overrideEndpoint.Address,
+					CertPool:  overrideEndpoint.CertPool,
+					Refreshed: make(chan struct{}),
+				})
+				continue
+			}
+
 			cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
-				Address:   overrideEndpoint.Address,
-				CertPool:  overrideEndpoint.CertPool,
+				Address:   address,
+				CertPool:  globalCertPool,
 				Refreshed: make(chan struct{}),
 			})
-			continue
 		}
-
-		cs.allEndpoints = append(cs.allEndpoints, &Endpoint{
-			Address:   address,
-			CertPool:  globalCertPool,
-			Refreshed: make(chan struct{}),
-		})
 	}
 
 	cs.logger.Debugf("Returning an orderer connection pool source with global endpoints only")

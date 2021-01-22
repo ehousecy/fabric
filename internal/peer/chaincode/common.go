@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/tjfoc/gmtls"
 	"io/ioutil"
 	"math"
 	"strings"
@@ -435,7 +436,7 @@ func validatePeerConnectionParameters(cmdName string) error {
 type ChaincodeCmdFactory struct {
 	EndorserClients []pb.EndorserClient
 	DeliverClients  []pb.DeliverClient
-	Certificate     tls.Certificate
+	Certificate     interface{}
 	Signer          identity.SignerSerializer
 	BroadcastClient common.BroadcastClient
 }
@@ -558,7 +559,7 @@ func ChaincodeInvokeOrQuery(
 	txID string,
 	invoke bool,
 	signer identity.SignerSerializer,
-	certificate tls.Certificate,
+	certificate interface{},
 	endorserClients []pb.EndorserClient,
 	deliverClients []pb.DeliverClient,
 	bc common.BroadcastClient,
@@ -666,7 +667,7 @@ func ChaincodeInvokeOrQuery(
 // occurs will be set
 type DeliverGroup struct {
 	Clients     []*DeliverClient
-	Certificate tls.Certificate
+	Certificate interface{}
 	ChannelID   string
 	TxID        string
 	Signer      identity.SignerSerializer
@@ -687,7 +688,7 @@ func NewDeliverGroup(
 	deliverClients []pb.DeliverClient,
 	peerAddresses []string,
 	signer identity.SignerSerializer,
-	certificate tls.Certificate,
+	certificate interface{},
 	channelID string,
 	txid string,
 ) *DeliverGroup {
@@ -844,14 +845,26 @@ func (dg *DeliverGroup) setError(err error) {
 
 func createDeliverEnvelope(
 	channelID string,
-	certificate tls.Certificate,
+	certificate interface{},
 	signer identity.SignerSerializer,
 ) *pcommon.Envelope {
 	var tlsCertHash []byte
 	// check for client certificate and create hash if present
-	if len(certificate.Certificate) > 0 {
-		tlsCertHash = util.ComputeSHA256(certificate.Certificate[0])
+	switch certificate.(type) {
+	case tls.Certificate:
+		certificate:= certificate.(tls.Certificate)
+		if len(certificate.Certificate) > 0 {
+			tlsCertHash = util.ComputeSHA256(certificate.Certificate[0])
+		}
+	case gmtls.Certificate:
+		certificate:= certificate.(gmtls.Certificate)
+		if len(certificate.Certificate) > 0 {
+			tlsCertHash = util.ComputeSHA256(certificate.Certificate[0])
+		}
+	default:
+		panic("Unsupport certificate type")
 	}
+
 
 	start := &ab.SeekPosition{
 		Type: &ab.SeekPosition_Newest{

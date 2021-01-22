@@ -8,7 +8,6 @@ package chaincode
 
 import (
 	"context"
-	"crypto/tls"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -27,7 +26,7 @@ import (
 // Committer holds the dependencies needed to commit
 // a chaincode
 type Committer struct {
-	Certificate     tls.Certificate
+	Certificate     interface{}
 	Command         *cobra.Command
 	BroadcastClient common.BroadcastClient
 	EndorserClients []EndorserClient

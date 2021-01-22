@@ -22,7 +22,7 @@ const defaultTimeout = time.Second * 5
 // to the discovery server
 type Client struct {
 	TLSCertHash []byte
-	*comm.GRPCClient
+	comm.IGRPCClient
 }
 
 // NewClient creates a new comm client out of the given configuration
@@ -41,7 +41,7 @@ func NewClient(conf Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{GRPCClient: cl, TLSCertHash: util.ComputeSHA256(sop.Certificate)}, nil
+	return &Client{IGRPCClient: cl, TLSCertHash: util.ComputeSHA256(sop.Certificate)}, nil
 }
 
 // NewDialer creates a new dialer from the given endpoint

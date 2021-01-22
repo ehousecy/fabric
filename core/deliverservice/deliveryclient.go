@@ -8,7 +8,6 @@ package deliverservice
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"sync"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/hyperledger/fabric-protos-go/orderer"
 	"github.com/hyperledger/fabric/common/flogging"
-	"github.com/hyperledger/fabric/common/util"
 	"github.com/hyperledger/fabric/internal/pkg/comm"
 	"github.com/hyperledger/fabric/internal/pkg/identity"
 	"github.com/hyperledger/fabric/internal/pkg/peer/blocksprovider"
@@ -69,7 +67,7 @@ type Config struct {
 	// Signer is the identity used to sign requests.
 	Signer identity.SignerSerializer
 	// GRPC Client
-	DeliverGRPCClient *comm.GRPCClient
+	DeliverGRPCClient comm.IGRPCClient
 	// Configuration values for deliver service.
 	// TODO: merge 2 Config struct
 	DeliverServiceConfig *DeliverServiceConfig
@@ -88,11 +86,11 @@ func NewDeliverService(conf *Config) DeliverService {
 }
 
 type DialerAdapter struct {
-	Client *comm.GRPCClient
+	Client comm.IGRPCClient
 }
 
-func (da DialerAdapter) Dial(address string, certPool *x509.CertPool) (*grpc.ClientConn, error) {
-	return da.Client.NewConnection(address, comm.CertPoolOverride(certPool))
+func (da DialerAdapter) Dial(address string, certPool interface{}) (*grpc.ClientConn, error) {
+	return da.Client.NewConnection(address, da.Client.CertPoolOverride(certPool))
 }
 
 type DeliverAdapter struct{}
@@ -140,7 +138,7 @@ func (d *deliverServiceImpl) StartDeliverForChannel(chainID string, ledgerInfo b
 	}
 
 	if d.conf.DeliverGRPCClient.MutualTLSRequired() {
-		dc.TLSCertHash = util.ComputeSHA256(d.conf.DeliverGRPCClient.Certificate().Certificate[0])
+		dc.TLSCertHash = d.conf.DeliverGRPCClient.CertificateHash()
 	}
 
 	d.blockProviders[chainID] = dc

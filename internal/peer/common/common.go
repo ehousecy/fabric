@@ -8,7 +8,6 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/hyperledger/fabric/msp"
 	"io/ioutil"
@@ -74,11 +73,11 @@ var (
 		endorserClient pb.EndorserClient, cryptoProvider bccsp.BCCSP) ([]string, error)
 
 	// GetCertificateFnc is a function that returns the client TLS certificate
-	GetCertificateFnc func() (tls.Certificate, error)
+	GetCertificateFnc func() (interface{}, error)
 )
 
 type CommonClient struct {
-	*comm.GRPCClient
+	comm.IGRPCClient
 	Address string
 	sn      string
 }

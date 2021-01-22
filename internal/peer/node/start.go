@@ -9,6 +9,7 @@ package node
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/credentials"
 	"io"
 	"io/ioutil"
 	"net"
@@ -311,7 +312,7 @@ func serve(args []string) error {
 	crypto.TrackExpiration(
 		serverConfig.SecOpts.UseTLS,
 		serverConfig.SecOpts.Certificate,
-		cs.GetClientCertificate().Certificate,
+		cs.GetCertificate(),
 		signingIdentityBytes,
 		expirationLogger.Infof,
 		expirationLogger.Warnf, // This can be used to piggyback a metric event in the future
@@ -934,7 +935,7 @@ func createSelfSignedData() protoutil.SignedData {
 func registerDiscoveryService(
 	coreConfig *peer.Config,
 	peerInstance *peer.Peer,
-	peerServer *comm.GRPCServer,
+	peerServer comm.IGRPCServer,
 	polMgr policies.ChannelPolicyManagerGetter,
 	metadataProvider *lifecycle.MetadataProvider,
 	gossipService *gossipservice.GossipService,
@@ -973,7 +974,7 @@ func registerDiscoveryService(
 }
 
 // create a CC listener using peer.chaincodeListenAddress (and if that's not set use peer.peerAddress)
-func createChaincodeServer(coreConfig *peer.Config, ca tlsgen.CA, peerHostname string) (srv *comm.GRPCServer, ccEndpoint string, err error) {
+func createChaincodeServer(coreConfig *peer.Config, ca tlsgen.CA, peerHostname string) (srv comm.IGRPCServer, ccEndpoint string, err error) {
 	// before potentially setting chaincodeListenAddress, compute chaincode endpoint at first
 	ccEndpoint, err = computeChaincodeEndpoint(coreConfig.ChaincodeAddress, coreConfig.ChaincodeListenAddress, peerHostname)
 	if err != nil {
@@ -1123,7 +1124,7 @@ func createDockerClient(coreConfig *peer.Config) (*docker.Client, error) {
 }
 
 // secureDialOpts is the callback function for secure dial options for gossip service
-func secureDialOpts(credSupport *comm.CredentialSupport) func() []grpc.DialOption {
+func secureDialOpts(credSupport comm.ICredentialSupport) func() []grpc.DialOption {
 	return func() []grpc.DialOption {
 		var dialOpts []grpc.DialOption
 		// set max send/recv msg sizes
@@ -1142,7 +1143,7 @@ func secureDialOpts(credSupport *comm.CredentialSupport) func() []grpc.DialOptio
 		dialOpts = append(dialOpts, comm.ClientKeepaliveOptions(kaOpts)...)
 
 		if viper.GetBool("peer.tls.enabled") {
-			dialOpts = append(dialOpts, grpc.WithTransportCredentials(credSupport.GetPeerCredentials()))
+			dialOpts = append(dialOpts, grpc.WithTransportCredentials(credSupport.GetPeerCredentials().(credentials.TransportCredentials)))
 		} else {
 			dialOpts = append(dialOpts, grpc.WithInsecure())
 		}
@@ -1158,11 +1159,11 @@ func secureDialOpts(credSupport *comm.CredentialSupport) func() []grpc.DialOptio
 func initGossipService(
 	policyMgr policies.ChannelPolicyManagerGetter,
 	metricsProvider metrics.Provider,
-	peerServer *comm.GRPCServer,
+	peerServer comm.IGRPCServer,
 	signer msp.SigningIdentity,
-	credSupport *comm.CredentialSupport,
+	credSupport comm.ICredentialSupport,
 	peerAddress string,
-	deliverGRPCClient *comm.GRPCClient,
+	deliverGRPCClient comm.IGRPCClient,
 	deliverServiceConfig *deliverservice.DeliverServiceConfig,
 	privdataConfig *gossipprivdata.PrivdataConfig,
 ) (*gossipservice.GossipService, error) {
@@ -1175,8 +1176,8 @@ func initGossipService(
 			return nil, errors.Wrap(err, "failed obtaining client certificates")
 		}
 		certs = &gossipcommon.TLSCertificates{}
-		certs.TLSServerCert.Store(&serverCert)
-		certs.TLSClientCert.Store(&clientCert)
+		certs.TLSServerCert.Store(serverCert)
+		certs.TLSClientCert.Store(clientCert)
 	}
 
 	messageCryptoService := peergossip.NewMCS(
