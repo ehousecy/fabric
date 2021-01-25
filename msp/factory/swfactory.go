@@ -27,8 +27,8 @@ func (f *SWFactory) Name() string {
 }
 
 // Get returns an instance of BCCSP using Opts.
-func (f *SWFactory) Get(bccsp bccsp.BCCSP) (msp.MSP, error) {
-	return New(msp.Options[msp.ProviderTypeToString(msp.FABRIC)], bccsp)
+func (f *SWFactory) Get(newOpts msp.NewOpts, bccsp bccsp.BCCSP) (msp.MSP, error) {
+	return New(newOpts, bccsp)
 }
 
 // New create a new MSP instance depending on the passed Opts

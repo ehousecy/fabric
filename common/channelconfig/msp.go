@@ -61,17 +61,6 @@ func (bh *MSPConfigHandler) ProposeMSP(mspConfig *mspprotos.MSPConfig) (msp.MSP,
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating the MSP manager failed")
 		}
-	case int32(msp.GM):
-		// create the GM msp instance
-		mspInst, err := factory.GetDefault(&msp.GMNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: bh.version}},bh.bccsp)
-		if err != nil {
-			return nil, errors.WithMessage(err, "creating the MSP manager failed")
-		}
-		// add a cache layer on top
-		theMsp, err = cache.New(mspInst)
-		if err != nil {
-			return nil, errors.WithMessage(err, "creating the MSP cache failed")
-		}
 	default:
 		return nil, errors.New(fmt.Sprintf("Setup error: unsupported msp type %d", mspConfig.Type))
 	}

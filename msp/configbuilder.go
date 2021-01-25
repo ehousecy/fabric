@@ -158,7 +158,7 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, keystoreDir stri
 // directory, with the specified ID and type
 func GetLocalMspConfigWithType(dir string, bccspConfig *factory.FactoryOpts, ID, mspType string) (*msp.MSPConfig, error) {
 	switch mspType {
-	case ProviderTypeToString(FABRIC),ProviderTypeToString(GM):
+	case ProviderTypeToString(FABRIC):
 		return GetLocalMspConfig(dir, bccspConfig, ID)
 	case ProviderTypeToString(IDEMIX):
 		return GetIdemixMspConfig(dir, ID)
@@ -189,18 +189,8 @@ func GetLocalMspConfig(dir string, bccspConfig *factory.FactoryOpts, ID string) 
 	*/
 
 	sigid := &msp.SigningIdentityInfo{PublicSigner: signcert[0], PrivateSigner: nil}
-	var mspType int32
-	switch bccspConfig.ProviderName {
-		case "SW":
-			mspType = int32(FABRIC)
-		case "GM":
-			mspType = int32(GM)
-		case  "pkcs11":
-			mspType = int32(IDEMIX)
-		default:
-			return nil, errors.Errorf("unknown ProviderName type '%s'", bccspConfig.ProviderName)
-	}
-	return getMspConfig(dir, ID, sigid,mspType)
+
+	return getMspConfig(dir, ID, sigid, int32(FABRIC))
 }
 
 // GetVerifyingMspConfig returns an MSP config given directory, ID and type
@@ -210,8 +200,6 @@ func GetVerifyingMspConfig(dir, ID, mspType string) (*msp.MSPConfig, error) {
 		return getMspConfig(dir, ID, nil, int32(FABRIC))
 	case ProviderTypeToString(IDEMIX):
 		return GetIdemixMspConfig(dir, ID)
-	case ProviderTypeToString(GM):
-		return getMspConfig(dir, ID, nil, int32(GM))
 	default:
 		return nil, errors.Errorf("unknown MSP type '%s'", mspType)
 	}

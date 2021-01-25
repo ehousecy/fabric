@@ -19,7 +19,9 @@
     - [x] peer与智能合约通信使用的是自签名的ecdsa秘钥对
        - [x] 扩展CA，支持sm2秘钥对
           - [x] Error starting fabcar chaincode: failed to parse client key pair
-  - [ ] 证书混用报错
+  - [x] 证书混用报错
+    - [x] 国密证书 + ECDSA TLS证书 验证通过
+    - [x] ECDSA证书 + 国密TLS 证书 会在setup的时候报错(mspimpl无法解析gmtls证书，算已知问题吧，这里仅做测试，后续签名证书和TLS证书会做成一致的)
   - [x] 判断是否为SM证书或者GM模式
     - [x] 通过证书签名算法是否为SM2WithSM3来判断
   - [ ] 共识切换为raft
@@ -30,7 +32,10 @@
   - [x] shim
     - [x] TLS credentials 适配
   - [ ] pkg
-- [ ] mspType GM 删除
+- [x] mspType GM 删除
+   - [x] 调用处修改：loadLocalMSP 引用，opts, found := msp.Options[conf.General.LocalMSPType]
+   - [x] msp配置中type类型改回fabric
+   - [x] 通过配置加载/解析localMsp处修改适配方式
 
 #### 已做修改
 

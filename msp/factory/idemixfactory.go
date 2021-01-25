@@ -27,8 +27,8 @@ func (f *IDEMIXFactory) Name() string {
 }
 
 // Get returns an instance of BCCSP using Opts.
-func (f *IDEMIXFactory) Get(bccsp bccsp.BCCSP) (msp.MSP, error) {
-	return New3(msp.Options[msp.ProviderTypeToString(msp.IDEMIX)], bccsp)
+func (f *IDEMIXFactory) Get(opts msp.NewOpts,bccsp bccsp.BCCSP) (msp.MSP, error) {
+	return New3(opts, bccsp)
 }
 
 // New create a new MSP instance depending on the passed Opts
@@ -37,13 +37,13 @@ func New3(opts msp.NewOpts, cryptoProvider bccsp.BCCSP) (msp.MSP, error) {
 	case *msp.IdemixNewOpts:
 		switch opts.GetVersion() {
 		case msp.MSPv1_0:
-			return idemix.NewIdemixMsp(msp.MSPv1_0)
+			return idemix.NewIdemixMsp(msp.MSPv1_0, cryptoProvider)
 		case msp.MSPv1_1:
-			return idemix.NewIdemixMsp(msp.MSPv1_0)
+			return idemix.NewIdemixMsp(msp.MSPv1_0, cryptoProvider)
 		case msp.MSPv1_3:
-			return idemix.NewIdemixMsp(msp.MSPv1_0)
+			return idemix.NewIdemixMsp(msp.MSPv1_0, cryptoProvider)
 		case msp.MSPv1_4_3:
-			return idemix.NewIdemixMsp(msp.MSPv1_0)
+			return idemix.NewIdemixMsp(msp.MSPv1_0, cryptoProvider)
 		default:
 			return nil, errors.Errorf("Invalid *IdemixNewOpts. Version not recognized [%v]", opts.GetVersion())
 		}

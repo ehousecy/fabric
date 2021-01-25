@@ -16,8 +16,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	m "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric/bccsp"
-	idemixbccsp "github.com/hyperledger/fabric/bccsp/idemix"
-	"github.com/hyperledger/fabric/bccsp/sw"
 	"github.com/pkg/errors"
 )
 var mspLogger = flogging.MustGetLogger("msp")
@@ -64,15 +62,10 @@ type idemixmsp struct {
 }
 
 // NewIdemixMsp creates a new instance of idemixmsp
-func NewIdemixMsp(version msp1.MSPVersion) (msp1.MSP, error) {
+func NewIdemixMsp(version msp1.MSPVersion, bccsp bccsp.BCCSP) (msp1.MSP, error) {
 	mspLogger.Debugf("Creating Idemix-based MSP instance")
 
-	csp, err := idemixbccsp.New(sw.NewDummyKeyStore())
-	if err != nil {
-		panic(fmt.Sprintf("unexpected condition, error received [%s]", err))
-	}
-
-	msp := idemixmsp{csp: csp}
+	msp := idemixmsp{csp: bccsp}
 	msp.version = version
 	return &msp, nil
 }

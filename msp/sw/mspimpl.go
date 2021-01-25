@@ -177,7 +177,6 @@ func (msp *bccspmsp) getCertFromPem(idBytes []byte) (*x509.Certificate, error) {
 	var cert *x509.Certificate
 	cert, err := x509.ParseCertificate(pemCert.Bytes)
 	if err != nil {
-		mspLogger.Error("....我在这儿")
 		return nil, errors.Wrap(err, "getCertFromPem error: failed to parse x509 cert")
 	}
 

@@ -210,7 +210,6 @@ const (
 	FABRIC ProviderType = iota // MSP is of FABRIC type
 	IDEMIX                     // MSP is of IDEMIX type
 	OTHER                      // MSP is of OTHER TYPE
-	GM                         // MSP is of GM TYPE
 
 	// NOTE: as new types are added to this set,
 	// the mspTypes map below must be extended
@@ -241,21 +240,14 @@ type IdemixNewOpts struct {
 	NewBaseOpts
 }
 
-// IdemixNewOpts contains the options to instantiate a new Idemix-based MSP
-type GMNewOpts struct {
-	NewBaseOpts
-}
-
 var mspTypeStrings = map[ProviderType]string{
 	FABRIC: "bccsp",
 	IDEMIX: "idemix",
-	GM:     "GM",
 }
 
 var Options = map[string]NewOpts{
 	ProviderTypeToString(FABRIC): &BCCSPNewOpts{NewBaseOpts: NewBaseOpts{Version: MSPv1_4_3}},
 	ProviderTypeToString(IDEMIX): &IdemixNewOpts{NewBaseOpts: NewBaseOpts{Version: MSPv1_1}},
-	ProviderTypeToString(GM):     &GMNewOpts{NewBaseOpts: NewBaseOpts{Version: MSPv1_4_3}},
 }
 
 // ProviderTypeToString returns a string that represents the ProviderType integer
