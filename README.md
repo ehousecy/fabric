@@ -70,18 +70,12 @@ git clone https://github.com/hyperledger/fabric-samples
 # 3.2 修改yaml文件
 修改如下
 orderer:  
-      - ORDERER_GENERAL_TLS_ENABLED=false //禁用tls
-      - ORDERER_GENERAL_LOCALMSPTYPE=GM //msp的类型,目前有bccsp、idemix和GM三种
       - ORDERER_GENERAL_BCCSP_DEFAULT=GM //bccsp实例，目前有SW、PKCS11和GM
 peer:
-      - CORE_PEER_TLS_ENABLED=false //禁用tls
-      - CORE_PEER_LOCALMSPTYPE=GM
       - CORE_PEER_BCCSP_DEFAULT=GM           
 # 3.3 修改脚本
 envVar.sh：
-    export CORE_PEER_LOCALMSPTYPE=GM
     export CORE_PEER_BCCSP_DEFAULT=GM
-    export CORE_PEER_TLS_ENABLED=false
 createChannel.sh、deployCC.sh：
 network.sh:
     cryptogen generate 加上--useGM
