@@ -9,8 +9,8 @@ package accesscontrol
 import (
 	"context"
 	"crypto/x509"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls/gmcredentials"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"google.golang.org/grpc/credentials"
 	"sync"
 	"time"

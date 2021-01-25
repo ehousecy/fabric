@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/x509"
-	"github.com/tjfoc/gmsm/sm2"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"math/rand"
 	"sync"
 

@@ -12,7 +12,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"github.com/tjfoc/gmtls"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"reflect"
 	"sync"
 	"sync/atomic"

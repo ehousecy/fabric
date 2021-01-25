@@ -17,8 +17,6 @@ limitations under the License.
 package msp
 
 import (
-	factory2 "github.com/hyperledger/fabric/msp/factory"
-	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"path/filepath"
 	"testing"
 
@@ -49,7 +47,7 @@ func TestBadConfigOUCert(t *testing.T) {
 	conf, err := GetLocalMspConfig("testdata/badconfigoucert", nil, "SampleOrg")
 	assert.NoError(t, err)
 
-	thisMSP, err := sw2.newBccspMsp(factory2.MSPv1_0, factory.GetDefault())
+	thisMSP, err := NewBccspMsp(MSPv1_0, factory.GetDefault())
 	assert.NoError(t, err)
 
 	err = thisMSP.Setup(conf)
@@ -75,13 +73,13 @@ func TestValidateIntermediateConfigOU(t *testing.T) {
 
 	cryptoProvider, err := sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())
 	assert.NoError(t, err)
-	thisMSP, err = sw2.newBccspMsp(factory2.MSPv1_0, cryptoProvider)
+	thisMSP, err = NewBccspMsp(MSPv1_0, cryptoProvider)
 	assert.NoError(t, err)
 	ks, err := sw.NewFileBasedKeyStore(nil, filepath.Join("testdata/external", "keystore"), true)
 	assert.NoError(t, err)
 	csp, err := sw.NewWithParams(256, "SHA2", ks)
 	assert.NoError(t, err)
-	thisMSP.(*sw2.bccspmsp).bccsp = csp
+	thisMSP.(*bccspmsp).bccsp = csp
 
 	err = thisMSP.Setup(conf)
 	assert.NoError(t, err)

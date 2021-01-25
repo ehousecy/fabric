@@ -11,11 +11,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"math/big"
 	"net"
 	"time"
@@ -28,7 +28,7 @@ func newPrivKey() (*ecdsa.PrivateKey, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	privBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	privBytes, err := x509.MarshalECPrivateKey(privateKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -36,11 +36,11 @@ func newPrivKey() (*ecdsa.PrivateKey, []byte, error) {
 }
 
 func newSM2PrivKey() (*sm2.PrivateKey, []byte, error) {
-	privateKey, err := sm2.GenerateKey()
+	privateKey, err := sm2.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
-	privBytes, err := sm2.MarshalSm2PrivateKey(privateKey,nil)
+	privBytes, err := x509.MarshalECPrivateKey(privateKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,16 +61,16 @@ func newCertTemplate() (x509.Certificate, error) {
 	}, nil
 }
 
-func newSM2CertTemplate() (sm2.Certificate, error) {
+func newSM2CertTemplate() (x509.Certificate, error) {
 	sn, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		return sm2.Certificate{}, err
+		return x509.Certificate{}, err
 	}
-	return sm2.Certificate{
+	return x509.Certificate{
 		Subject:      pkix.Name{SerialNumber: sn.String()},
 		NotBefore:    time.Now().Add(time.Hour * (-24)),
 		NotAfter:     time.Now().Add(time.Hour * 24),
-		KeyUsage:     sm2.KeyUsageKeyEncipherment | sm2.KeyUsageDigitalSignature,
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		SerialNumber: sn,
 	}, nil
 }
@@ -154,24 +154,24 @@ func newSM2CertKeyPair(isCA bool, isServer bool, host string, certSigner crypto.
 	if err != nil {
 		return nil, err
 	}
-	template.SignatureAlgorithm = sm2.SM2WithSM3
+	template.SignatureAlgorithm = x509.SM2WithSM3
 
 	tenYearsFromNow := time.Now().Add(time.Hour * 24 * 365 * 10)
 	if isCA {
 		template.NotAfter = tenYearsFromNow
 		template.IsCA = true
-		template.KeyUsage |= sm2.KeyUsageCertSign | sm2.KeyUsageCRLSign
-		template.ExtKeyUsage = []sm2.ExtKeyUsage{
-			sm2.ExtKeyUsageClientAuth,
-			sm2.ExtKeyUsageServerAuth,
+		template.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+		template.ExtKeyUsage = []x509.ExtKeyUsage{
+			x509.ExtKeyUsageClientAuth,
+			x509.ExtKeyUsageServerAuth,
 		}
 		template.BasicConstraintsValid = true
 	} else {
-		template.ExtKeyUsage = []sm2.ExtKeyUsage{sm2.ExtKeyUsageClientAuth}
+		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 	}
 	if isServer {
 		template.NotAfter = tenYearsFromNow
-		template.ExtKeyUsage = append(template.ExtKeyUsage, sm2.ExtKeyUsageServerAuth)
+		template.ExtKeyUsage = append(template.ExtKeyUsage, x509.ExtKeyUsageServerAuth)
 		if ip := net.ParseIP(host); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
 		} else {
@@ -183,7 +183,7 @@ func newSM2CertKeyPair(isCA bool, isServer bool, host string, certSigner crypto.
 		parent = &template
 		certSigner = privateKey
 	}
-	rawBytes, err := sm2.CreateCertificate(rand.Reader, &template, parent.(*sm2.Certificate), &privateKey.PublicKey, certSigner)
+	rawBytes, err := x509.CreateCertificate(rand.Reader, &template, parent.(*x509.Certificate), &privateKey.PublicKey, certSigner)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func newSM2CertKeyPair(isCA bool, isServer bool, host string, certSigner crypto.
 	if block == nil { // Never comes unless x509 or pem has bug
 		return nil, errors.Errorf("%s: wrong PEM encoding", pubKey)
 	}
-	cert, err := sm2.ParseCertificate(block.Bytes)
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return nil, err
 	}

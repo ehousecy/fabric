@@ -8,7 +8,6 @@ package mgmt
 
 import (
 	"fmt"
-	sw2 "github.com/hyperledger/fabric/msp/sw"
 	"os"
 	"testing"
 
@@ -88,7 +87,7 @@ func TestMain(m *testing.M) {
 		os.Exit(-1)
 	}
 
-	XXXSetMSPManager("foo", sw2.NewMSPManager())
+	XXXSetMSPManager("foo", msp.NewMSPManager())
 	retVal := m.Run()
 	os.Exit(retVal)
 }

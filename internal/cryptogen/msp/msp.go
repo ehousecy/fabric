@@ -8,7 +8,7 @@ package msp
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"os"
 	"path/filepath"
 
@@ -137,7 +137,7 @@ func GenerateLocalMSP(
 	}
 
 	// generate config.yaml if required
-	if nodeOUs {
+	if nodeOUs && (nodeType == PEER || nodeType == ORDERER) {
 
 		exportConfig(mspDir, filepath.Join("cacerts", x509Filename(signCA.Name)), true)
 	}
@@ -149,7 +149,7 @@ func GenerateLocalMSP(
 	// cleared up anyway by copyAdminCert, but
 	// we leave a valid admin for now for the sake
 	// of unit tests
-	if !nodeOUs {
+	if ous[0] == ADMINOU {
 		err = x509Export(filepath.Join(mspDir, "admincerts", x509Filename(name)), cert)
 		if err != nil {
 			return err
@@ -162,7 +162,7 @@ func GenerateLocalMSP(
 
 
 	// generate X509 certificate using TLS CA
-	if useGM && useGMTLS{
+	if useGMTLS {
 		// generate private key
 		tlsPrivKey, err := csp.GenerateSM2PrivateKey(tlsDir)
 		if err != nil {
@@ -261,22 +261,22 @@ func GenerateVerifyingMSP(
 		exportConfig(baseDir, "cacerts/"+x509Filename(signCA.Name), true)
 	}
 
+	if nodeOUs {
+		return nil
+	}
+
 	// create a throwaway cert to act as an admin cert
 	// NOTE: the admincerts folder is going to be
 	// cleared up anyway by copyAdminCert, but
 	// we leave a valid admin for now for the sake
 	// of unit tests
-	if nodeOUs {
-		return nil
-	}
-
 	ksDir := filepath.Join(baseDir, "keystore")
 	err = os.Mkdir(ksDir, 0755)
 	defer os.RemoveAll(ksDir)
 	if err != nil {
 		return errors.WithMessage(err, "failed to create keystore directory")
 	}
-	if useGM && useGMTLS{
+	if useGM {
 		priv, err := csp.GenerateSM2PrivateKey(ksDir)
 		if err != nil {
 			return err

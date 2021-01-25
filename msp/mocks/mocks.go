@@ -8,7 +8,6 @@ package mocks
 
 import (
 	"github.com/hyperledger/fabric/msp"
-	"github.com/hyperledger/fabric/msp/factory"
 	"time"
 
 	pmsp "github.com/hyperledger/fabric-protos-go/msp"
@@ -31,11 +30,6 @@ func (m *MockMSP) DeserializeIdentity(serializedIdentity []byte) (msp.Identity, 
 func (m *MockMSP) Setup(config *pmsp.MSPConfig) error {
 	args := m.Called(config)
 	return args.Error(0)
-}
-
-func (m *MockMSP) GetVersion() factory.MSPVersion {
-	args := m.Called()
-	return args.Get(0).(factory.MSPVersion)
 }
 
 func (m *MockMSP) GetType() msp.ProviderType {

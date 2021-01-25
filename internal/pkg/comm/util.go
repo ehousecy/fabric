@@ -12,9 +12,9 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric/orderer/common/localconfig"
 	"github.com/spf13/viper"
-	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"net"
 

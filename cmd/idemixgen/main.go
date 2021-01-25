@@ -16,7 +16,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	idemix2 "github.com/hyperledger/fabric/msp/idemix"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -91,9 +90,9 @@ func main() {
 	case genSignerConfig.FullCommand():
 		roleMask := 0
 		if *genCredIsAdmin {
-			roleMask = idemix2.GetRoleMaskFromIdemixRole(idemix2.ADMIN)
+			roleMask = msp.GetRoleMaskFromIdemixRole(msp.ADMIN)
 		} else {
-			roleMask = idemix2.GetRoleMaskFromIdemixRole(idemix2.MEMBER)
+			roleMask = msp.GetRoleMaskFromIdemixRole(msp.MEMBER)
 		}
 		if *genCAInput == "" {
 			genCAInput = outputDir

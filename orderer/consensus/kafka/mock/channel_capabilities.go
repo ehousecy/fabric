@@ -2,7 +2,7 @@
 package mock
 
 import (
-	"github.com/hyperledger/fabric/msp/factory"
+	"github.com/hyperledger/fabric/msp"
 	"sync"
 )
 
@@ -17,15 +17,15 @@ type ChannelCapabilities struct {
 	consensusTypeMigrationReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	MSPVersionStub        func() factory.MSPVersion
+	MSPVersionStub        func() msp.MSPVersion
 	mSPVersionMutex       sync.RWMutex
 	mSPVersionArgsForCall []struct {
 	}
 	mSPVersionReturns struct {
-		result1 factory.MSPVersion
+		result1 msp.MSPVersion
 	}
 	mSPVersionReturnsOnCall map[int]struct {
-		result1 factory.MSPVersion
+		result1 msp.MSPVersion
 	}
 	OrgSpecificOrdererEndpointsStub        func() bool
 	orgSpecificOrdererEndpointsMutex       sync.RWMutex
@@ -103,7 +103,7 @@ func (fake *ChannelCapabilities) ConsensusTypeMigrationReturnsOnCall(i int, resu
 	}{result1}
 }
 
-func (fake *ChannelCapabilities) MSPVersion() factory.MSPVersion {
+func (fake *ChannelCapabilities) MSPVersion() msp.MSPVersion {
 	fake.mSPVersionMutex.Lock()
 	ret, specificReturn := fake.mSPVersionReturnsOnCall[len(fake.mSPVersionArgsForCall)]
 	fake.mSPVersionArgsForCall = append(fake.mSPVersionArgsForCall, struct {
@@ -126,32 +126,32 @@ func (fake *ChannelCapabilities) MSPVersionCallCount() int {
 	return len(fake.mSPVersionArgsForCall)
 }
 
-func (fake *ChannelCapabilities) MSPVersionCalls(stub func() factory.MSPVersion) {
+func (fake *ChannelCapabilities) MSPVersionCalls(stub func() msp.MSPVersion) {
 	fake.mSPVersionMutex.Lock()
 	defer fake.mSPVersionMutex.Unlock()
 	fake.MSPVersionStub = stub
 }
 
-func (fake *ChannelCapabilities) MSPVersionReturns(result1 factory.MSPVersion) {
+func (fake *ChannelCapabilities) MSPVersionReturns(result1 msp.MSPVersion) {
 	fake.mSPVersionMutex.Lock()
 	defer fake.mSPVersionMutex.Unlock()
 	fake.MSPVersionStub = nil
 	fake.mSPVersionReturns = struct {
-		result1 factory.MSPVersion
+		result1 msp.MSPVersion
 	}{result1}
 }
 
-func (fake *ChannelCapabilities) MSPVersionReturnsOnCall(i int, result1 factory.MSPVersion) {
+func (fake *ChannelCapabilities) MSPVersionReturnsOnCall(i int, result1 msp.MSPVersion) {
 	fake.mSPVersionMutex.Lock()
 	defer fake.mSPVersionMutex.Unlock()
 	fake.MSPVersionStub = nil
 	if fake.mSPVersionReturnsOnCall == nil {
 		fake.mSPVersionReturnsOnCall = make(map[int]struct {
-			result1 factory.MSPVersion
+			result1 msp.MSPVersion
 		})
 	}
 	fake.mSPVersionReturnsOnCall[i] = struct {
-		result1 factory.MSPVersion
+		result1 msp.MSPVersion
 	}{result1}
 }
 

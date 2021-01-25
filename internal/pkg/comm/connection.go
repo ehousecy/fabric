@@ -9,9 +9,9 @@ package comm
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls"
-	"github.com/tjfoc/gmtls/gmcredentials"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"sync"
 
 	"github.com/hyperledger/fabric/common/channelconfig"
@@ -105,15 +105,18 @@ func (cs *CredentialSupport) GetPeerCredentials() interface{} {
 
 	certPool := x509.NewCertPool()
 	for _, appRootCA := range appRootCAs {
+
 		err := AddPemToCertPool(appRootCA, certPool)
 		if err != nil {
 			commLogger.Warningf("Failed adding certificates to peer's client TLS trust pool: %s", err)
 		}
 	}
 
+	certPoolCopy := x509.NewCertPool()
+
 	return credentials.NewTLS(&tls.Config{
 		Certificates: []tls.Certificate{cs.clientCert},
-		RootCAs:      certPool,
+		RootCAs:      certPoolCopy,
 	})
 }
 

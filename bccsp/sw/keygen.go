@@ -21,6 +21,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 
 	"github.com/hyperledger/fabric/bccsp"
 )
@@ -50,3 +51,19 @@ func (kg *aesKeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
 
 	return &aesPrivateKey{lowLevelKey, false}, nil
 }
+
+
+//定义国密SM2 keygen 结构体，实现 KeyGenerator 接口
+type sm2KeyGenerator struct {
+}
+
+func (gm *sm2KeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error) {
+	//调用 SM2的注册证书方法
+	privKey, err := sm2.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("Failed generating GMSM2 key  [%s]", err)
+	}
+
+	return &gmsm2PrivateKey{privKey}, nil
+}
+

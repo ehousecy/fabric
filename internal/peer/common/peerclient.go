@@ -8,7 +8,7 @@ package common
 
 import (
 	"context"
-	"github.com/tjfoc/gmtls"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"io/ioutil"
 	"time"
 

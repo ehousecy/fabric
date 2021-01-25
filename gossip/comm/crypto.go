@@ -8,7 +8,7 @@ package comm
 
 import (
 	"context"
-	"github.com/tjfoc/gmtls/gmcredentials"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 
 	"github.com/hyperledger/fabric/common/util"
 	"google.golang.org/grpc/credentials"

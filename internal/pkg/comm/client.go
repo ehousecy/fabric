@@ -10,9 +10,10 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric/common/util"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls"
+
 	"time"
 
 	"github.com/pkg/errors"

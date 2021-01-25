@@ -9,10 +9,10 @@ package comm
 import (
 	"crypto/tls"
 	"crypto/x509"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/pkg/errors"
-	"github.com/tjfoc/gmsm/sm2"
-	"github.com/tjfoc/gmtls"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"

@@ -14,7 +14,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"io/ioutil"
 	"math/big"
 	"net"

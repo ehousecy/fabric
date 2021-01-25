@@ -22,7 +22,7 @@ package peer
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/tjfoc/gmtls"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"io/ioutil"
 	"net"
 	"path/filepath"

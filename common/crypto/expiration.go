@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric/internal/pkg/comm"
-	"github.com/tjfoc/gmsm/sm2"
 	"time"
 
 	"github.com/golang/protobuf/proto"

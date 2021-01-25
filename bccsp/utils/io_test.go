@@ -25,7 +25,7 @@ import (
 )
 
 func TestDirExists(t *testing.T) {
-	r, err := DirExists(")
+	r, err := DirExists("")
 	assert.False(t, r)
 	assert.NoError(t, err)
 
@@ -39,7 +39,7 @@ func TestDirExists(t *testing.T) {
 }
 
 func TestDirMissingOrEmpty(t *testing.T) {
-	r, err := DirMissingOrEmpty(")
+	r, err := DirMissingOrEmpty("")
 	assert.NoError(t, err)
 	assert.True(t, r)
 
@@ -49,7 +49,7 @@ func TestDirMissingOrEmpty(t *testing.T) {
 }
 
 func TestDirEmpty(t *testing.T) {
-	_, err := DirEmpty(")
+	_, err := DirEmpty("")
 	assert.Error(t, err)
 
 	path := filepath.Join(os.TempDir(), "7rhf90239vhev90")

@@ -9,9 +9,10 @@ package sw
 import (
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	x509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"reflect"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -112,6 +113,44 @@ func (*ecdsaGoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 	return &ecdsaPublicKey{lowLevelKey}, nil
 }
 
+type sm2PrivateKeyImportOptsKeyImporter struct{}
+
+func (*sm2PrivateKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
+
+	der, ok := raw.([]byte)
+	if !ok {
+		return nil, errors.New("[GMSM2PrivateKeyImportOpts] Invalid raw material. Expected byte array.")
+	}
+
+	if len(der) == 0 {
+		return nil, errors.New("[GMSM2PrivateKeyImportOpts] Invalid raw. It must not be nil.")
+	}
+
+	lowLevelKey, err := derToPrivateKey(der)
+	if err != nil {
+		return nil, fmt.Errorf("Failed converting PKIX to ECDSA public key [%s]", err)
+	}
+
+	sm2SK, ok := lowLevelKey.(*sm2.PrivateKey)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed converting to GMSM2 private key [%s]", err)
+	}
+
+	return &gmsm2PrivateKey{sm2SK}, nil
+}
+
+type sm2GoPublicKeyImportOptsKeyImporter struct{}
+
+func (*sm2GoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (bccsp.Key, error) {
+	lowLevelKey, ok := raw.(*sm2.PublicKey)
+	if !ok {
+		return nil, errors.New("Invalid raw material. Expected *ecdsa.PublicKey.")
+	}
+
+	return &gmsm2PublicKey{lowLevelKey}, nil
+}
+
 type x509PublicKeyImportOptsKeyImporter struct {
 	bccsp *CSP
 }
@@ -126,9 +165,27 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 
 	switch pk := pk.(type) {
 	case *ecdsa.PublicKey:
-		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{})].KeyImport(
+		switch pk.Curve {
+		case sm2.P256() :
+			sm2pk := &sm2.PublicKey{
+				Curve : pk.Curve,
+				X : pk.X,
+				Y : pk.Y,
+			}
+			return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.GMSM2PublicKeyImportOpts{})].KeyImport(
+				sm2pk,
+				&bccsp.GMSM2PublicKeyImportOpts{Temporary: opts.Ephemeral()})
+		default:
+			return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{})].KeyImport(
+				pk,
+				&bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+		}
+
+	case *sm2.PublicKey:
+		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.GMSM2PublicKeyImportOpts{})].KeyImport(
 			pk,
-			&bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+			&bccsp.GMSM2PublicKeyImportOpts{Temporary: opts.Ephemeral()})
+
 	case *rsa.PublicKey:
 		// This path only exists to support environments that use RSA certificate
 		// authorities to issue ECDSA certificates.
