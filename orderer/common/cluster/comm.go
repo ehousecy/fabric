@@ -12,6 +12,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -321,11 +322,23 @@ func (c *Comm) updateStubInMapping(channel string, mapping MemberMapping, node R
 // a stub atomically.
 func (c *Comm) createRemoteContext(stub *Stub, channel string) func() (*RemoteContext, error) {
 	return func() (*RemoteContext, error) {
-		cert, err := x509.ParseCertificate(stub.ServerTLSCert)
-		if err != nil {
-			pemString := string(pem.EncodeToMemory(&pem.Block{Bytes: stub.ServerTLSCert}))
-			c.Logger.Errorf("Invalid DER for channel %s, endpoint %s, ID %d: %v", channel, stub.Endpoint, stub.ID, pemString)
-			return nil, errors.Wrap(err, "invalid certificate DER")
+		var expiresAt time.Time
+		if comm.IsSM2Certificate(stub.ServerTLSCert, false){
+			cert, err := sm2.ParseCertificate(stub.ServerTLSCert)
+			if err != nil {
+				pemString := string(pem.EncodeToMemory(&pem.Block{Bytes: stub.ServerTLSCert}))
+				c.Logger.Errorf("Invalid DER for channel %s, endpoint %s, ID %d: %v", channel, stub.Endpoint, stub.ID, pemString)
+				return nil, errors.Wrap(err, "invalid certificate DER")
+			}
+			expiresAt = cert.NotAfter
+		}else{
+			cert, err := x509.ParseCertificate(stub.ServerTLSCert)
+			if err != nil {
+				pemString := string(pem.EncodeToMemory(&pem.Block{Bytes: stub.ServerTLSCert}))
+				c.Logger.Errorf("Invalid DER for channel %s, endpoint %s, ID %d: %v", channel, stub.Endpoint, stub.ID, pemString)
+				return nil, errors.Wrap(err, "invalid certificate DER")
+			}
+			expiresAt = cert.NotAfter
 		}
 
 		c.Logger.Debug("Connecting to", stub.RemoteNode, "for channel", channel)
@@ -351,7 +364,7 @@ func (c *Comm) createRemoteContext(stub *Stub, channel string) func() (*RemoteCo
 		}
 
 		rc := &RemoteContext{
-			expiresAt:                        cert.NotAfter,
+			expiresAt:                        expiresAt,
 			minimumExpirationWarningInterval: c.MinimumExpirationWarningInterval,
 			certExpWarningThreshold:          c.CertExpWarningThreshold,
 			workerCountReporter:              workerCountReporter,
@@ -737,7 +750,14 @@ func commonNameFromContext(ctx context.Context) string {
 	if cert == nil {
 		return "unidentified node"
 	}
-	return cert.Subject.CommonName
+	switch cert.(type) {
+	case *x509.Certificate:
+		return cert.(*x509.Certificate).Subject.CommonName
+	case *sm2.Certificate:
+		return cert.(*sm2.Certificate).Subject.CommonName
+	default:
+		panic("unSupport cert type")
+	}
 }
 
 type streamsMapperReporter struct {

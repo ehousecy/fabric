@@ -419,21 +419,39 @@ func (ep EndpointCriteria) String() string {
 			if bl == nil {
 				break
 			}
-			cert, err := x509.ParseCertificate(bl.Bytes)
-			if err != nil {
-				break
-			}
+			if comm.IsSM2Certificate(bl.Bytes, false) {
+				cert, err := sm2.ParseCertificate(bl.Bytes)
+				if err != nil {
+					break
+				}
 
-			issuedBy := cert.Issuer.String()
-			if cert.Issuer.String() == cert.Subject.String() {
-				issuedBy = "self"
-			}
+				issuedBy := cert.Issuer.String()
+				if cert.Issuer.String() == cert.Subject.String() {
+					issuedBy = "self"
+				}
 
-			info := make(map[string]interface{})
-			info["Expired"] = time.Now().After(cert.NotAfter)
-			info["Subject"] = cert.Subject.String()
-			info["Issuer"] = issuedBy
-			formattedCAs = append(formattedCAs, info)
+				info := make(map[string]interface{})
+				info["Expired"] = time.Now().After(cert.NotAfter)
+				info["Subject"] = cert.Subject.String()
+				info["Issuer"] = issuedBy
+				formattedCAs = append(formattedCAs, info)
+			}else{
+				cert, err := x509.ParseCertificate(bl.Bytes)
+				if err != nil {
+					break
+				}
+
+				issuedBy := cert.Issuer.String()
+				if cert.Issuer.String() == cert.Subject.String() {
+					issuedBy = "self"
+				}
+
+				info := make(map[string]interface{})
+				info["Expired"] = time.Now().After(cert.NotAfter)
+				info["Subject"] = cert.Subject.String()
+				info["Issuer"] = issuedBy
+				formattedCAs = append(formattedCAs, info)
+			}
 		}
 	}
 

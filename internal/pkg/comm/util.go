@@ -15,6 +15,7 @@ import (
 	"github.com/hyperledger/fabric/orderer/common/localconfig"
 	"github.com/spf13/viper"
 	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls/gmcredentials"
 	"io/ioutil"
 	"net"
 
@@ -48,12 +49,19 @@ func AddGMPemToCertPool(pemCerts []byte, pool *sm2.CertPool) error {
 	return nil
 }
 
-func IsSM2Certificate (pemCert []byte) bool {
-	var block *pem.Block
-	block,_ = pem.Decode(pemCert)
-	cert, err := sm2.ParseCertificate(block.Bytes)
-	if err == nil {
-		return cert.SignatureAlgorithm == sm2.SM2WithSM3
+func IsSM2Certificate (pemCert []byte, needDecode bool) bool {
+	if needDecode {
+		var block *pem.Block
+		block, _ = pem.Decode(pemCert)
+		cert, err := sm2.ParseCertificate(block.Bytes)
+		if err == nil {
+			return cert.SignatureAlgorithm == sm2.SM2WithSM3
+		}
+	}else{
+		cert, err := sm2.ParseCertificate(pemCert)
+		if err == nil {
+			return cert.SignatureAlgorithm == sm2.SM2WithSM3
+		}
 	}
 	return false
 }
@@ -65,7 +73,7 @@ func IsGM() bool {
 		if err != nil {
 			panic(errors.WithMessage(err, "error read peer TLS certificate"))
 		}
-		isGM := IsSM2Certificate(clientCert)
+		isGM := IsSM2Certificate(clientCert, true)
 		commLogger.Debugf("peerTlsCert is gm cert : %v", isGM)
 		return isGM
 	}else if conf, err := localconfig.Load(); err == nil {
@@ -73,7 +81,7 @@ func IsGM() bool {
 		if err != nil {
 			panic( errors.WithMessage(err, "error read orderer TLS certificate"))
 		}
-		isGM := IsSM2Certificate(ordererTlsCert)
+		isGM := IsSM2Certificate(ordererTlsCert, true)
 		commLogger.Debugf("ordererTlsCert is gm cert : %v", isGM)
 		return isGM
 	} else {
@@ -215,7 +223,7 @@ func ExtractCertificateHashFromContext(ctx context.Context) []byte {
 
 // ExtractCertificateFromContext returns the TLS certificate (if applicable)
 // from the given context of a gRPC stream
-func ExtractCertificateFromContext(ctx context.Context) *x509.Certificate {
+func ExtractCertificateFromContext(ctx context.Context) interface{} {
 	pr, extracted := peer.FromContext(ctx)
 	if !extracted {
 		return nil
@@ -226,15 +234,30 @@ func ExtractCertificateFromContext(ctx context.Context) *x509.Certificate {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
-	if !isTLSConn {
+	switch authInfo.(type) {
+	case credentials.TLSInfo:
+		tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
+		if !isTLSConn {
+			return nil
+		}
+		certs := tlsInfo.State.PeerCertificates
+		if len(certs) == 0 {
+			return nil
+		}
+		return certs[0]
+	case gmcredentials.AuthInfo:
+		tlsInfo, isTLSConn := authInfo.(gmcredentials.TLSInfo)
+		if !isTLSConn {
+			return nil
+		}
+		certs := tlsInfo.State.PeerCertificates
+		if len(certs) == 0 {
+			return nil
+		}
+		return certs[0]
+	default:
 		return nil
 	}
-	certs := tlsInfo.State.PeerCertificates
-	if len(certs) == 0 {
-		return nil
-	}
-	return certs[0]
 }
 
 // ExtractRawCertificateFromContext returns the raw TLS certificate (if applicable)
@@ -244,7 +267,14 @@ func ExtractRawCertificateFromContext(ctx context.Context) []byte {
 	if cert == nil {
 		return nil
 	}
-	return cert.Raw
+	switch cert.(type) {
+	case *x509.Certificate:
+		return cert.(*x509.Certificate).Raw
+	case *sm2.Certificate:	
+		return cert.(*sm2.Certificate).Raw
+	default:
+		panic("unSupport cert type")
+	}
 }
 
 // GetLocalIP returns the non loopback local IP of the host

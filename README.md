@@ -6,36 +6,8 @@
 >> 这是基于fabric-v2.2.0修改的支持国密算法的fabric，已通过命令行完成网络部署以及链码操作测试。
 
 #### 待办事项
-
-- [ ] TLS修改 （暂不支持TLS模式）
-  - [x] 修改思路
-    - [x] 以Credential作为修改入口，首先修改pkg/comm下的client、server和connection等文件,然后引用的地方做修改和兼容
-    - [x] x509.Certificate和x509.newCertPool()相关的地方做适配
-    - [x] 合约部分自签名证书做适配，支持gm
-      - [x] peer节点启动时会生成自签名TLS根证书，然后智能合约启动时会签发TLS客户端证书
-  - [x] 先打算TLS部分使用ECDSA调试(测试通过)
-  - [x] 国密TLS开关设定 目前通过peer/orderer tls根证书和bccsp类型来判断
-  - [x] 智能合约tls通信没有异常
-    - [x] peer与智能合约通信使用的是自签名的ecdsa秘钥对
-       - [x] 扩展CA，支持sm2秘钥对
-          - [x] Error starting fabcar chaincode: failed to parse client key pair
-  - [x] 证书混用报错
-    - [x] 国密证书 + ECDSA TLS证书 验证通过
-    - [x] ECDSA证书 + 国密TLS 证书 会在setup的时候报错(mspimpl无法解析gmtls证书，算已知问题吧，这里仅做测试，后续签名证书和TLS证书会做成一致的)
-  - [x] 判断是否为SM证书或者GM模式
-    - [x] 通过证书签名算法是否为SM2WithSM3来判断
-  - [ ] 共识切换为raft
-     - [x] IsConsenterOfChannel 报错 crypto.CertificatesWithSamePublicKey 做适配
-     - [x] ValidateConsensusMetadata 报错 createX509VerifyOptions,VerifyConfigMetadata,validateConsenterTLSCerts 需要做适配
-     - [ ] 多排序节点测试 
-- [ ] fabric-chaincode-go 依赖库支持国密
-  - [x] shim
-    - [x] TLS credentials 适配
-  - [ ] pkg
-- [x] mspType GM 删除
-   - [x] 调用处修改：loadLocalMSP 引用，opts, found := msp.Options[conf.General.LocalMSPType]
-   - [x] msp配置中type类型改回fabric
-   - [x] 通过配置加载/解析localMsp处修改适配方式
+- [ ] fabric-sdk-go国密支持
+- [ ] fabric-ca国密支持
 
 #### 已做修改
 
@@ -45,9 +17,38 @@
 - [x] 证书生成工具兼容ecdsa和gm
   - [x] cryptogen generate新增--useGM选项,需要生成国密证书时需加入这个参数(!注意这个参与不需要赋值--useGM 指定即可)
   - [x] cryptogen generate新增--useGMTLS选项,需要生成国密TLS证书时需加入这个参数(!注意这个参与不需要赋值--useGMTLS 指定即可)
+- [x] TLS修改 （暂不支持TLS模式）
+  - [x] 修改思路
+    - [x] 以Credential作为修改入口，首先修改pkg/comm下的client、server和connection等文件,然后引用的地方做修改和兼容
+    - [x] x509.Certificate和x509.newCertPool()相关的地方做适配
+    - [x] 合约部分自签名证书做适配，支持gm
+      - [x] peer节点启动时会生成自签名TLS根证书，然后智能合约启动时会签发TLS客户端证书
+  - [x] 先打算TLS部分使用ECDSA调试(测试通过)
+  - [x] 国密TLS开关设定 目前通过peer/orderer tls根证书和bccsp类型来判断
+  - [x] 智能合约tls通信没有异常
+    - [x] peer与智能合约通信使用的是自签名的ecdsa秘钥对
+      - [x] 扩展CA，支持sm2秘钥对
+        - [x] Error starting fabcar chaincode: failed to parse client key pair
+  - [x] 证书混用报错
+    - [x] 国密证书 + ECDSA TLS证书 验证通过
+    - [x] ECDSA证书 + 国密TLS 证书 会在setup的时候报错(mspimpl无法解析gmtls证书，算已知问题吧，这里仅做测试，后续签名证书和TLS证书会做成一致的)
+  - [x] 判断是否为SM证书或者GM模式
+    - [x] 通过证书签名算法是否为SM2WithSM3来判断
+  - [x] 共识切换为raft
+    - [x] IsConsenterOfChannel 报错 crypto.CertificatesWithSamePublicKey 做适配
+    - [x] ValidateConsensusMetadata 报错 createX509VerifyOptions,VerifyConfigMetadata,validateConsenterTLSCerts 需要做适配
+    - [x] 多排序节点测试 验证通过
+- [x] fabric-chaincode-go 依赖库支持国密
+  - [x] shim
+    - [x] TLS credentials 适配
+  - [x] pkg
+    - [x] cid 默认init方法会解析x509证书，我们用sm2来解析，然后转换为x509的证书
+- [x] mspType GM 删除
+  - [x] 调用处修改：loadLocalMSP 引用，opts, found := msp.Options[conf.General.LocalMSPType]
+  - [x] msp配置中type类型改回fabric
+  - [x] 通过配置加载/解析localMsp处修改适配方式  
 
 #### 疑问点
-- 国密支持需要修改mspType?是否能通过增加国密bccsp实现
 - bccsp实现之一的IDEMIX本质上是依赖于SW的,那么新增了GM，IDEMIX如何适配？
 #### 项目测试
 
@@ -78,11 +79,8 @@ envVar.sh：
     export CORE_PEER_BCCSP_DEFAULT=GM
 createChannel.sh、deployCC.sh：
 network.sh:
-    cryptogen generate 加上--useGM
+    cryptogen generate 加上--useGM --useGMTLS
     禁用tls  
-# 3.4 修改configtx.yaml
-修改组织mspType:
-    MSPType: GM //msp类型 bccsp/idemix/GM, 默认是bccsp，如果想切换到国密需修改为GM            
 ```
 
 - 修改智能合约

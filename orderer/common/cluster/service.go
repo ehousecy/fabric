@@ -8,6 +8,8 @@ package cluster
 
 import (
 	"context"
+	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"io"
 	"time"
 
@@ -124,7 +126,14 @@ func expiresAt(stream orderer.Cluster_StepServer) time.Time {
 	if cert == nil {
 		return time.Time{}
 	}
-	return cert.NotAfter
+	switch cert.(type) {
+	case *x509.Certificate:
+		return cert.(*x509.Certificate).NotAfter
+	case *sm2.Certificate:
+		return cert.(*sm2.Certificate).NotAfter
+	default:
+		panic("unSupport cert type")
+	}
 }
 
 func extractChannel(msg *orderer.StepRequest) string {

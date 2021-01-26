@@ -460,7 +460,7 @@ func GetClientCertificate() (interface{}, error) {
 		return cert, errors.WithMessage(err,
 			"error loading client TLS certificate")
 	}
-	if comm.IsSM2Certificate(clientCert) {
+	if comm.IsSM2Certificate(clientCert, true) {
 		cert2, err := gmtls.X509KeyPair(clientCert, clientKey)
 		if err != nil {
 			return cert, errors.WithMessage(err,
