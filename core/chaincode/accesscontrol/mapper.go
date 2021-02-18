@@ -8,6 +8,8 @@ package accesscontrol
 
 import (
 	"context"
+	"crypto/x509"
+	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"sync"
 	"time"
@@ -62,7 +64,15 @@ func (r *certMapper) genCert(name string) (*tlsgen.CertKeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := util.ComputeSHA256(keyPair.TLSCert.Raw)
+	var hash []byte
+	switch cert := keyPair.TLSCert.(type) {
+	case *x509.Certificate:
+		hash = util.ComputeSHA256(cert.Raw)
+	case *sm2.Certificate:
+		hash = util.ComputeSHA256(cert.Raw)
+	default:
+		panic("UnSupport certificate type")
+	}
 	r.register(certHash(hash), name)
 	return keyPair, nil
 }

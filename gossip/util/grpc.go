@@ -22,21 +22,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-// CA that generates TLS key-pairs
-var ca = createCAOrPanic()
-
-func createCAOrPanic() tlsgen.CA {
+// CreateGRPCLayer returns a new gRPC server with associated port, TLS certificates, SecureDialOpts and DialOption
+func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLSCertificates,
+	secureDialOpts api.PeerSecureDialOpts, dialOpts []grpc.DialOption) {
 	ca, err := tlsgen.NewCA()
 	if err != nil {
 		panic(fmt.Sprintf("failed creating CA: %+v", err))
 	}
-	return ca
-}
-
-// CreateGRPCLayer returns a new gRPC server with associated port, TLS certificates, SecureDialOpts and DialOption
-func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLSCertificates,
-	secureDialOpts api.PeerSecureDialOpts, dialOpts []grpc.DialOption) {
-
 	serverKeyPair, err := ca.NewServerCertKeyPair("127.0.0.1")
 	if err != nil {
 		panic(err)

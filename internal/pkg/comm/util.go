@@ -14,8 +14,11 @@ import (
 	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/golang/protobuf/proto"
 	gmcredential "github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
+	"github.com/hyperledger/fabric/orderer/common/localconfig"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc/peer"
+	"io/ioutil"
 	"net"
 )
 
@@ -166,4 +169,46 @@ func GetLocalIP() (string, error) {
 		}
 	}
 	return "", errors.Errorf("no non-loopback, IPv4 interface detected")
+}
+
+func IsGM() bool {
+	peerTlsCertPath := viper.GetString("peer.tls.rootcert.file")
+	if peerTlsCertPath != "" {
+		clientCert, err := ioutil.ReadFile(peerTlsCertPath)
+		if err != nil {
+			panic(errors.WithMessage(err, "error read peer TLS certificate"))
+		}
+		isGM := IsSM2Certificate(clientCert, true)
+		commLogger.Debugf("peerTlsCert is gm cert : %v", isGM)
+		return isGM
+	}else if conf, err := localconfig.Load(); err == nil {
+		ordererTlsCert, err := ioutil.ReadFile(conf.General.TLS.RootCAs[0])
+		if err != nil {
+			panic( errors.WithMessage(err, "error read orderer TLS certificate"))
+		}
+		isGM := IsSM2Certificate(ordererTlsCert, true)
+		commLogger.Debugf("ordererTlsCert is gm cert : %v", isGM)
+		return isGM
+	} else {
+		peerUseGM := viper.GetString("peer.BCCSP.Default") == "GM"
+		commLogger.Debugf("peerUseGM : %v", peerUseGM)
+		return peerUseGM
+	}
+}
+
+func IsSM2Certificate (pemCert []byte, needDecode bool) bool {
+	if needDecode {
+		var block *pem.Block
+		block, _ = pem.Decode(pemCert)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err == nil {
+			return cert.SignatureAlgorithm == x509.SM2WithSM3
+		}
+	}else{
+		cert, err := x509.ParseCertificate(pemCert)
+		if err == nil {
+			return cert.SignatureAlgorithm == x509.SM2WithSM3
+		}
+	}
+	return false
 }
