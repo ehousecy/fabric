@@ -1,0 +1,16 @@
+export FABRIC_LOGGING_SPEC=grpc=debug:DEBUG
+export ORDERER_GENERAL_LISTENADDRESS=0.0.0.0;
+export ORDERER_GENERAL_LISTENPORT=7050
+export ORDERER_GENERAL_GENESISMETHOD=file
+export ORDERER_GENERAL_GENESISFILE=/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/system-genesis-block/genesis.block
+export ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+export ORDERER_GENERAL_LOCALMSPDIR=/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/msp
+export ORDERER_GENERAL_TLS_ENABLED=true
+export ORDERER_GENERAL_TLS_PRIVATEKEY=/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.key
+export ORDERER_GENERAL_TLS_CERTIFICATE=/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.crt
+export ORDERER_GENERAL_TLS_ROOTCAS=[/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/ca.crt]
+export ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.crt
+export ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.key
+export ORDERER_GENERAL_CLUSTER_ROOTCAS=[/opt/goworkspace/src/github.com/hyperledger/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/ca.crt]
+export FABRIC_CFG_PATH=sampleconfig
+./build/bin/orderer start

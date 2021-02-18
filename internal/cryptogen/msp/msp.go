@@ -8,6 +8,7 @@ package msp
 import (
 	"crypto/x509"
 	"encoding/pem"
+	GMX509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"os"
 	"path/filepath"
 
@@ -47,6 +48,8 @@ func GenerateLocalMSP(
 	tlsCA *ca.CA,
 	nodeType int,
 	nodeOUs bool,
+	useGM bool,
+	useGMTLS bool,
 ) error {
 
 	// create folder structure
@@ -69,28 +72,49 @@ func GenerateLocalMSP(
 	// get keystore path
 	keystore := filepath.Join(mspDir, "keystore")
 
-	// generate private key
-	priv, err := csp.GeneratePrivateKey(keystore)
-	if err != nil {
-		return err
-	}
 
 	// generate X509 certificate using signing CA
 	var ous []string
 	if nodeOUs {
 		ous = []string{nodeOUMap[nodeType]}
 	}
-	cert, err := signCA.SignCertificate(
-		filepath.Join(mspDir, "signcerts"),
-		name,
-		ous,
-		nil,
-		&priv.PublicKey,
-		x509.KeyUsageDigitalSignature,
-		[]x509.ExtKeyUsage{},
-	)
-	if err != nil {
-		return err
+	var cert interface{}
+	if useGM {
+		// generate private key
+		priv, err := csp.GenerateSM2PrivateKey(keystore)
+		if err != nil {
+			return err
+		}
+		cert, err = signCA.SignSM2Certificate(
+			filepath.Join(mspDir, "signcerts"),
+			name,
+			ous,
+			nil,
+			&priv.PublicKey,
+			GMX509.KeyUsageDigitalSignature,
+			[]GMX509.ExtKeyUsage{},
+		)
+		if err != nil {
+			return err
+		}
+	}else {
+		// generate private key
+		priv, err := csp.GeneratePrivateKey(keystore)
+		if err != nil {
+			return err
+		}
+		cert, err = signCA.SignCertificate(
+			filepath.Join(mspDir, "signcerts"),
+			name,
+			ous,
+			nil,
+			&priv.PublicKey,
+			x509.KeyUsageDigitalSignature,
+			[]x509.ExtKeyUsage{},
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	// write artifacts to MSP folders
@@ -136,25 +160,46 @@ func GenerateLocalMSP(
 		Generate the TLS artifacts in the TLS folder
 	*/
 
-	// generate private key
-	tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
-	if err != nil {
-		return err
-	}
 
 	// generate X509 certificate using TLS CA
-	_, err = tlsCA.SignCertificate(
-		filepath.Join(tlsDir),
-		name,
-		nil,
-		sans,
-		&tlsPrivKey.PublicKey,
-		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth,
-			x509.ExtKeyUsageClientAuth},
-	)
-	if err != nil {
-		return err
+	if useGMTLS{
+		// generate private key
+		tlsPrivKey, err := csp.GenerateSM2PrivateKey(tlsDir)
+		if err != nil {
+			return err
+		}
+		_, err = tlsCA.SignSM2Certificate(
+			filepath.Join(tlsDir),
+			name,
+			nil,
+			sans,
+			&tlsPrivKey.PublicKey,
+			GMX509.KeyUsageDigitalSignature|GMX509.KeyUsageKeyEncipherment,
+			[]GMX509.ExtKeyUsage{GMX509.ExtKeyUsageServerAuth,
+				GMX509.ExtKeyUsageClientAuth},
+		)
+		if err != nil {
+			return err
+		}
+	}else {
+		// generate private key
+		tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
+		if err != nil {
+			return err
+		}
+		_, err = tlsCA.SignCertificate(
+			filepath.Join(tlsDir),
+			name,
+			nil,
+			sans,
+			&tlsPrivKey.PublicKey,
+			x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
+			[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth,
+				x509.ExtKeyUsageClientAuth},
+		)
+		if err != nil {
+			return err
+		}
 	}
 	err = x509Export(filepath.Join(tlsDir, "ca.crt"), tlsCA.SignCert)
 	if err != nil {
@@ -185,6 +230,7 @@ func GenerateVerifyingMSP(
 	signCA,
 	tlsCA *ca.CA,
 	nodeOUs bool,
+	useGM bool,
 ) error {
 
 	// create folder structure and write artifacts to proper locations
@@ -229,21 +275,40 @@ func GenerateVerifyingMSP(
 	if err != nil {
 		return errors.WithMessage(err, "failed to create keystore directory")
 	}
-	priv, err := csp.GeneratePrivateKey(ksDir)
-	if err != nil {
-		return err
-	}
-	_, err = signCA.SignCertificate(
-		filepath.Join(baseDir, "admincerts"),
-		signCA.Name,
-		nil,
-		nil,
-		&priv.PublicKey,
-		x509.KeyUsageDigitalSignature,
-		[]x509.ExtKeyUsage{},
-	)
-	if err != nil {
-		return err
+	if useGM{
+		priv, err := csp.GenerateSM2PrivateKey(ksDir)
+		if err != nil {
+			return err
+		}
+		_, err = signCA.SignSM2Certificate(
+			filepath.Join(baseDir, "admincerts"),
+			signCA.Name,
+			nil,
+			nil,
+			&priv.PublicKey,
+			GMX509.KeyUsageDigitalSignature,
+			[]GMX509.ExtKeyUsage{},
+		)
+		if err != nil {
+			return err
+		}
+	}else{
+		priv, err := csp.GeneratePrivateKey(ksDir)
+		if err != nil {
+			return err
+		}
+		_, err = signCA.SignCertificate(
+			filepath.Join(baseDir, "admincerts"),
+			signCA.Name,
+			nil,
+			nil,
+			&priv.PublicKey,
+			x509.KeyUsageDigitalSignature,
+			[]x509.ExtKeyUsage{},
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -277,8 +342,15 @@ func x509Filename(name string) string {
 	return name + "-cert.pem"
 }
 
-func x509Export(path string, cert *x509.Certificate) error {
-	return pemExport(path, "CERTIFICATE", cert.Raw)
+func x509Export(path string, cert interface{}) error {
+	switch cert.(type) {
+	case *x509.Certificate:
+		return pemExport(path, "CERTIFICATE", cert.(*x509.Certificate).Raw)
+	case *GMX509.Certificate:
+		return pemExport(path, "CERTIFICATE", cert.(*GMX509.Certificate).Raw)
+	default:
+		return errors.Errorf("Unsupport certificate type2 %s",cert)
+	}
 }
 
 func keyExport(keystore, output string) error {

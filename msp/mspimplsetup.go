@@ -8,9 +8,9 @@ package msp
 
 import (
 	"bytes"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"time"
 
 	"github.com/golang/protobuf/proto"

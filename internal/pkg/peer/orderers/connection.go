@@ -9,7 +9,7 @@ package orderers
 import (
 	"bytes"
 	"crypto/sha256"
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"math/rand"
 	"sync"
 

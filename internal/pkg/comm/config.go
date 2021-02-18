@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"time"
 
 	"github.com/hyperledger/fabric/common/flogging"
@@ -38,9 +38,11 @@ var (
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+		tls.GMTLS_SM2_WITH_SM4_SM3,
+		tls.GMTLS_ECDHE_SM2_WITH_SM4_SM3,
 	}
 	// default connection timeout
-	DefaultConnectionTimeout = 5 * time.Second
+	DefaultConnectionTimeout = 50 * time.Second
 )
 
 // ServerConfig defines the parameters for configuring a GRPCServer instance

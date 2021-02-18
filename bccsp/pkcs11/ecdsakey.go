@@ -17,9 +17,9 @@ package pkcs11
 
 import (
 	"crypto/ecdsa"
-	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 
 	"github.com/hyperledger/fabric/bccsp"
 )

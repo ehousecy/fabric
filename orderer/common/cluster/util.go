@@ -8,12 +8,12 @@ package cluster
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"math/rand"
 	"sync"
 	"sync/atomic"

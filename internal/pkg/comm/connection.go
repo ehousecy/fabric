@@ -7,8 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"sync"
 
 	"github.com/hyperledger/fabric/common/channelconfig"
@@ -70,7 +71,8 @@ func (cs *CredentialSupport) GetPeerCredentials() credentials.TransportCredentia
 		}
 	}
 
-	return credentials.NewTLS(&tls.Config{
+	return gmcredentials.NewTLS(&tls.Config{
+		MinVersion: tls.VersionGMSSL,
 		Certificates: []tls.Certificate{cs.clientCert},
 		RootCAs:      certPool,
 	})

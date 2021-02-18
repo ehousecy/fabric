@@ -8,13 +8,13 @@ package grpclogging
 
 import (
 	"context"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
@@ -150,7 +150,7 @@ func getFields(ctx context.Context, method string) []zapcore.Field {
 	}
 	if p, ok := peer.FromContext(ctx); ok {
 		fields = append(fields, zap.String("grpc.peer_address", p.Addr.String()))
-		if ti, ok := p.AuthInfo.(credentials.TLSInfo); ok {
+		if ti, ok := p.AuthInfo.(gmcredentials.TLSInfo); ok {
 			if len(ti.State.PeerCertificates) > 0 {
 				cert := ti.State.PeerCertificates[0]
 				fields = append(fields, zap.String("grpc.peer_subject", cert.Subject.String()))

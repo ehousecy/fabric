@@ -9,9 +9,9 @@ package comm
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"reflect"
 	"sync"
 	"sync/atomic"

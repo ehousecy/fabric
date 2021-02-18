@@ -8,9 +8,9 @@ package comm
 
 import (
 	"context"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 
 	"github.com/hyperledger/fabric/common/util"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
 
@@ -33,7 +33,7 @@ func extractCertificateHashFromContext(ctx context.Context) []byte {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
+	tlsInfo, isTLSConn := authInfo.(gmcredentials.TLSInfo)
 	if !isTLSConn {
 		return nil
 	}

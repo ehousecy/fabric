@@ -10,6 +10,13 @@ github.com/BurntSushi/toml
 # github.com/DataDog/zstd v1.4.0
 ## explicit
 github.com/DataDog/zstd
+# github.com/Hyperledger-TWGC/ccs-gm v0.1.1 => ../../../github.com/Hyperledger-TWGC/ccs-gm
+## explicit
+github.com/Hyperledger-TWGC/ccs-gm/sm2
+github.com/Hyperledger-TWGC/ccs-gm/sm3
+github.com/Hyperledger-TWGC/ccs-gm/sm4
+github.com/Hyperledger-TWGC/ccs-gm/tls
+github.com/Hyperledger-TWGC/ccs-gm/x509
 # github.com/Knetic/govaluate v3.0.0+incompatible
 ## explicit
 github.com/Knetic/govaluate
@@ -363,10 +370,17 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
 go.uber.org/zap/zaptest/observer
-# golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+# golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 ## explicit
+golang.org/x/crypto/chacha20
+golang.org/x/crypto/chacha20poly1305
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/internal/subtle
+golang.org/x/crypto/poly1305
 golang.org/x/crypto/sha3
 # golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+## explicit
+golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
@@ -474,3 +488,4 @@ gopkg.in/tomb.v1
 ## explicit
 gopkg.in/yaml.v2
 # golang.org/x/sys => golang.org/x/sys v0.0.0-20190920190810-ef0ce1748380
+# github.com/Hyperledger-TWGC/ccs-gm => ../../../github.com/Hyperledger-TWGC/ccs-gm

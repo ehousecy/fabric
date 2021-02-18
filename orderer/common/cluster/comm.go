@@ -9,9 +9,9 @@ package cluster
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"sync"
 	"sync/atomic"
 	"time"

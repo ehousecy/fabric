@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"io"
 	"io/ioutil"
 	"os"
@@ -224,6 +225,8 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 		switch kk := key.(type) {
 		case *ecdsa.PrivateKey:
 			k = &ecdsaPrivateKey{kk}
+		case *sm2.PrivateKey:
+			k = &gmsm2PrivateKey{kk}
 		default:
 			continue
 		}

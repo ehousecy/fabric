@@ -10,14 +10,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/pem"
-	"net"
-
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/golang/protobuf/proto"
+	gmcredential "github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
+	"net"
 )
 
 // AddPemToCertPool adds PEM-encoded certs to a cert pool
@@ -131,7 +130,7 @@ func ExtractCertificateFromContext(ctx context.Context) *x509.Certificate {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(credentials.TLSInfo)
+	tlsInfo, isTLSConn := authInfo.(gmcredential.TLSInfo)
 	if !isTLSConn {
 		return nil
 	}

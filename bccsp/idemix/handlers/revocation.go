@@ -9,9 +9,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"reflect"
 
 	"github.com/hyperledger/fabric/bccsp"

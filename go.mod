@@ -3,11 +3,15 @@ module github.com/hyperledger/fabric
 go 1.14
 
 // https://github.com/golang/go/issues/34610
-replace golang.org/x/sys => golang.org/x/sys v0.0.0-20190920190810-ef0ce1748380
+replace (
+golang.org/x/sys => golang.org/x/sys v0.0.0-20190920190810-ef0ce1748380
+github.com/Hyperledger-TWGC/ccs-gm => ../../../github.com/Hyperledger-TWGC/ccs-gm
+)
 
 require (
 	code.cloudfoundry.org/clock v1.0.0
 	github.com/DataDog/zstd v1.4.0 // indirect
+	github.com/Hyperledger-TWGC/ccs-gm v0.1.1
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/Microsoft/hcsshim v0.8.6 // indirect
 	github.com/Shopify/sarama v1.20.1
@@ -64,7 +68,8 @@ require (
 	github.com/willf/bitset v1.1.10
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20181228115726-23731bf9ba55
 	go.uber.org/zap v1.14.1
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20200131233409-575de47986ce
 	google.golang.org/grpc v1.29.1

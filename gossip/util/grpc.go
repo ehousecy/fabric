@@ -7,9 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 package util
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
+	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"net"
 	"strconv"
 	"time"
@@ -19,7 +20,6 @@ import (
 	"github.com/hyperledger/fabric/gossip/common"
 	"github.com/hyperledger/fabric/internal/pkg/comm"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // CA that generates TLS key-pairs
@@ -63,7 +63,7 @@ func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLS
 
 	tlsConf.RootCAs.AppendCertsFromPEM(ca.CertBytes())
 
-	ta := credentials.NewTLS(tlsConf)
+	ta := gmcredentials.NewTLS(tlsConf)
 	dialOpts = append(dialOpts, grpc.WithTransportCredentials(ta))
 
 	secureDialOpts = func() []grpc.DialOption {

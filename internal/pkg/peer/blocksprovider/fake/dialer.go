@@ -2,7 +2,7 @@
 package fake
 
 import (
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"sync"
 
 	"github.com/hyperledger/fabric/internal/pkg/peer/blocksprovider"

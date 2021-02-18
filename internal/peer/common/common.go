@@ -8,8 +8,8 @@ package common
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"io/ioutil"
 	"os"
 	"strings"

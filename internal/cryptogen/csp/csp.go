@@ -11,8 +11,12 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	GMX509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+
 	"encoding/asn1"
 	"encoding/pem"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	_ "github.com/hyperledger/fabric/bccsp/sw"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -96,6 +100,41 @@ func GeneratePrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
 	}
 
 	return priv, err
+}
+
+func GenerateSM2PrivateKey(keystorePath string) (*sm2.PrivateKey, error) {
+
+	priv, err := sm2.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to generate private key")
+	}
+
+	pkcs8Encoded, err := GMX509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to marshal private key")
+	}
+
+	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Encoded})
+
+	keyFile := filepath.Join(keystorePath, "priv_sk")
+	err = ioutil.WriteFile(keyFile, pemEncoded, 0600)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to save private key to file %s", keyFile)
+	}
+
+	return priv, err
+}
+
+type SM2Signer struct {
+	PrivateKey *sm2.PrivateKey
+}
+
+func (e *SM2Signer) Public () crypto.PublicKey {
+	return &e.PrivateKey.PublicKey
+}
+
+func (e *SM2Signer) Sign (rand io.Reader, digest []byte, opts crypto.SignerOpts)([]byte,error) {
+	return e.PrivateKey.Sign(rand,digest,opts)
 }
 
 /**

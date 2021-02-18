@@ -8,7 +8,7 @@ package blocksprovider
 
 import (
 	"context"
-	"crypto/x509"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"math"
 	"time"
 
