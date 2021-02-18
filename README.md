@@ -6,7 +6,7 @@
 >> 这是基于fabric-v2.2.0修改的支持国密算法的fabric，已通过命令行完成网络部署以及链码操作测试。
 
 #### 待办事项
-- [ ] fabric-sdk-go国密支持
+- [x] fabric-sdk-go国密支持
 - [ ] fabric-ca国密支持
 
 #### 已做修改
@@ -17,13 +17,12 @@
 - [x] 证书生成工具兼容ecdsa和gm
   - [x] cryptogen generate新增--useGM选项,需要生成国密证书时需加入这个参数(!注意这个参与不需要赋值--useGM 指定即可)
   - [x] cryptogen generate新增--useGMTLS选项,需要生成国密TLS证书时需加入这个参数(!注意这个参与不需要赋值--useGMTLS 指定即可)
-- [x] TLS修改 （暂不支持TLS模式）
+- [x] TLS修改
   - [x] 修改思路
     - [x] 以Credential作为修改入口，首先修改pkg/comm下的client、server和connection等文件,然后引用的地方做修改和兼容
     - [x] x509.Certificate和x509.newCertPool()相关的地方做适配
     - [x] 合约部分自签名证书做适配，支持gm
       - [x] peer节点启动时会生成自签名TLS根证书，然后智能合约启动时会签发TLS客户端证书
-  - [x] 先打算TLS部分使用ECDSA调试(测试通过)
   - [x] 国密TLS开关设定 目前通过peer/orderer tls根证书和bccsp类型来判断
   - [x] 智能合约tls通信没有异常
     - [x] peer与智能合约通信使用的是自签名的ecdsa秘钥对
@@ -43,13 +42,7 @@
     - [x] TLS credentials 适配
   - [x] pkg
     - [x] cid 默认init方法会解析x509证书，我们用sm2来解析，然后转换为x509的证书
-- [x] mspType GM 删除
-  - [x] 调用处修改：loadLocalMSP 引用，opts, found := msp.Options[conf.General.LocalMSPType]
-  - [x] msp配置中type类型改回fabric
-  - [x] 通过配置加载/解析localMsp处修改适配方式  
-
-#### 疑问点
-- bccsp实现之一的IDEMIX本质上是依赖于SW的,那么新增了GM，IDEMIX如何适配？
+  
 #### 项目测试
 
 - 下载&编译项目
@@ -77,10 +70,8 @@ peer:
 # 3.3 修改脚本
 envVar.sh：
     export CORE_PEER_BCCSP_DEFAULT=GM
-createChannel.sh、deployCC.sh：
 network.sh:
     cryptogen generate 加上--useGM --useGMTLS
-    禁用tls  
 ```
 
 - 修改智能合约
@@ -122,24 +113,9 @@ imports github.com/hyperledger/fabric/msp
 #解决方案：重新梳理代码层级结构
 ```
 ```
-2021-01-04 14:50:44.253 CST [nodeCmd] serve -> FATA 01e Failed to set TLS client certificate (error parsing client TLS key pair: x509: unsupported elliptic curve)
-##解决方案：暂且禁用TLS
-```
-```
-2021-01-08 10:20:52.197 CST [orderer.common.server] reuseListener -> PANI 015 TLS is required for running ordering nodes of cluster type.
-panic: TLS is required for running ordering nodes of cluster type.
-#解决方案：暂时用solo共识
-```
-```
-2021-01-11 18:18:38.572 CST [common.tools.configtxgen] main -> FATA 004 Error on inspectBlock: malformed block contents: *common.Block: error in PopulateTo for field data for message *common.Block: *commonext.BlockData: error in PopulateTo for slice field data at index 0 for message *commonext.BlockData: *commonext.Envelope: error in PopulateTo for field payload for message *commonext.Envelope: *commonext.Payload: error in PopulateTo for field data for message *commonext.Payload: *common.ConfigEnvelope: error in PopulateTo for field config for message *common.ConfigEnvelope: *commonext.Config: error in PopulateTo for field channel_group for message *commonext.Config: *commonext.DynamicChannelGroup: error in PopulateTo for map field groups and key Orderer for message *commonext.DynamicChannelGroup: *ordererext.DynamicOrdererGroup: error in PopulateTo for map field groups and key OrdererOrg for message *ordererext.DynamicOrdererGroup: *ordererext.DynamicOrdererOrgGroup: error in PopulateTo for map field values and key MSP for message *ordererext.DynamicOrdererOrgGroup: *ordererext.DynamicOrdererOrgConfigValue: error in PopulateTo for field value for message *ordererext.DynamicOrdererOrgConfigValue: *mspext.MSPConfig: error in PopulateTo for field config for message *mspext.MSPConfig: unable to decode MSP type: 3
-Exiting.
-#解决方案：修改mspext.MspConfig新增mspType GM
-```
-```
 2021-01-20 02:12:34.480 UTC [chaincode.accesscontrol] authenticate -> WARN 230e TLS is active but chaincode fabcar_v1.0:38e9938f7924ada1c42cbcc1e406c77ad2a52f771cf8fe550360b09a307d17f3 didn't send certificate
 #解决方案：credentials类型出现了问题，需替换成gmcredentials
 ```
-
 ```
 remote tls : bad certificate
 # tls握手调试
