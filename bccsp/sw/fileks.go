@@ -143,6 +143,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PrivateKey:
 			return &ecdsaPrivateKey{k}, nil
+		case *sm2.PrivateKey:
+			return &gmsm2PrivateKey{key.(*sm2.PrivateKey)}, nil
 		default:
 			return nil, errors.New("secret key type not recognized")
 		}
@@ -156,6 +158,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
 			return &ecdsaPublicKey{k}, nil
+		case *sm2.PublicKey:
+			return &gmsm2PublicKey{key.(*sm2.PublicKey)}, nil
 		default:
 			return nil, errors.New("public key type not recognized")
 		}
@@ -191,6 +195,21 @@ func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
 		err = ks.storeKey(hex.EncodeToString(k.SKI()), kk.privKey)
 		if err != nil {
 			return fmt.Errorf("failed storing AES key [%s]", err)
+		}
+	case *gmsm2PrivateKey:
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("Failed storing GMSM2 private key [%s]", err)
+		}
+	case *gmsm2PublicKey:
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("Failed storing GMSM2 public key [%s]", err)
+		}
+	case *gmsm4PrivateKey:
+		err = ks.storeKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("Failed storing GMSM4 key [%s]", err)
 		}
 
 	default:

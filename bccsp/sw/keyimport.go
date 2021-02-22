@@ -9,10 +9,11 @@ package sw
 import (
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
-	"github.com/Hyperledger-TWGC/ccs-gm/x509"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"reflect"
 
 	"github.com/hyperledger/fabric/bccsp"
@@ -118,12 +119,15 @@ type x509PublicKeyImportOptsKeyImporter struct {
 }
 
 func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (bccsp.Key, error) {
-	x509Cert, ok := raw.(*x509.Certificate)
-	if !ok {
+	var pk interface{}
+	switch x509Cert := raw.(type) {
+	case *x509.Certificate:
+		pk = x509Cert.PublicKey
+	case *x509GM.Certificate:
+		pk = x509Cert.PublicKey
+	default:
 		return nil, errors.New("Invalid raw material. Expected *x509.Certificate.")
 	}
-
-	pk := x509Cert.PublicKey
 
 	switch pk := pk.(type) {
 	case *ecdsa.PublicKey:

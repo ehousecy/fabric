@@ -115,7 +115,11 @@ func privateKeyToPEM(privateKey interface{}, pwd []byte) ([]byte, error) {
 				Bytes: pkcs8Bytes,
 			},
 		), nil
-
+	case *sm2.PrivateKey:
+		if k == nil {
+			return nil, errors.New("Invalid sm2 private key. It must be different from nil.")
+		}
+		return WritePrivateKeyToPem(k, nil)
 	default:
 		return nil, errors.New("invalid key type. It must be *ecdsa.PrivateKey")
 	}

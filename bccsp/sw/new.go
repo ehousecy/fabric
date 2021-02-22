@@ -83,6 +83,8 @@ func NewWithParams(securityLevel int, hashFamily string, keyStore bccsp.KeyStore
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.AES256KeyGenOpts{}), &aesKeyGenerator{length: 32})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.AES192KeyGenOpts{}), &aesKeyGenerator{length: 24})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.AES128KeyGenOpts{}), &aesKeyGenerator{length: 16})
+	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.GMSM2KeyGenOpts{}), &gmsm2KeyGenerator{})
+	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.GMSM4KeyGenOpts{}), &gmsm4KeyGenerator{})
 
 	// Set the key deriver
 	swbccsp.AddWrapper(reflect.TypeOf(&ecdsaPrivateKey{}), &ecdsaPrivateKeyKeyDeriver{})

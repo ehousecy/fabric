@@ -13,7 +13,6 @@ import (
 	"encoding/pem"
 	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"github.com/golang/protobuf/proto"
-	gmcredential "github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"github.com/hyperledger/fabric/orderer/common/localconfig"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -133,7 +132,7 @@ func ExtractCertificateFromContext(ctx context.Context) *x509.Certificate {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(gmcredential.TLSInfo)
+	tlsInfo, isTLSConn := authInfo.(TLSInfo)
 	if !isTLSConn {
 		return nil
 	}

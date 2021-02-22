@@ -8,9 +8,9 @@ package lifecycle
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"io/ioutil"
 	"path/filepath"
 	"syscall"
@@ -268,7 +268,7 @@ func CommitTx(network *nwo.Network, env *pcommon.Envelope, peer *nwo.Peer, dc pb
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
 
-	dg := ic.NewDeliverGroup([]pb.DeliverClient{dc}, []string{network.PeerAddress(peer, nwo.ListenPort)}, signer, tls.Certificate{}, "testchannel", txid)
+	dg := ic.NewDeliverGroup([]pb.DeliverClient{dc}, []string{network.PeerAddress(peer, nwo.ListenPort)}, signer, gmtls.Certificate{}, "testchannel", txid)
 
 	err := dg.Connect(ctx)
 	Expect(err).NotTo(HaveOccurred())

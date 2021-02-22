@@ -1,4 +1,4 @@
-package gmcredentials
+package comm
 
 import (
 	"errors"
@@ -13,9 +13,9 @@ import (
 	"golang.org/x/net/context"
 )
 
-var (
-	alpnProtoStr = []string{"h2"}
-)
+//var (
+//	alpnProtoStr = []string{"h2"}
+//)
 
 // PerRPCCredentials defines the common interface for the credentials which need to
 // attach security information to every RPC (e.g., oauth2).
@@ -137,7 +137,13 @@ func (c *tlsCreds) OverrideServerName(serverNameOverride string) error {
 // NewTLS uses c to construct a TransportCredentials based on TLS.
 func NewTLS(c *gmtls.Config) credentials.TransportCredentials {
 	tc := &tlsCreds{cloneTLSConfig(c)}
-	tc.config.GMSupport = &gmtls.GMSupport{}
+	if IsGM(){
+		tc.config.GMSupport = &gmtls.GMSupport{}
+		tc.config.MinVersion = gmtls.VersionGMSSL
+	}else{
+		tc.config.GMSupport = nil
+		tc.config.MinVersion = gmtls.VersionTLS12
+	}
 	tc.config.NextProtos = alpnProtoStr
 	return tc
 }

@@ -8,7 +8,7 @@ package grpclogging
 
 import (
 	"context"
-	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
+	"github.com/hyperledger/fabric/internal/pkg/comm"
 	"strings"
 	"time"
 
@@ -150,7 +150,7 @@ func getFields(ctx context.Context, method string) []zapcore.Field {
 	}
 	if p, ok := peer.FromContext(ctx); ok {
 		fields = append(fields, zap.String("grpc.peer_address", p.Addr.String()))
-		if ti, ok := p.AuthInfo.(gmcredentials.TLSInfo); ok {
+		if ti, ok := p.AuthInfo.(comm.TLSInfo); ok {
 			if len(ti.State.PeerCertificates) > 0 {
 				cert := ti.State.PeerCertificates[0]
 				fields = append(fields, zap.String("grpc.peer_subject", cert.Subject.String()))

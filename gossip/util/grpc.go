@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"github.com/Hyperledger-TWGC/ccs-gm/x509"
-	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
 	"net"
 	"strconv"
 	"time"
@@ -55,7 +54,7 @@ func CreateGRPCLayer() (port int, gRPCServer *comm.GRPCServer, certs *common.TLS
 
 	tlsConf.RootCAs.AppendCertsFromPEM(ca.CertBytes())
 
-	ta := gmcredentials.NewTLS(tlsConf)
+	ta := comm.NewTLS(tlsConf)
 	dialOpts = append(dialOpts, grpc.WithTransportCredentials(ta))
 
 	secureDialOpts = func() []grpc.DialOption {

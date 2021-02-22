@@ -10,7 +10,7 @@ import (
 	"context"
 	"crypto/x509"
 	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
-	"github.com/hyperledger/fabric/internal/pkg/comm/gmcredentials"
+	"github.com/hyperledger/fabric/internal/pkg/comm"
 	"sync"
 	"time"
 
@@ -89,7 +89,7 @@ func extractCertificateHashFromContext(ctx context.Context) []byte {
 		return nil
 	}
 
-	tlsInfo, isTLSConn := authInfo.(gmcredentials.TLSInfo)
+	tlsInfo, isTLSConn := authInfo.(comm.TLSInfo)
 	if !isTLSConn {
 		return nil
 	}
