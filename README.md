@@ -27,7 +27,7 @@
 
 ## 项目测试
 
-###### 1. 下载&编译项目
+#### 1. 下载&编译项目
 ```
 # 下载fabric-ca项目，编译并拷贝可执行文件
 git clone https://github.com/ehousecy/fabric-ca
@@ -42,7 +42,7 @@ make native && make docker
 cp build/bin/* /usr/local/bin/
 ```
 
-###### 2. 生成证书(fabric-ca专用，使用cryptogen可跳过)
+#### 2. 生成证书(fabric-ca专用，使用cryptogen可跳过)
 - fabric-ca-server
 ```
 # 启动时重写如下环境变量：
@@ -55,7 +55,7 @@ FABRIC_CA_SERVER_CSR_KEYREQUEST_SIZE=256   //默认是256
 --csr.keyrequest.algo gmsm2 --csr.keyrequest.size 256
 ```
 
-###### 3. 下载测试库及配置
+#### 3. 下载测试库及配置
 ```
 git clone https://github.com/hyperledger/fabric-samples
 ```
@@ -90,7 +90,7 @@ replace (
 )
 ```
 
-###### 4. 初始化区块链网络
+#### 4. 初始化区块链网络
 ```
 cd test-network
 ./network.sh up -i 2.2.0
@@ -98,7 +98,7 @@ cd test-network
 ./network.sh deployCC -ccn fabcar -ccp ../chaincode/fabcar/go -ccl go -ccep "OR('Org1MSP.member','Org2MSP.member')" -ccv v1.0 -ccs 1
 ```
 
-##### 5. SDK调用
+#### 5. SDK调用
 
 ###### 5.1 使用fabric-sampels/fabcar/go 作为示例
 
