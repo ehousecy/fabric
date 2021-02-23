@@ -59,7 +59,7 @@ FABRIC_CA_SERVER_CSR_KEYREQUEST_SIZE=256   //默认是256
 ```
 git clone https://github.com/hyperledger/fabric-samples
 ```
-####### 3.1 修改配置
+###### 3.1 修改配置
 - 使用fabric-ca签发的证书
 ```
 # 将证书拷贝到fabric-samples/test-network/organizations/下，然后轻量修改network.sh脚本
@@ -79,7 +79,7 @@ network.sh:
     cryptogen generate 加上--useGM --useGMTLS
 ```
 
-####### 3.2 修改智能合约
+###### 3.2 修改智能合约
 ```
 # 3.2.1 修改fabric-samples/chaincode/fabcar/go/go.mod
 # 3.2.1.1 首先通过命令获取fabric-chaincode-go版本号
@@ -98,19 +98,19 @@ cd test-network
 ./network.sh deployCC -ccn fabcar -ccp ../chaincode/fabcar/go -ccl go -ccep "OR('Org1MSP.member','Org2MSP.member')" -ccv v1.0 -ccs 1
 ```
 
-###### 5. SDK调用
+##### 5. SDK调用
 
-####### 5.1 使用fabric-sampels/fabcar/go 作为示例
+###### 5.1 使用fabric-sampels/fabcar/go 作为示例
 
-####### 5.2 修改脚本runfabcar.sh,编译时指定单证书模式
+###### 5.2 修改脚本runfabcar.sh,编译时指定单证书模式
 ```
 go run -tags=single_cert fabcar.go
 ```
-####### 5.3 调用
+###### 5.3 调用
 ```
 sh runfabcar.sh
 ```
-####### 5.4 如果想使用go-sdk ca部分功能，可以参考如下代码:
+###### 5.4 如果想使用go-sdk ca部分功能，可以参考如下代码:
 ```
 func registerAndEnroll() error{
 	userCertPath := filepath.Join(".",name+"@Org1MSP-cert.pem")
