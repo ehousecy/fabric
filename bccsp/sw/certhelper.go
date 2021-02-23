@@ -62,7 +62,7 @@ import (
 // 	return
 // }
 
-func createCertificateToPem(template, parent *x509GM.Certificate, pub ,priv interface{}) ([]byte,error){
+func createCertificateToPem(template, parent *x509GM.Certificate, pub, priv interface{}) ([]byte, error) {
 	der, err := x509GM.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func createCertificateToPem(template, parent *x509GM.Certificate, pub ,priv inte
 		Type:  "CERTIFICATE",
 		Bytes: der,
 	}
-	return pem.EncodeToMemory(block),nil
+	return pem.EncodeToMemory(block), nil
 }
 
 //调用SM2接口生成SM2证书
@@ -96,7 +96,7 @@ func CreateCertificateToMem(template, parent *x509GM.Certificate, signer crypto.
 	}
 	return
 }
-func createCertificateRequestToMem (certificateRequest *x509GM.CertificateRequest, priv interface{}) ([]byte,error){
+func createCertificateRequestToMem(certificateRequest *x509GM.CertificateRequest, priv interface{}) ([]byte, error) {
 	der, err := x509GM.CreateCertificateRequest(rand.Reader, certificateRequest, priv)
 	if err != nil {
 		return nil, err
@@ -105,8 +105,9 @@ func createCertificateRequestToMem (certificateRequest *x509GM.CertificateReques
 		Type:  "CERTIFICATE REQUEST",
 		Bytes: der,
 	}
-	return pem.EncodeToMemory(block),nil
+	return pem.EncodeToMemory(block), nil
 }
+
 //调用SM2接口生成SM2证书请求
 func CreateSm2CertificateRequestToMem(certificateRequest *x509GM.CertificateRequest, signer crypto.Signer) (csr []byte, err error) {
 	csr, err = createCertificateRequestToMem(certificateRequest, signer)
@@ -462,7 +463,6 @@ func ReadCertificateFromPem(FileName string) (*x509GM.Certificate, error) {
 	}
 	return ReadCertificateFromMem(data)
 }
-
 
 func ReadPrivateKeyFromPem(privateKeyPem []byte, pwd []byte) (*sm2.PrivateKey, error) {
 	var block *pem.Block

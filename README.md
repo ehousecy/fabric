@@ -32,12 +32,12 @@
 # 下载fabric-ca项目，编译并拷贝可执行文件
 git clone https://github.com/ehousecy/fabric-ca
 cd fabric-ca && git checkout ccs-gm
-make native && make make docker
+make native && make docker
 cp bin/* /usr/local/bin/
 
 # 下载fabric项目，编译并拷贝可执行文件
 git clone https://github.com/ehousecy/fabric
-cd fabric && git checkout develop
+cd fabric && git checkout ccs-gm
 make native && make docker
 cp build/bin/* /usr/local/bin/
 ```
@@ -80,13 +80,13 @@ network.sh:
 ```
 
 ###### 3.2 修改智能合约
+
 ```
 # 3.2.1 修改fabric-samples/chaincode/fabcar/go/go.mod
-# 3.2.1.1 首先通过命令获取fabric-chaincode-go版本号
-go get github.com/ehousecy/fabric-chaincode-go@ccs-gm
-# 3.2.1.2 go.mod添加replace
+
+# 3.2.2 go.mod添加replace
 replace (
-	github.com/hyperledger/fabric-chaincode-go => github.com/ehousecy/fabric-chaincode-go v0.0.0-20210223060054-45621447fc36
+	github.com/hyperledger/fabric-chaincode-go => github.com/ehousecy/fabric-chaincode-go ccs-gm
 )
 ```
 
@@ -100,9 +100,11 @@ cd test-network
 
 #### 5. SDK调用
 
-###### 5.1 使用fabric-sampels/fabcar/go 作为示例
-
-###### 5.2 修改脚本runfabcar.sh,编译时指定单证书模式
+###### 5.1 修改fabric-samples/fabcar/go/go.mod
+````
+replace github.com/hyperledger/fabric-sdk-go => github.com/ehousecy/fabric-sdk-go ccs-gm
+````
+###### 5.2 修改脚本fabric-samples/fabcar/go/runfabcar.sh,编译时指定单证书模式
 ```
 go run -tags=single_cert fabcar.go
 ```

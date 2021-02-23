@@ -11,7 +11,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
-	GMX509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 
 	"encoding/asn1"
 	"encoding/pem"
@@ -109,7 +109,7 @@ func GenerateSM2PrivateKey(keystorePath string) (*sm2.PrivateKey, error) {
 		return nil, errors.WithMessage(err, "failed to generate private key")
 	}
 
-	pkcs8Encoded, err := GMX509.MarshalECPrivateKey(priv)
+	pkcs8Encoded, err := x509GM.MarshalECPrivateKey(priv)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to marshal private key")
 	}
@@ -129,12 +129,12 @@ type SM2Signer struct {
 	PrivateKey *sm2.PrivateKey
 }
 
-func (e *SM2Signer) Public () crypto.PublicKey {
+func (e *SM2Signer) Public() crypto.PublicKey {
 	return &e.PrivateKey.PublicKey
 }
 
-func (e *SM2Signer) Sign (rand io.Reader, digest []byte, opts crypto.SignerOpts)([]byte,error) {
-	return e.PrivateKey.Sign(rand,digest,opts)
+func (e *SM2Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	return e.PrivateKey.Sign(rand, digest, opts)
 }
 
 /**

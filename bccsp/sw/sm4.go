@@ -17,7 +17,6 @@ package sw
 
 import (
 	"github.com/hyperledger/fabric/bccsp"
-
 )
 
 // AESCBCPKCS7Encrypt combines CBC encryption and PKCS7 padding

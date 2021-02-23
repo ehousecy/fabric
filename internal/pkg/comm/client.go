@@ -8,6 +8,8 @@ package comm
 
 import (
 	"context"
+	"encoding/pem"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"time"
@@ -71,7 +73,7 @@ func (client *GRPCClient) parseSecureOptions(opts SecureOptions) error {
 
 	client.tlsConfig = &tls.Config{
 		VerifyPeerCertificate: opts.VerifyCertificate,
-		MinVersion: tls.VersionTLS12,
+		MinVersion:            tls.VersionTLS12,
 	}
 	if len(opts.ServerRootCAs) > 0 {
 		client.tlsConfig.RootCAs = x509.NewCertPool()
@@ -80,6 +82,18 @@ func (client *GRPCClient) parseSecureOptions(opts SecureOptions) error {
 			if err != nil {
 				commLogger.Debugf("error adding root certificate: %v", err)
 				return errors.WithMessage(err, "error adding root certificate")
+			}
+		}
+		block, _ := pem.Decode(opts.ServerRootCAs[0])
+		if block != nil {
+			caCert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return errors.WithMessage(err, "FMT0024, parse certificate error")
+			}
+			_, ok := caCert.PublicKey.(*sm2.PublicKey)
+			if ok {
+				client.tlsConfig.GMSupport = &tls.GMSupport{}
+				client.tlsConfig.MinVersion = tls.VersionGMSSL
 			}
 		}
 	}

@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"net"
@@ -88,12 +89,17 @@ func NewGRPCServerFromListener(listener net.Listener, serverConfig ServerConfig)
 			}
 
 			grpcServer.tls = NewTLSConfig(&tls.Config{
-				MinVersion: tls.VersionTLS12,
+				MinVersion:             tls.VersionTLS12,
 				VerifyPeerCertificate:  secureConfig.VerifyCertificate,
 				GetCertificate:         getCert,
 				SessionTicketsDisabled: true,
 				CipherSuites:           secureConfig.CipherSuites,
 			})
+
+			if _, ok := cert.PrivateKey.(*sm2.PrivateKey); ok {
+				grpcServer.tls.config.GMSupport = &tls.GMSupport{}
+				grpcServer.tls.config.MinVersion = tls.VersionGMSSL
+			}
 
 			if serverConfig.SecOpts.TimeShift > 0 {
 				timeShift := serverConfig.SecOpts.TimeShift

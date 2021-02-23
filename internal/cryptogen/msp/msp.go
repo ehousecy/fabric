@@ -72,7 +72,6 @@ func GenerateLocalMSP(
 	// get keystore path
 	keystore := filepath.Join(mspDir, "keystore")
 
-
 	// generate X509 certificate using signing CA
 	var ous []string
 	if nodeOUs {
@@ -97,7 +96,7 @@ func GenerateLocalMSP(
 		if err != nil {
 			return err
 		}
-	}else {
+	} else {
 		// generate private key
 		priv, err := csp.GeneratePrivateKey(keystore)
 		if err != nil {
@@ -160,9 +159,8 @@ func GenerateLocalMSP(
 		Generate the TLS artifacts in the TLS folder
 	*/
 
-
 	// generate X509 certificate using TLS CA
-	if useGMTLS{
+	if useGMTLS {
 		// generate private key
 		tlsPrivKey, err := csp.GenerateSM2PrivateKey(tlsDir)
 		if err != nil {
@@ -181,7 +179,7 @@ func GenerateLocalMSP(
 		if err != nil {
 			return err
 		}
-	}else {
+	} else {
 		// generate private key
 		tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
 		if err != nil {
@@ -275,7 +273,7 @@ func GenerateVerifyingMSP(
 	if err != nil {
 		return errors.WithMessage(err, "failed to create keystore directory")
 	}
-	if useGM{
+	if useGM {
 		priv, err := csp.GenerateSM2PrivateKey(ksDir)
 		if err != nil {
 			return err
@@ -292,7 +290,7 @@ func GenerateVerifyingMSP(
 		if err != nil {
 			return err
 		}
-	}else{
+	} else {
 		priv, err := csp.GeneratePrivateKey(ksDir)
 		if err != nil {
 			return err
@@ -349,7 +347,7 @@ func x509Export(path string, cert interface{}) error {
 	case *x509GM.Certificate:
 		return pemExport(path, "CERTIFICATE", cert.(*x509GM.Certificate).Raw)
 	default:
-		return errors.Errorf("Unsupport certificate type2 %s",cert)
+		return errors.Errorf("Unsupport certificate type2 %s", cert)
 	}
 }
 

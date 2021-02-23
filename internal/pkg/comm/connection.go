@@ -71,7 +71,7 @@ func (cs *CredentialSupport) GetPeerCredentials() credentials.TransportCredentia
 	}
 
 	return NewTLS(&tls.Config{
-		MinVersion: tls.VersionGMSSL,
+		MinVersion:   tls.VersionGMSSL,
 		Certificates: []tls.Certificate{cs.clientCert},
 		RootCAs:      certPool,
 	})

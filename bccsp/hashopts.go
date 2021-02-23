@@ -75,7 +75,7 @@ func GetHashOpt(hashFunction string) (HashOpts, error) {
 	case SHA3_384:
 		return &SHA3_384Opts{}, nil
 	case GMSM3:
-		return &GMSM3Opts{},nil
+		return &GMSM3Opts{}, nil
 	}
 	return nil, fmt.Errorf("hash function not recognized [%s]", hashFunction)
 }

@@ -8,9 +8,9 @@ package chaincode
 
 import (
 	"context"
-	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/tls"
 	"io/ioutil"
 	"math"
 	"strings"

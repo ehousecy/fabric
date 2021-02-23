@@ -8,9 +8,9 @@ package deliverservice
 
 import (
 	"context"
-	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"sync"
 	"time"
 

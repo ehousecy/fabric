@@ -180,10 +180,10 @@ func IsGM() bool {
 		isGM := IsSM2Certificate(clientCert, true)
 		commLogger.Debugf("peerTlsCert is gm cert : %v", isGM)
 		return isGM
-	}else if conf, err := localconfig.Load(); err == nil {
+	} else if conf, err := localconfig.Load(); err == nil {
 		ordererTlsCert, err := ioutil.ReadFile(conf.General.TLS.RootCAs[0])
 		if err != nil {
-			panic( errors.WithMessage(err, "error read orderer TLS certificate"))
+			panic(errors.WithMessage(err, "error read orderer TLS certificate"))
 		}
 		isGM := IsSM2Certificate(ordererTlsCert, true)
 		commLogger.Debugf("ordererTlsCert is gm cert : %v", isGM)
@@ -195,7 +195,7 @@ func IsGM() bool {
 	}
 }
 
-func IsSM2Certificate (pemCert []byte, needDecode bool) bool {
+func IsSM2Certificate(pemCert []byte, needDecode bool) bool {
 	if needDecode {
 		var block *pem.Block
 		block, _ = pem.Decode(pemCert)
@@ -203,7 +203,7 @@ func IsSM2Certificate (pemCert []byte, needDecode bool) bool {
 		if err == nil {
 			return cert.SignatureAlgorithm == x509.SM2WithSM3
 		}
-	}else{
+	} else {
 		cert, err := x509.ParseCertificate(pemCert)
 		if err == nil {
 			return cert.SignatureAlgorithm == x509.SM2WithSM3

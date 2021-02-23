@@ -317,7 +317,6 @@ func (opts *GMSM4KeyGenOpts) Ephemeral() bool {
 	return opts.Temporary
 }
 
-
 //GMSM4ImportKeyOpts  实现  bccsp.KeyImportOpts 接口
 type GMSM4ImportKeyOpts struct {
 	Temporary bool

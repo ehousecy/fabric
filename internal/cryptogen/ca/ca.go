@@ -16,7 +16,7 @@ import (
 	"encoding/pem"
 	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"github.com/Hyperledger-TWGC/ccs-gm/sm3"
-	GMX509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -75,20 +75,20 @@ func NewCA(
 	var x509Cert interface{}
 
 	if useGM {
-		template := template.(GMX509.Certificate)
-		template.KeyUsage |= GMX509.KeyUsageDigitalSignature |
-			GMX509.KeyUsageKeyEncipherment | GMX509.KeyUsageCertSign |
-			GMX509.KeyUsageCRLSign
-		template.ExtKeyUsage = []GMX509.ExtKeyUsage{
-			GMX509.ExtKeyUsageClientAuth,
-			GMX509.ExtKeyUsageServerAuth,
+		template := template.(x509GM.Certificate)
+		template.KeyUsage |= x509GM.KeyUsageDigitalSignature |
+			x509GM.KeyUsageKeyEncipherment | x509GM.KeyUsageCertSign |
+			x509GM.KeyUsageCRLSign
+		template.ExtKeyUsage = []x509GM.ExtKeyUsage{
+			x509GM.ExtKeyUsageClientAuth,
+			x509GM.ExtKeyUsageServerAuth,
 		}
 		priv, err := csp.GenerateSM2PrivateKey(baseDir)
 		if err != nil {
 			return nil, err
 		}
 		template.SubjectKeyId = computeSKI(priv)
-		//template.SignatureAlgorithm = GMX509.SM2WithSM3
+		//template.SignatureAlgorithm = x509GM.SM2WithSM3
 		x509Cert, err = genCertificate(
 			baseDir,
 			name,
@@ -220,14 +220,14 @@ func (ca *CA) SignSM2Certificate(
 	orgUnits,
 	alternateNames []string,
 	pub *sm2.PublicKey,
-	ku GMX509.KeyUsage,
-	eku []GMX509.ExtKeyUsage,
+	ku x509GM.KeyUsage,
+	eku []x509GM.ExtKeyUsage,
 ) (interface{}, error) {
 
 	template := SM2Template()
 	template.KeyUsage = ku
 	template.ExtKeyUsage = eku
-	template.SignatureAlgorithm = GMX509.SM2WithSM3
+	template.SignatureAlgorithm = x509GM.SM2WithSM3
 
 	//set the organization for the subject
 	subject := subjectTemplateAdditional(
@@ -387,7 +387,7 @@ func x509Template() x509.Certificate {
 }
 
 // default template for X509 certificates
-func SM2Template() GMX509.Certificate {
+func SM2Template() x509GM.Certificate {
 
 	// generate a serial number
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
@@ -399,7 +399,7 @@ func SM2Template() GMX509.Certificate {
 	notBefore := time.Now().Round(time.Minute).Add(-5 * time.Minute).UTC()
 
 	//basic template to use
-	template := GMX509.Certificate{
+	template := x509GM.Certificate{
 		SerialNumber:          serialNumber,
 		NotBefore:             notBefore,
 		NotAfter:              notBefore.Add(expiry).UTC(),
@@ -420,8 +420,8 @@ func genCertificate(
 	switch parent.(type) {
 	case *x509.Certificate:
 		return genCertificateECDSA(baseDir, name, template.(*x509.Certificate), parent.(*x509.Certificate), pub.(*ecdsa.PublicKey), priv)
-	case *GMX509.Certificate:
-		return genCertificateSM2(baseDir, name, template.(*GMX509.Certificate), parent.(*GMX509.Certificate), pub.(*sm2.PublicKey), priv)
+	case *x509GM.Certificate:
+		return genCertificateSM2(baseDir, name, template.(*x509GM.Certificate), parent.(*x509GM.Certificate), pub.(*sm2.PublicKey), priv)
 	default:
 		return nil, errors.Errorf("UnSupport certificate type : %s", parent)
 	}
@@ -468,13 +468,13 @@ func genCertificateSM2(
 	baseDir,
 	name string,
 	template,
-	parent *GMX509.Certificate,
+	parent *x509GM.Certificate,
 	pub *sm2.PublicKey,
 	priv interface{},
-) (*GMX509.Certificate, error) {
+) (*x509GM.Certificate, error) {
 
 	//create the x509 public cert
-	certBytes, err := GMX509.CreateCertificate(rand.Reader, template, parent, pub, priv)
+	certBytes, err := x509GM.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
 		return nil, err
 	}
@@ -492,7 +492,7 @@ func genCertificateSM2(
 		return nil, err
 	}
 
-	x509Cert, err := GMX509.ParseCertificate(certBytes)
+	x509Cert, err := x509GM.ParseCertificate(certBytes)
 	if err != nil {
 		return nil, err
 	}
