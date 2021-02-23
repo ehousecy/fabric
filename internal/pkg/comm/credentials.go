@@ -152,7 +152,6 @@ func NewTLS(c *gmtls.Config) credentials.TransportCredentials {
 			}
 		}
 	}
-	fmt.Printf("New Tls is GM: %v \n", isGM)
 	if isGM {
 		tc.config.GMSupport = &gmtls.GMSupport{}
 		tc.config.MinVersion = gmtls.VersionGMSSL

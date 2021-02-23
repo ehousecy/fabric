@@ -4,6 +4,10 @@
 ## 简介
 本项目涵盖 Fabric、Fabric CA、 Fabric SDK和fabric-chaincode-go 的全链路国密改造
 
+## 说明
+- 国密库：[中国网安go语言国密库](https://github.com/Hyperledger-TWGC/ccs-gm)
+- TLS模式：单证书模式
+
 ## 相关项目
 * [国密化CA](https://github.com/ehousecy/fabric-ca)
 * [国密化GO-SDK](https://github.com/ehousecy/fabric-sdk-go)
@@ -102,7 +106,10 @@ cd test-network
 
 ###### 5.1 修改fabric-samples/fabcar/go/go.mod
 ````
-replace github.com/hyperledger/fabric-sdk-go => github.com/ehousecy/fabric-sdk-go ccs-gm
+replace (
+  github.com/hyperledger/fabric-sdk-go => github.com/ehousecy/fabric-sdk-go ccs-gm
+  github.com/Hyperledger-TWGC/ccs-gm => github.com/ehousecy/ccs-gm dev
+)
 ````
 ###### 5.2 修改脚本fabric-samples/fabcar/go/runfabcar.sh,编译时指定单证书模式
 ```
