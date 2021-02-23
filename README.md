@@ -1,89 +1,187 @@
-# Hyperledger Fabric [![join the chat][rocketchat-image]][rocketchat-url]
+# Hyperledger Fabric 国密版
+>> 这是基于fabric 2.2修改的支持国密算法的fabric，已通过命令行完成网络部署以及链码操作测试。
 
-[rocketchat-url]: https://chat.hyperledger.org/channel/fabric
-[rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
+## 简介
+本项目涵盖 Fabric、Fabric CA、 Fabric SDK和fabric-chaincode-go 的全链路国密改造
 
-[![Build Status](https://dev.azure.com/Hyperledger/Fabric/_apis/build/status/Merge?branchName=master)](https://dev.azure.com/Hyperledger/Fabric/_build/latest?definitionId=51&branchName=master)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/955/badge)](https://bestpractices.coreinfrastructure.org/projects/955)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hyperledger/fabric)](https://goreportcard.com/report/github.com/hyperledger/fabric)
-[![GoDoc](https://godoc.org/github.com/hyperledger/fabric?status.svg)](https://godoc.org/github.com/hyperledger/fabric)
-[![Documentation Status](https://readthedocs.org/projects/hyperledger-fabric/badge/?version=master)](http://hyperledger-fabric.readthedocs.io/en/master/?badge=master)
+## 相关项目
+* [国密化CA](https://github.com/ehousecy/fabric-ca)
+* [国密化GO-SDK](https://github.com/ehousecy/fabric-sdk-go)
+* [国密化FABRIC-CHAINCODE-GO](https://github.com/ehousecy/fabric-chaincode-go)
 
-This project is an _Active_ Hyperledger project. For more information on the history of this project see the [Fabric wiki page](https://wiki.hyperledger.org/display/fabric). Information on what _Active_ entails can be found in
-the [Hyperledger Project Lifecycle document](https://wiki.hyperledger.org/display/HYP/Project+Lifecycle).
-Hyperledger Fabric is a platform for distributed ledger solutions, underpinned
-by a modular architecture delivering high degrees of confidentiality,
-resiliency, flexibility and scalability. It is designed to support pluggable
-implementations of different components, and accommodate the complexity and
-intricacies that exist across the economic ecosystem.
+## 改造思路
+- [x] bccsp增加国密支持
+- [x] 证书生成工具兼容ecdsa和gm
+    - [x] cryptogen generate新增--useGM选项,需要生成国密证书时需加入这个参数(!注意这个参与不需要赋值--useGM 指定即可)
+    - [x] cryptogen generate新增--useGMTLS选项,需要生成国密TLS证书时需加入这个参数(!注意这个参与不需要赋值--useGMTLS 指定即可)
+- [x] 引用替换。主要是crypto/x509和crypto/tls的替换
+- [x] TLS国密支持
+    - [x] 修改思路
+        - [x] 以Credential作为修改入口，首先修改pkg/comm下的client、server和connection等文件,然后引用的地方做修改和兼容
+        - [x] 增加grpc credential实现  
+        - [x] x509.Certificate和x509.newCertPool()相关的地方做适配
+        - [x] tls加密套件增加国密支持
+- [x] 智能合约交互增加国密支持
+  - [x] 自签名TLS根证书增加国密支持
+- [x] 代码适配
 
-Hyperledger Fabric delivers a uniquely elastic and extensible architecture,
-distinguishing it from alternative blockchain solutions. Planning for the
-future of enterprise blockchain requires building on top of a fully-vetted,
-open source architecture; Hyperledger Fabric is your starting point.
+## 项目测试
 
-## Releases
+###### 1. 下载&编译项目
+```
+# 下载fabric-ca项目，编译并拷贝可执行文件
+git clone https://github.com/ehousecy/fabric-ca
+cd fabric-ca && git checkout ccs-gm
+make native && make make docker
+cp bin/* /usr/local/bin/
 
-Fabric provides a release approximately once every four months with new features
-and improvements. Additionally, certain releases are designated as long-term
-support (LTS) releases. Important fixes will be backported to the most recent
-LTS release, and to the prior LTS release during periods of LTS release overlap.
-For more details see the [LTS strategy](https://github.com/hyperledger/fabric-rfcs/blob/master/text/0005-lts-release-strategy.md).
+# 下载fabric项目，编译并拷贝可执行文件
+git clone https://github.com/ehousecy/fabric
+cd fabric && git checkout develop
+make native && make docker
+cp build/bin/* /usr/local/bin/
+```
 
-LTS releases:
-- [v2.2.x](https://hyperledger-fabric.readthedocs.io/en/release-2.2/whatsnew.html) (current LTS release)
-- [v1.4.x](https://hyperledger-fabric.readthedocs.io/en/release-1.4/whatsnew.html) (prior LTS release, maintained through April 2021)
+###### 2. 生成证书(fabric-ca专用，使用cryptogen可跳过)
+- fabric-ca-server
+```
+# 启动时重写如下环境变量：
+FABRIC_CA_SERVER_CSR_KEYREQUEST_ALGO=gmsm2 //默认是ecdsa
+FABRIC_CA_SERVER_CSR_KEYREQUEST_SIZE=256   //默认是256
+```
+- fabric-ca-client
+```
+# 客户端 register/enroll/reenroll... 需指定keyRequest的算法和大小(默认是ecdsa/256)
+--csr.keyrequest.algo gmsm2 --csr.keyrequest.size 256
+```
 
-Unless specified otherwise, all releases will be upgradable from the prior minor release.
-Additionally, each LTS release is upgradable to the next LTS release.
+###### 3. 下载测试库及配置
+```
+git clone https://github.com/hyperledger/fabric-samples
+```
+####### 3.1 修改配置
+- 使用fabric-ca签发的证书
+```
+# 将证书拷贝到fabric-samples/test-network/organizations/下，然后轻量修改network.sh脚本
+function networkUp() {
 
-Fabric releases and release notes can be found on the [GitHub releases page](https://github.com/hyperledger/fabric/releases).
+  checkPrereqs
+  # generate artifacts if they don't exist
+  if [ ! -d "organizations/peerOrganizations" ]; then
+    createOrgs
+  fi
+  generateCCP
+```
+- 使用cryptogen
+```
+# 生成国密密钥及证书
+network.sh:
+    cryptogen generate 加上--useGM --useGMTLS
+```
 
-Please visit the [Hyperledger Fabric Jira dashboard](https://jira.hyperledger.org/secure/Dashboard.jspa?selectPageId=10104) for our release roadmap.
+####### 3.2 修改智能合约
+```
+# 3.2.1 修改fabric-samples/chaincode/fabcar/go/go.mod
+# 3.2.1.1 首先通过命令获取fabric-chaincode-go版本号
+go get github.com/ehousecy/fabric-chaincode-go@ccs-gm
+# 3.2.1.2 go.mod添加replace
+replace (
+	github.com/hyperledger/fabric-chaincode-go => github.com/ehousecy/fabric-chaincode-go v0.0.0-20210223060054-45621447fc36
+)
+```
 
-Follow the release discussion on the [#fabric-release](https://chat.hyperledger.org/channel/fabric-release) channel in RocketChat.
+###### 4. 初始化区块链网络
+```
+cd test-network
+./network.sh up -i 2.2.0
+./network.sh createChannel
+./network.sh deployCC -ccn fabcar -ccp ../chaincode/fabcar/go -ccl go -ccep "OR('Org1MSP.member','Org2MSP.member')" -ccv v1.0 -ccs 1
+```
 
-## Documentation, Getting Started and Developer Guides
+###### 5. SDK调用
 
-Please visit our
-online documentation for
-information on getting started using and developing with the fabric, SDK and chaincode:
-- [v2.2](http://hyperledger-fabric.readthedocs.io/en/release-2.2/)
-- [v2.1](http://hyperledger-fabric.readthedocs.io/en/release-2.1/)
-- [v2.0](http://hyperledger-fabric.readthedocs.io/en/release-2.0/)
-- [v1.4](http://hyperledger-fabric.readthedocs.io/en/release-1.4/)
-- [v1.3](http://hyperledger-fabric.readthedocs.io/en/release-1.3/)
-- [v1.2](http://hyperledger-fabric.readthedocs.io/en/release-1.2/)
-- [v1.1](http://hyperledger-fabric.readthedocs.io/en/release-1.1/)
-- [v1.0](http://hyperledger-fabric.readthedocs.io/en/release-1.0/)
-- [master branch (development)](http://hyperledger-fabric.readthedocs.io/en/master/)
+####### 5.1 使用fabric-sampels/fabcar/go 作为示例
 
-It's recommended for first-time users to begin by going through the Getting Started section of the documentation in order to gain familiarity with the Hyperledger Fabric components and the basic transaction flow.
+####### 5.2 修改脚本runfabcar.sh,编译时指定单证书模式
+```
+go run -tags=single_cert fabcar.go
+```
+####### 5.3 调用
+```
+sh runfabcar.sh
+```
+####### 5.4 如果想使用go-sdk ca部分功能，可以参考如下代码:
+```
+func registerAndEnroll() error{
+	userCertPath := filepath.Join(".",name+"@Org1MSP-cert.pem")
+	if exist,_ :=PathExists(userCertPath); exist{
+		log.Printf("User :%s exist ,skip enroll", name)
+		return nil
+	}
+	ccpPath := filepath.Join(
+		"..",
+		"..",
+		"test-network",
+		"organizations",
+		"peerOrganizations",
+		"org1.example.com",
+		"connection-org1.yaml",
+	)
+	sdk, err := fabsdk.New(config.FromFile(ccpPath))
+	if err != nil{
+		return fmt.Errorf("Create sdk instance failed %s",err)
+	}
 
-## Contributing
+	// Get the Client.
+	// Without WithOrg option, uses default client organization.
+	caClient, err := caclient.New(sdk.Context())
+	if err != nil{
+		return fmt.Errorf("Create caClient failed %s",err)
+	}
+	_, err = caClient.Register(&caclient.RegistrationRequest{Name: name,Secret: "123456"})
 
-We welcome contributions to the Hyperledger Fabric project in many forms.
-There’s always plenty to do! Check [the documentation on how to contribute to this project](http://hyperledger-fabric.readthedocs.io/en/latest/CONTRIBUTING.html)
-for the full details.
+	if err != nil{
+		return fmt.Errorf("Register failed %s",err)
+	}
+    
+	err = caClient.Enroll(name, caclient.WithSecret("123456"), caclient.WithCSR(&caclient.CSRInfo{
+		KeyRequest: &caclient.KeyRequest{
+			Algo: "gmsm2",
+			Size: 256,
+		},
+	}))
+	if err != nil{
+		return fmt.Errorf("Enroll failed %s",err)
+	}
+	return nil
+}
+```
 
-## Community
 
-[Hyperledger Community](https://www.hyperledger.org/community)
+## 常见问题
 
-[Hyperledger mailing lists and archives](http://lists.hyperledger.org/)
+```
+Error starting fabcar chaincode: failed to parse client key pair
+#解决方案：合约依赖改为国密支持的
+```
+```
+import cycle not allowed
+package github.com/hyperledger/fabric/cmd/peer
+imports github.com/hyperledger/fabric/internal/peer/chaincode
+imports github.com/hyperledger/fabric/core/common/ccprovider
+imports github.com/hyperledger/fabric/core/common/privdata
+imports github.com/hyperledger/fabric/common/cauthdsl
+imports github.com/hyperledger/fabric/common/policies
+imports github.com/hyperledger/fabric/msp
+imports github.com/hyperledger/fabric/msp/gm
+imports github.com/hyperledger/fabric/msp
+#解决方案：重新梳理代码层级结构
+```
+```
+2021-01-20 02:12:34.480 UTC [chaincode.accesscontrol] authenticate -> WARN 230e TLS is active but chaincode fabcar_v1.0:38e9938f7924ada1c42cbcc1e406c77ad2a52f771cf8fe550360b09a307d17f3 didn't send certificate
+#解决方案：credentials类型出现了问题，需替换成gmcredentials
+```
 
-[Hyperledger Chat](http://chat.hyperledger.org/channel/fabric)
+## 关于我们
+国密化改造工作主要由ehousecy完成，想要了解更多/商业合作/联系我们，欢迎访问我们的[官网](https://ebaas.com/)。
 
-[Hyperledger Fabric Issue Tracking (JIRA)](https://jira.hyperledger.org/secure/Dashboard.jspa?selectPageId=10104)
-
-[Hyperledger Fabric Wiki](https://wiki.hyperledger.org/display/Fabric)
-
-[Hyperledger Wiki](https://wiki.hyperledger.org/)
-
-[Hyperledger Code of Conduct](https://wiki.hyperledger.org/display/HYP/Hyperledger+Code+of+Conduct)
-
-[Community Calendar](https://wiki.hyperledger.org/display/HYP/Calendar+of+Public+Meetings)
-
-## License <a name="license"></a>
-
-Hyperledger Project source code files are made available under the Apache License, Version 2.0 (Apache-2.0), located in the [LICENSE](LICENSE) file. Hyperledger Project documentation files are made available under the Creative Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/.

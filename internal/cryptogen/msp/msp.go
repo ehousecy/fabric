@@ -8,7 +8,7 @@ package msp
 import (
 	"crypto/x509"
 	"encoding/pem"
-	GMX509 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"os"
 	"path/filepath"
 
@@ -91,8 +91,8 @@ func GenerateLocalMSP(
 			ous,
 			nil,
 			&priv.PublicKey,
-			GMX509.KeyUsageDigitalSignature,
-			[]GMX509.ExtKeyUsage{},
+			x509GM.KeyUsageDigitalSignature,
+			[]x509GM.ExtKeyUsage{},
 		)
 		if err != nil {
 			return err
@@ -174,9 +174,9 @@ func GenerateLocalMSP(
 			nil,
 			sans,
 			&tlsPrivKey.PublicKey,
-			GMX509.KeyUsageDigitalSignature|GMX509.KeyUsageKeyEncipherment,
-			[]GMX509.ExtKeyUsage{GMX509.ExtKeyUsageServerAuth,
-				GMX509.ExtKeyUsageClientAuth},
+			x509GM.KeyUsageDigitalSignature|x509GM.KeyUsageKeyEncipherment,
+			[]x509GM.ExtKeyUsage{x509GM.ExtKeyUsageServerAuth,
+				x509GM.ExtKeyUsageClientAuth},
 		)
 		if err != nil {
 			return err
@@ -286,8 +286,8 @@ func GenerateVerifyingMSP(
 			nil,
 			nil,
 			&priv.PublicKey,
-			GMX509.KeyUsageDigitalSignature,
-			[]GMX509.ExtKeyUsage{},
+			x509GM.KeyUsageDigitalSignature,
+			[]x509GM.ExtKeyUsage{},
 		)
 		if err != nil {
 			return err
@@ -346,8 +346,8 @@ func x509Export(path string, cert interface{}) error {
 	switch cert.(type) {
 	case *x509.Certificate:
 		return pemExport(path, "CERTIFICATE", cert.(*x509.Certificate).Raw)
-	case *GMX509.Certificate:
-		return pemExport(path, "CERTIFICATE", cert.(*GMX509.Certificate).Raw)
+	case *x509GM.Certificate:
+		return pemExport(path, "CERTIFICATE", cert.(*x509GM.Certificate).Raw)
 	default:
 		return errors.Errorf("Unsupport certificate type2 %s",cert)
 	}

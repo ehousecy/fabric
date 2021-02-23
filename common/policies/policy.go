@@ -7,9 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 package policies
 
 import (
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -413,7 +413,7 @@ func logMessageForSerializedIdentity(serializedIdentity []byte) (string, error) 
 		// identity bytes
 		return fmt.Sprintf("serialized-identity=%x", serializedIdentity), nil
 	}
-	cert, err := x509.ParseCertificate(pemBlock.Bytes)
+	cert, err := x509GM.ParseCertificate(pemBlock.Bytes)
 	if err != nil {
 		return "", errors.Wrap(err, "parsing certificate")
 	}

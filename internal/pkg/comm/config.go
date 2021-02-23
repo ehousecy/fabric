@@ -42,7 +42,7 @@ var (
 		tls.GMTLS_ECDHE_SM2_WITH_SM4_SM3,
 	}
 	// default connection timeout
-	DefaultConnectionTimeout = 50 * time.Second
+	DefaultConnectionTimeout = 5 * time.Second
 )
 
 // ServerConfig defines the parameters for configuring a GRPCServer instance

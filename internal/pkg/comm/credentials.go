@@ -3,13 +3,14 @@ package comm
 import (
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
 	"google.golang.org/grpc/credentials"
 	"io/ioutil"
 	"net"
 	"strings"
 
 	gmtls "github.com/Hyperledger-TWGC/ccs-gm/tls"
-	sm2 "github.com/Hyperledger-TWGC/ccs-gm/x509"
+	x509GM "github.com/Hyperledger-TWGC/ccs-gm/x509"
 	"golang.org/x/net/context"
 )
 
@@ -137,7 +138,22 @@ func (c *tlsCreds) OverrideServerName(serverNameOverride string) error {
 // NewTLS uses c to construct a TransportCredentials based on TLS.
 func NewTLS(c *gmtls.Config) credentials.TransportCredentials {
 	tc := &tlsCreds{cloneTLSConfig(c)}
-	if IsGM(){
+	isGM := false
+	if len(c.Certificates) > 0 {
+		_, ok := c.Certificates[0].PrivateKey.(*sm2.PrivateKey)
+		if ok {
+			isGM = true
+		}
+	} else {
+		certs := c.RootCAs.GetCerts()
+		if len(certs) > 0 {
+			if _, ok := certs[0].PublicKey.(*sm2.PublicKey); ok {
+				isGM = true
+			}
+		}
+	}
+	fmt.Printf("New Tls is GM: %v \n",isGM)
+	if isGM {
 		tc.config.GMSupport = &gmtls.GMSupport{}
 		tc.config.MinVersion = gmtls.VersionGMSSL
 	}else{
@@ -151,7 +167,7 @@ func NewTLS(c *gmtls.Config) credentials.TransportCredentials {
 // NewClientTLSFromCert constructs TLS credentials from the input certificate for client.
 // serverNameOverride is for testing only. If set to a non empty string,
 // it will override the virtual host name of authority (e.g. :authority header field) in requests.
-func NewClientTLSFromCert(cp *sm2.CertPool, serverNameOverride string) credentials.TransportCredentials {
+func NewClientTLSFromCert(cp *x509GM.CertPool, serverNameOverride string) credentials.TransportCredentials {
 	return NewTLS(&gmtls.Config{ServerName: serverNameOverride, RootCAs: cp})
 }
 
@@ -163,7 +179,7 @@ func NewClientTLSFromFile(certFile, serverNameOverride string) (credentials.Tran
 	if err != nil {
 		return nil, err
 	}
-	cp := sm2.NewCertPool()
+	cp := x509GM.NewCertPool()
 	if !cp.AppendCertsFromPEM(b) {
 		return nil, fmt.Errorf("credentials: failed to append certificates")
 	}
