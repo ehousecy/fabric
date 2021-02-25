@@ -41,7 +41,7 @@ func newSM2PrivKey() (*sm2.PrivateKey, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	privBytes, err := x509GM.MarshalECPrivateKey(privateKey)
+	privBytes, err := x509GM.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
 		return nil, nil, err
 	}

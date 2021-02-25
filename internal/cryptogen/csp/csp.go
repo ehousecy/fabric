@@ -109,7 +109,7 @@ func GenerateSM2PrivateKey(keystorePath string) (*sm2.PrivateKey, error) {
 		return nil, errors.WithMessage(err, "failed to generate private key")
 	}
 
-	pkcs8Encoded, err := x509GM.MarshalECPrivateKey(priv)
+	pkcs8Encoded, err := x509GM.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to marshal private key")
 	}
