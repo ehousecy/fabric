@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// bccspCryptoSigner is the BCCSP-based implementation of a crypto.Signer
-type bccspCryptoSigner struct {
+// BccspCryptoSigner is the BCCSP-based implementation of a crypto.Signer
+type BccspCryptoSigner struct {
 	csp bccsp.BCCSP
 	key bccsp.Key
 	pk  interface{}
@@ -52,12 +52,12 @@ func New(csp bccsp.BCCSP, key bccsp.Key) (crypto.Signer, error) {
 		return nil, errors.Wrap(err, "failed marshalling der to public key")
 	}
 
-	return &bccspCryptoSigner{csp, key, pk}, nil
+	return &BccspCryptoSigner{csp, key, pk}, nil
 }
 
 // Public returns the public key corresponding to the opaque,
 // private key.
-func (s *bccspCryptoSigner) Public() crypto.PublicKey {
+func (s *BccspCryptoSigner) Public() crypto.PublicKey {
 	return s.pk
 }
 
@@ -73,6 +73,6 @@ func (s *bccspCryptoSigner) Public() crypto.PublicKey {
 // Note that when a signature of a hash of a larger message is needed,
 // the caller is responsible for hashing the larger message and passing
 // the hash (as digest) and the hash function (as opts) to Sign.
-func (s *bccspCryptoSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (s *BccspCryptoSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	return s.csp.Sign(s.key, digest, opts)
 }

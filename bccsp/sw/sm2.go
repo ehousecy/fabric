@@ -166,3 +166,9 @@ func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 	return s.Cmp(halfOrder) != 1, nil
 
 }
+
+type gmsm2Decryptor struct{}
+
+func (*gmsm2Decryptor) Decrypt(k bccsp.Key, ciphertext []byte, opts bccsp.DecrypterOpts) (plaintext []byte, err error) {
+	return sm2.Decrypt(ciphertext,k.(*gmsm2PrivateKey).privKey)
+}

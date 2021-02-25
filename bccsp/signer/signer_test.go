@@ -68,7 +68,7 @@ func TestInit(t *testing.T) {
 
 func TestPublic(t *testing.T) {
 	pk := &mocks.MockKey{}
-	signer := &bccspCryptoSigner{pk: pk}
+	signer := &BccspCryptoSigner{pk: pk}
 
 	pk2 := signer.Public()
 	assert.NotNil(t, pk, pk2)
@@ -80,7 +80,7 @@ func TestSign(t *testing.T) {
 	expectedDigest := []byte{0, 1, 2, 3, 4, 5}
 	expectedOpts := &mocks.SignerOpts{}
 
-	signer := &bccspCryptoSigner{
+	signer := &BccspCryptoSigner{
 		key: expectedKey,
 		csp: &mocks.MockBCCSP{
 			SignArgKey: expectedKey, SignDigestArg: expectedDigest, SignOptsArg: expectedOpts,
@@ -89,7 +89,7 @@ func TestSign(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedSig, signature)
 
-	signer = &bccspCryptoSigner{
+	signer = &BccspCryptoSigner{
 		key: expectedKey,
 		csp: &mocks.MockBCCSP{
 			SignArgKey: expectedKey, SignDigestArg: expectedDigest, SignOptsArg: expectedOpts,
@@ -98,21 +98,21 @@ func TestSign(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "no signature")
 
-	signer = &bccspCryptoSigner{
+	signer = &BccspCryptoSigner{
 		key: nil,
 		csp: &mocks.MockBCCSP{SignArgKey: expectedKey, SignDigestArg: expectedDigest, SignOptsArg: expectedOpts}}
 	_, err = signer.Sign(nil, expectedDigest, expectedOpts)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "invalid key")
 
-	signer = &bccspCryptoSigner{
+	signer = &BccspCryptoSigner{
 		key: expectedKey,
 		csp: &mocks.MockBCCSP{SignArgKey: expectedKey, SignDigestArg: expectedDigest, SignOptsArg: expectedOpts}}
 	_, err = signer.Sign(nil, nil, expectedOpts)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "invalid digest")
 
-	signer = &bccspCryptoSigner{
+	signer = &BccspCryptoSigner{
 		key: expectedKey,
 		csp: &mocks.MockBCCSP{SignArgKey: expectedKey, SignDigestArg: expectedDigest, SignOptsArg: expectedOpts}}
 	_, err = signer.Sign(nil, expectedDigest, nil)

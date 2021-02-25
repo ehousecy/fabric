@@ -12,10 +12,11 @@ package utils
 
 import (
 	"crypto/ecdsa"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/Hyperledger-TWGC/ccs-gm/sm2"
+	"github.com/Hyperledger-TWGC/ccs-gm/x509"
 )
 
 func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
@@ -34,7 +35,7 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 
 	if key, err = x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key.(type) {
-		case *ecdsa.PrivateKey:
+		case *ecdsa.PrivateKey,*sm2.PrivateKey:
 			return
 		default:
 			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
