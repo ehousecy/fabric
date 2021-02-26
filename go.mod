@@ -4,7 +4,7 @@ go 1.14
 
 // https://github.com/golang/go/issues/34610
 replace (
-	github.com/Hyperledger-TWGC/ccs-gm => github.com/ehousecy/ccs-gm v0.1.2-0.20210224094749-85f00c7eaf60
+	github.com/Hyperledger-TWGC/ccs-gm => github.com/ehousecy/ccs-gm v0.1.2-0.20210226013248-cc995c360aed
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20190920190810-ef0ce1748380
 )
 

@@ -77,7 +77,7 @@ METADATA_VAR += BaseDockerLabel=$(BASE_DOCKER_LABEL)
 METADATA_VAR += DockerNamespace=$(DOCKER_NS)
 
 GO_VER = 1.14.12
-GO_TAGS ?=single_cert
+GO_TAGS ?=
 
 RELEASE_EXES = orderer $(TOOLS_EXES)
 RELEASE_IMAGES = baseos ccenv orderer peer tools

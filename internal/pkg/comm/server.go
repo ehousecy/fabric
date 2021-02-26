@@ -89,6 +89,7 @@ func NewGRPCServerFromListener(listener net.Listener, serverConfig ServerConfig)
 			}
 
 			grpcServer.tls = NewTLSConfig(&tls.Config{
+				Certificates: []tls.Certificate{grpcServer.serverCertificate.Load().(tls.Certificate),grpcServer.serverCertificate.Load().(tls.Certificate)},
 				MinVersion:             tls.VersionTLS12,
 				VerifyPeerCertificate:  secureConfig.VerifyCertificate,
 				GetCertificate:         getCert,

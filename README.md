@@ -6,7 +6,7 @@
 
 ## 说明
 - 国密库：[中国网安go语言国密库](https://github.com/Hyperledger-TWGC/ccs-gm)
-- TLS模式：单证书模式
+- TLS模式：双证书模式(暂时使用同一证书)
 
 ## 相关项目
 * [国密化CA](https://github.com/ehousecy/fabric-ca)
@@ -111,15 +111,11 @@ replace (
   github.com/Hyperledger-TWGC/ccs-gm => github.com/ehousecy/ccs-gm dev
 )
 ````
-###### 5.2 修改脚本fabric-samples/fabcar/go/runfabcar.sh,编译时指定单证书模式
-```
-go run -tags=single_cert fabcar.go
-```
-###### 5.3 调用
+###### 5.2 调用
 ```
 sh runfabcar.sh
 ```
-###### 5.4 如果想使用go-sdk ca部分功能，可以参考如下代码:
+###### 5.3 如果想使用go-sdk ca部分功能，可以参考如下代码:
 ```
 func registerAndEnroll() error{
 	userCertPath := filepath.Join(".",name+"@Org1MSP-cert.pem")

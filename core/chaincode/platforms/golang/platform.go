@@ -194,7 +194,7 @@ func (p *Platform) GenerateDockerfile() (string, error) {
 	return strings.Join(buf, "\n"), nil
 }
 
-const staticLDFlagsOpts = "-tags single_cert -ldflags \"-linkmode external -extldflags '-static'\""
+const staticLDFlagsOpts = "-ldflags \"-linkmode external -extldflags '-static'\""
 const dynamicLDFlagsOpts = ""
 
 func getLDFlagsOpts() string {
